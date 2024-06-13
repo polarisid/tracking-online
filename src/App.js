@@ -180,13 +180,13 @@ const App = () => {
 
   return (
     <div className="App">
-      <h1>Spreadsheet Analyzer</h1>
+      <h1>TRACKING ONLINE BETA</h1>
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
       {loading && <p>Uploading...</p>}
       {message && <p>{message}</p>}
       {data.length > 0 && (
         <>
-          <h2>Table 1</h2>
+          <h2>DTV</h2>
           <table>
             <thead>
               <tr>
@@ -206,7 +206,7 @@ const App = () => {
             </tbody>
           </table>
 
-          <h2>Table 2</h2>
+          <h2>RAC/REF</h2>
           <table>
             <thead>
               <tr>
@@ -226,7 +226,7 @@ const App = () => {
             </tbody>
           </table>
 
-          <h2>Table 3</h2>
+          <h2>WSM</h2>
           <table>
             <thead>
               <tr>
