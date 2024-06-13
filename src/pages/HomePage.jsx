@@ -133,7 +133,7 @@ const HomePage = () => {
 
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
-  const columnsToShow_intoogle = [1, 9, 14, 15, 37, 24, 61];
+  const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
 
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
   const sortData = (filteredData) => {
