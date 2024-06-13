@@ -130,38 +130,43 @@ const App = () => {
 
   // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
   const applyFilter1 = (row) => {
-    const isCol37Valid = row[36] === "LP";
-    const isCol58Valid = ["LED01", "LED02", "LED03"].includes(row[57]);
-    const isLTP = row[14] > 6;
+    const isCol37Valid = row[37] === "LP";
+    const isCol58Valid = ["LED01", "LED02", "LED03", "LFD01", "LFD02"].includes(
+      row[58]
+    );
+    const isLTP = row[15] > 6;
     return isCol37Valid && isCol58Valid && isLTP;
   };
 
   // Função para aplicar o filtro na coluna 37 e 58 para a segunda tabela
   const applyFilter2 = (row) => {
-    const isCol37Valid = row[36] === "LP";
+    const isCol37Valid = row[37] === "LP";
     const isCol58Valid = [
       "FJM01",
       "RAO01",
       "RAO02",
       "RAC01",
       "RAC02",
+      "RAC03",
+      "RAS01",
+      "SBS01",
       "REF01",
       "REF02",
-    ].includes(row[57]);
-    const isLTP = row[14] > 4;
+    ].includes(row[58]);
+    const isLTP = row[15] > 4;
     return isCol37Valid && isCol58Valid && isLTP;
   };
 
   // Função para aplicar o filtro na coluna 37 e 58 para a terceira tabela
   const applyFilter3 = (row) => {
-    const isCol37Valid = row[36] === "LP";
-    const isCol58Valid = ["SWM01", "SWM03"].includes(row[57]);
-    const isLTP = row[14] > 6;
+    const isCol37Valid = row[37] === "LP";
+    const isCol58Valid = ["SWM01", "SWM03"].includes(row[58]);
+    const isLTP = row[15] > 6;
     return isCol37Valid && isCol58Valid && isLTP;
   };
 
   // Índices das colunas que queremos exibir (baseado em zero)
-  const columnsToShow = [1, 8, 13, 14, 36, 60];
+  const columnsToShow = [1, 9, 14, 15, 37, 61];
 
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
   const sortData = (filteredData) => {
