@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
 import "./App.css";
-import styled from "styled-components";
 import HomePage from "./pages/HomePage";
 const App = () => {
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
+import styled from "styled-components";
 const HomePage = () => {
   const useToggle = (initialState) => {
     const [toggleValue, setToggleValue] = useState(initialState);
@@ -26,6 +27,9 @@ const HomePage = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [matchCount, setMatchCount] = useState(0);
+  const [totalRows, setTotalRows] = useState(0);
+  const [averageValue, setAverageValue] = useState(0);
 
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
@@ -120,6 +124,13 @@ const HomePage = () => {
     return isCol37Valid && isLTPnear && isLTPnearby;
   };
 
+  const applyFilter6 = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isEffect = row[22] == row[24];
+
+    return isCol37Valid && isEffect;
+  };
+
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
   const columnsToShow_intoogle = [1, 9, 14, 15, 37, 24, 61];
@@ -140,15 +151,59 @@ const HomePage = () => {
   const filteredAndSortedData3 = sortData(data.slice(1).filter(applyFilter3));
   const filteredAndSortedData4 = sortData(data.slice(1).filter(applyFilter4));
   const filteredAndSortedData5 = sortData(data.slice(1).filter(applyFilter5));
+  const filteredAndSortedData6 = sortData(data.slice(1).filter(applyFilter6));
+
+  const all_lp_vd = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isCol58Valid = ["LED01", "LED02", "LED03", "LFD01", "LFD02"].includes(
+      row[58]
+    );
+    return isCol37Valid && isCol58Valid;
+  };
+
+  const all_lp_DA = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isCol58Valid = [
+      "SWM01",
+      "SWM03",
+      "FJM01",
+      "RAO01",
+      "RAO02",
+      "RAC01",
+      "RAC02",
+      "RAC03",
+      "RAS01",
+      "SBS01",
+      "REF01",
+      "REF02",
+    ].includes(row[58]);
+    return isCol37Valid && isCol58Valid;
+  };
+
+  const filteredAndSortedData7 = sortData(data.slice(1).filter(all_lp_vd));
+  const filteredAndSortedData8 = sortData(data.slice(1).filter(all_lp_DA));
+
+  const midVar = data.slice(1).filter(all_lp_vd);
+  const midVar2 = data.slice(1).filter(all_lp_DA);
+
+  const matches = filteredAndSortedData7.length;
+  const sum = midVar.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
+  const average = matches > 0 ? sum / matches : 0;
+  //   setAverageValue(average);
+
+  const matches2 = filteredAndSortedData8.length;
+  const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
+  const average2 = matches2 > 0 ? sum2 / matches2 : 0;
+
   return (
-    <>
+    <MainContainer>
       <HeaderComponent />
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
       {loading && <p>Uploading...</p>}
       {message && <p>{message}</p>}
       {data.length > 0 && (
         <>
-          <h2>EM LTP DTV</h2>
+          <h2>EM LTP DTV - RTAT DTV ATUAL {average.toFixed(2)}</h2>
           <table>
             <thead>
               <tr>
@@ -167,7 +222,7 @@ const HomePage = () => {
               ))}
             </tbody>
           </table>
-
+          <h2>RTAT ATUAL DA - {average2.toFixed(2)}</h2>
           <h2> EM LTP RAC/REF</h2>
           <table>
             <thead>
@@ -207,6 +262,26 @@ const HomePage = () => {
               ))}
             </tbody>
           </table>
+
+          <h2>Effect Appointment</h2>
+          <table>
+            <thead>
+              <tr>
+                {columnsToShow_intoogle.map((colIndex) => (
+                  <th key={colIndex}>{data[0][colIndex]}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAndSortedData6.map((row, rowIndex) => (
+                <tr key={rowIndex}>
+                  {columnsToShow_intoogle.map((colIndex) => (
+                    <td key={colIndex}>{row[colIndex]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </>
       )}
 
@@ -214,7 +289,6 @@ const HomePage = () => {
         <button onClick={setToggle} class="btn btn-secondary mb-5">
           Casos de DA sem peça OW e LP
         </button>
-
         {toggle && (
           <table>
             <thead>
@@ -260,8 +334,13 @@ const HomePage = () => {
           </table>
         )}
       </div>
-    </>
+    </MainContainer>
   );
 };
 
+const MainContainer = styled.div`
+  h2 {
+    font-weight: 900;
+  }
+`;
 export default HomePage;

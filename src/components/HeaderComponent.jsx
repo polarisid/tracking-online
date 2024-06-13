@@ -4,7 +4,7 @@ const HeaderComponent = () => {
   return (
     <>
       <Header>
-        <Title>Tracking Base</Title>
+        <Title>Tracking Online</Title>
       </Header>
     </>
   );
