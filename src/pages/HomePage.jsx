@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
 import styled from "styled-components";
+import ToggleableComponent from "../components/ToggleableComponent";
+
 const HomePage = () => {
   const useToggle = (initialState) => {
     const [toggleValue, setToggleValue] = useState(initialState);
@@ -31,6 +33,32 @@ const HomePage = () => {
   const [totalRows, setTotalRows] = useState(0);
   const [averageValue, setAverageValue] = useState(0);
 
+  const [isVisible, setIsVisible] = useState(false);
+
+  // const toggleVisibility = () => {
+  //   setIsVisible(!isVisible);
+  // };
+
+  const [visibleComponents, setVisibleComponents] = useState({
+    1: false,
+    2: false,
+    3: false,
+    4: false,
+    5: false,
+    6: false,
+    7: false,
+    8: false,
+    9: false,
+    10: false,
+  });
+
+  const toggleVisibility = (id) => {
+    setVisibleComponents((prevState) => ({
+      ...prevState,
+      [id]: !prevState[id],
+    }));
+  };
+
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
     setFile(uploadedFile);
@@ -59,18 +87,41 @@ const HomePage = () => {
   };
 
   // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
-  const applyFilter1 = (row) => {
+  const filter_VD_LTP_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
-    const isCol58Valid = ["LED01", "LED02", "LED03", "LFD01", "LFD02"].includes(
-      row[58]
-    );
+    const isInHome = row[34] === "IH";
+    const isCol58Valid = [
+      "LED01",
+      "LED02",
+      "LED03",
+      "LFD01",
+      "LFD02",
+      "HTS01",
+      "PJT01",
+      "TFT01",
+      "TFT02",
+    ].includes(row[58]);
     const isLTP = row[15] > 6;
-    return isCol37Valid && isCol58Valid && isLTP;
+    return isCol37Valid && isCol58Valid && isLTP && isInHome;
   };
+  const today = new Date();
 
+  function formatDate(date, format) {
+    const map = {
+      mm: date.getMonth() + 1,
+      dd: date.getDate(),
+      yy: date.getFullYear().toString().slice(-2),
+      yyyy: date.getFullYear(),
+    };
+
+    return format.replace(/mm|dd|yy|yyy/gi, (matched) => map[matched]);
+  }
+
+  const today_Form = formatDate(today, "mm/dd/yy");
   // Função para aplicar o filtro na coluna 37 e 58 para a segunda tabela
-  const applyFilter2 = (row) => {
+  const filter_REF_RAC_LTP_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH";
     const isCol58Valid = [
       "FJM01",
       "RAO01",
@@ -84,19 +135,39 @@ const HomePage = () => {
       "REF02",
     ].includes(row[58]);
     const isLTP = row[15] > 4;
-    return isCol37Valid && isCol58Valid && isLTP;
+    return isCol37Valid && isCol58Valid && isLTP && isInHome;
   };
+  const filter_Customer_outdated = (row) => {
+    // const isCol37Valid = row[37] === "LP";
+    const isCol14Valid = row[13] === "HP030";
+    // const isOutadate = row[24] < today;
+    const isLTP = row[15] > 1;
+    // const isInHome = row[34] === "IH";
 
+    return isCol14Valid && isLTP;
+  };
+  const filter_repair_complete_outdated = (row) => {
+    // const isCol37Valid = row[37] === "LP";
+    const isCol14Valid = row[13] === "HL005";
+    const isOutadate = row[27] < today_Form;
+    // const isOutadate = today_Form.getDate() - row[27].getDate() > 0;
+
+    // const isInHome = row[34] === "IH";
+
+    return isCol14Valid && isOutadate;
+  };
   // Função para aplicar o filtro na coluna 37 e 58 para a terceira tabela
-  const applyFilter3 = (row) => {
+  const filter_WSM_LP_LTP = (row) => {
+    const isInHome = row[34] === "IH";
     const isCol37Valid = row[37] === "LP";
     const isCol58Valid = ["SWM01", "SWM03"].includes(row[58]);
     const isLTP = row[15] > 6;
-    return isCol37Valid && isCol58Valid && isLTP;
+    return isCol37Valid && isCol58Valid && isLTP && isInHome;
   };
 
-  const applyFilter4 = (row) => {
+  const filter_DA_noParts = (row) => {
     // const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH";
     const isCol58Valid = [
       "SWM01",
       "SWM03",
@@ -113,27 +184,83 @@ const HomePage = () => {
     ].includes(row[58]);
     const notParts = row[61] == null;
 
-    return isCol58Valid && notParts;
+    return isCol58Valid && notParts && isInHome;
   };
 
-  const applyFilter5 = (row) => {
+  const filter_allNext_LTP = (row) => {
     const isCol37Valid = row[37] === "LP";
-
+    const isInHome = row[34] === "IH";
     const isLTPnear = row[15] > 2;
     const isLTPnearby = row[15] < 7;
-    return isCol37Valid && isLTPnear && isLTPnearby;
+    return isCol37Valid && isLTPnear && isLTPnearby && isInHome;
   };
 
-  const applyFilter6 = (row) => {
+  const filter_isEffect_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
     const isEffect = row[22] == row[24];
+    const isInHome = row[34] === "IH";
 
-    return isCol37Valid && isEffect;
+    return isCol37Valid && isEffect && isInHome;
   };
 
+  const filter_near_isEffect_LP = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isEffect = row[22] > row[24];
+    const isInHome = row[34] === "IH";
+
+    return isCol37Valid && isEffect && isInHome;
+  };
+  const filter_next_isEffect_LP = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isEffect = row[22] < row[24];
+    const isOutadate = row[22] > today_Form;
+
+    const isInHome = row[34] === "IH";
+
+    return isCol37Valid && isEffect && isInHome;
+  };
+
+  const filter_CI_VD_LTP_LP = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isCI = row[34] === "CI";
+    const isCol58Valid = [
+      "LED01",
+      "LED02",
+      "LED03",
+      "LFD01",
+      "LFD02",
+      "HTS01",
+      "PJT01",
+      "TFT01",
+      "TFT02",
+    ].includes(row[58]);
+    const isLTP = row[15] > 2;
+    return isCol37Valid && isCol58Valid && isLTP && isCI;
+  };
+
+  const filter_CI_MX_LTP_LP = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isCI = row[34] === "CI";
+    const isCol58Valid = [
+      "NPC01",
+      "NPC02",
+      "NPC03",
+      "THB01",
+      "THB02",
+      "THB03",
+      "THB05",
+      "THB42",
+      "THB43",
+      "THB96",
+    ].includes(row[58]);
+    const isLTP = row[15] > 2;
+    return isCol37Valid && isCol58Valid && isLTP && isCI;
+  };
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
   const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
+  const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 24, 27];
+  const columnsToShow_type_service = [1, 9, 14, 15, 37, 22, 34];
 
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
   const sortData = (filteredData) => {
@@ -146,23 +273,74 @@ const HomePage = () => {
     });
   };
 
-  const filteredAndSortedData1 = sortData(data.slice(1).filter(applyFilter1));
-  const filteredAndSortedData2 = sortData(data.slice(1).filter(applyFilter2));
-  const filteredAndSortedData3 = sortData(data.slice(1).filter(applyFilter3));
-  const filteredAndSortedData4 = sortData(data.slice(1).filter(applyFilter4));
-  const filteredAndSortedData5 = sortData(data.slice(1).filter(applyFilter5));
-  const filteredAndSortedData6 = sortData(data.slice(1).filter(applyFilter6));
+  const filteredAndSortedData1 = sortData(
+    data.slice(1).filter(filter_VD_LTP_LP)
+  );
+  const filteredAndSortedData2 = sortData(
+    data.slice(1).filter(filter_REF_RAC_LTP_LP)
+  );
+  const filteredAndSortedData3 = sortData(
+    data.slice(1).filter(filter_WSM_LP_LTP)
+  );
+  const filteredAndSortedData4 = sortData(
+    data.slice(1).filter(filter_DA_noParts)
+  );
+  const filteredAndSortedData5 = sortData(
+    data.slice(1).filter(filter_allNext_LTP)
+  );
+  const filteredAndSortedData6 = sortData(
+    data.slice(1).filter(filter_isEffect_LP)
+  );
+
+  const filteredAndSortedData9 = sortData(
+    data.slice(1).filter(filter_CI_VD_LTP_LP)
+  );
+  const filteredAndSortedData10 = sortData(
+    data.slice(1).filter(filter_CI_MX_LTP_LP)
+  );
+  const filteredAndSortedData11 = sortData(
+    data.slice(1).filter(filter_Customer_outdated)
+  );
+  const filteredAndSortedData12 = sortData(
+    data.slice(1).filter(filter_repair_complete_outdated)
+  );
+  const filteredAndSortedData13 = sortData(
+    data.slice(1).filter(filter_near_isEffect_LP)
+  );
+  const filteredAndSortedData14 = sortData(
+    data.slice(1).filter(filter_next_isEffect_LP)
+  );
+
+  const quantity_DA_noParts = filteredAndSortedData4.length;
+
+  const quantity_LTP_VD = filteredAndSortedData1.length;
+  const quantity_LTP_RAC_REF = filteredAndSortedData2.length;
+  const quantity_LTP_WSM = filteredAndSortedData3.length;
+  const quantity_LTP_VD_CI = filteredAndSortedData9.length;
+  const quantity_LTP_MX_CI = filteredAndSortedData10.length;
+  const quantity_Oudated_IH = filteredAndSortedData11.length;
+  const quantity_Oudated_Repair_complete_IH = filteredAndSortedData12.length;
 
   const all_lp_vd = (row) => {
     const isCol37Valid = row[37] === "LP";
-    const isCol58Valid = ["LED01", "LED02", "LED03", "LFD01", "LFD02"].includes(
-      row[58]
-    );
-    return isCol37Valid && isCol58Valid;
+    const isInHome = row[34] === "IH" || row[34] === "CI";
+    const isCol58Valid = [
+      "LED01",
+      "LED02",
+      "LED03",
+      "LFD01",
+      "LFD02",
+      "HTS01",
+      "PJT01",
+      "TFT01",
+      "TFT02",
+    ].includes(row[58]);
+    return isCol37Valid && isCol58Valid && isInHome;
   };
 
   const all_lp_DA = (row) => {
     const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH";
     const isCol58Valid = [
       "SWM01",
       "SWM03",
@@ -177,7 +355,7 @@ const HomePage = () => {
       "REF01",
       "REF02",
     ].includes(row[58]);
-    return isCol37Valid && isCol58Valid;
+    return isCol37Valid && isCol58Valid && isInHome;
   };
 
   const filteredAndSortedData7 = sortData(data.slice(1).filter(all_lp_vd));
@@ -189,7 +367,6 @@ const HomePage = () => {
   const matches = filteredAndSortedData7.length;
   const sum = midVar.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
   const average = matches > 0 ? sum / matches : 0;
-  //   setAverageValue(average);
 
   const matches2 = filteredAndSortedData8.length;
   const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
@@ -199,148 +376,389 @@ const HomePage = () => {
     <MainContainer>
       <HeaderComponent />
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-      {loading && <p>Uploading...</p>}
-      {message && <p>{message}</p>}
+      {loading && <p>Uploading...</p>} {message && <p>{message}</p>}
+      <h1>LTP</h1>
+      <Dashboard>
+        <BlockLTP
+          state={visibleComponents[1]}
+          onClick={() => toggleVisibility(1)}
+        >
+          <h1>LTP VD</h1>
+          <h1>{quantity_LTP_VD} casos</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[2]}
+          onClick={() => toggleVisibility(2)}
+        >
+          <h1>LTP REF/RAC </h1>
+          <h1>{quantity_LTP_RAC_REF} casos</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[3]}
+          onClick={() => toggleVisibility(3)}
+        >
+          <h1>LTP WSM</h1>
+          <h1>{quantity_LTP_WSM} casos</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[4]}
+          onClick={() => toggleVisibility(4)}
+        >
+          <h1>LTP VD CI</h1>
+          <h1>{quantity_LTP_VD_CI} casos</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[5]}
+          onClick={() => toggleVisibility(5)}
+        >
+          <h1>LTP MX CI</h1>
+          <h1>{quantity_LTP_MX_CI} casos</h1>
+        </BlockLTP>
+      </Dashboard>
+      <h1>RTAT - Tempo real</h1>
+      <Dashboard>
+        <BlockLTP>
+          <h1>RTAT VD</h1>
+          <h1>{average.toFixed(2)}</h1>
+        </BlockLTP>
+        <BlockLTP>
+          <h1>RTAT DA</h1>
+          <h1>{average2.toFixed(2)}</h1>
+        </BlockLTP>
+      </Dashboard>
+      <h1>Análise</h1>
+      <Dashboard>
+        <BlockLTP
+          state={visibleComponents[6]}
+          onClick={() => toggleVisibility(6)}
+        >
+          <h1>DA sem peça</h1>
+          <h1>OW e LP</h1>
+          <h1>{quantity_DA_noParts}</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[7]}
+          onClick={() => toggleVisibility(7)}
+        >
+          <h1>LTP IH</h1>
+          <h1> Em até 4 dias</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[8]}
+          onClick={() => toggleVisibility(8)}
+        >
+          <h1>Consumidor fora do prazo</h1>
+          <h1>{quantity_Oudated_IH}</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[9]}
+          onClick={() => toggleVisibility(9)}
+        >
+          <h1>R. completo fora do prazo</h1>
+          <h1>{quantity_Oudated_Repair_complete_IH}</h1>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[10]}
+          onClick={() => toggleVisibility(10)}
+        >
+          <h1>Effect Appointment</h1>
+        </BlockLTP>
+      </Dashboard>
       {data.length > 0 && (
         <>
-          <h2>EM LTP DTV - RTAT DTV ATUAL {average.toFixed(2)}</h2>
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData1.map((row, rowIndex) => (
-                <tr key={rowIndex}>
+          <ToggleableComponent isVisible={visibleComponents[1]}>
+            <h2>EM LTP DTV </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
                   {columnsToShow.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
+                    <th key={colIndex}>{data[0][colIndex]}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <h2>RTAT ATUAL DA - {average2.toFixed(2)}</h2>
-          <h2> EM LTP RAC/REF</h2>
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
+              </thead>
+              <tbody>
+                {filteredAndSortedData1.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData2.map((row, rowIndex) => (
-                <tr key={rowIndex}>
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[2]}>
+            <h2> EM LTP RAC/REF</h2>
+            <table>
+              <thead>
+                <tr>
                   {columnsToShow.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
+                    <th key={colIndex}>{data[0][colIndex]}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <h2>EM LTP WSM</h2>
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
+              </thead>
+              <tbody>
+                {filteredAndSortedData2.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData3.map((row, rowIndex) => (
-                <tr key={rowIndex}>
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[3]}>
+            <h2>EM LTP WSM</h2>
+            <table>
+              <thead>
+                <tr>
                   {columnsToShow.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
+                    <th key={colIndex}>{data[0][colIndex]}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <h2>Effect Appointment</h2>
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow_intoogle.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
+              </thead>
+              <tbody>
+                {filteredAndSortedData3.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData6.map((row, rowIndex) => (
-                <tr key={rowIndex}>
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[4]}>
+            <h2>EM LTP DTV CI</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData9.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[5]}>
+            <h2>EM LTP MX CI</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData10.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[6]}>
+            <h2>DA OW e LP sem peças</h2>
+            <table>
+              <thead>
+                <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
+                    <th key={colIndex}>{data[0][colIndex]}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredAndSortedData4.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_intoogle.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[7]}>
+            <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_intoogle.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData5.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_intoogle.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[8]}>
+            <h2>Consumidor fora do prazo de todos os serviços</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_type_service.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData11.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_type_service.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[9]}>
+            <h2>Reparo comleto fora do prazo de todos os serviços</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_complete_repair.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData12.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_complete_repair.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[10]}>
+            <h2>Effect Appointment</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_intoogle.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData6.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_intoogle.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <h2>Effect Appointment - Corrija estas datas para bater</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_intoogle.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData13.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_intoogle.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <h2>Effect Appointment - Corrija estas datas para bater</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_intoogle.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData14.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_intoogle.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
         </>
       )}
-
-      <div>
-        <button onClick={setToggle} class="btn btn-secondary mb-5">
-          Casos de DA sem peça OW e LP
-        </button>
-        {toggle && (
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow_intoogle.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData4.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <button onClick={setToggle1} class="btn btn-secondary mb-5">
-          Próximos casos a entrar em LTP
-        </button>
-        {toggle1 && (
-          <table>
-            <thead>
-              <tr>
-                {columnsToShow_intoogle.map((colIndex) => (
-                  <th key={colIndex}>{data[0][colIndex]}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedData5.map((row, rowIndex) => (
-                <tr key={rowIndex}>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <td key={colIndex}>{row[colIndex]}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
     </MainContainer>
   );
 };
 
+const BlockLTP = styled.div`
+  width: 100px;
+  height: 50px;
+  background-color: #a1a1a1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+  font-weight: 900;
+  /* ${(state) =>
+    state &&
+    `  background-color: #80e200;
+`} */
+
+  background-color: ${(props) =>
+    props.state === true ? "#6fb0ff" : "#939393"};
+`;
+const Dashboard = styled.div`
+  width: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  margin: 10px;
+  padding: 10px;
+  border: 2px;
+  border-style: solid;
+`;
 const MainContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  /* justify-content: space-between; */
+  align-items: center;
+  /* height: 100vh; */
   h2 {
     font-weight: 900;
   }
 `;
+
 export default HomePage;
