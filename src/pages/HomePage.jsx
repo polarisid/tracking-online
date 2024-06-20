@@ -3,6 +3,7 @@ import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
 import styled from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
+import WarningIcon from "@mui/icons-material/Warning";
 
 const HomePage = () => {
   const useToggle = (initialState) => {
@@ -375,66 +376,112 @@ const HomePage = () => {
   return (
     <MainContainer>
       <HeaderComponent />
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-      {loading && <p>Uploading...</p>} {message && <p>{message}</p>}
-      <h1>LTP</h1>
+      <UploadBox>
+        <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+        {loading && <p>Uploading...</p>} {message && <p>{message}</p>}
+      </UploadBox>
+      <SubMenuSection>
+        <h1>Indicadores</h1>
+        <div className="divider"></div>
+      </SubMenuSection>
       <Dashboard>
         <BlockLTP
           state={visibleComponents[1]}
           onClick={() => toggleVisibility(1)}
         >
-          <h1>LTP VD</h1>
-          <h1>{quantity_LTP_VD} casos</h1>
+          <h1>Casos LTP VD IH</h1>
+          <div className="divider"></div>
+          <h2>{quantity_LTP_VD}</h2>
         </BlockLTP>
         <BlockLTP
           state={visibleComponents[2]}
           onClick={() => toggleVisibility(2)}
         >
           <h1>LTP REF/RAC </h1>
-          <h1>{quantity_LTP_RAC_REF} casos</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_LTP_RAC_REF}</h2>
         </BlockLTP>
         <BlockLTP
           state={visibleComponents[3]}
           onClick={() => toggleVisibility(3)}
         >
           <h1>LTP WSM</h1>
-          <h1>{quantity_LTP_WSM} casos</h1>
+          <div className="divider"></div>
+          <h2>{quantity_LTP_WSM}</h2>
         </BlockLTP>
         <BlockLTP
+          type={"CI"}
           state={visibleComponents[4]}
           onClick={() => toggleVisibility(4)}
         >
           <h1>LTP VD CI</h1>
-          <h1>{quantity_LTP_VD_CI} casos</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_LTP_VD_CI}</h2>
         </BlockLTP>
         <BlockLTP
+          type={"CI"}
           state={visibleComponents[5]}
           onClick={() => toggleVisibility(5)}
         >
           <h1>LTP MX CI</h1>
-          <h1>{quantity_LTP_MX_CI} casos</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_LTP_MX_CI}</h2>
         </BlockLTP>
-      </Dashboard>
-      <h1>RTAT - Tempo real</h1>
-      <Dashboard>
         <BlockLTP>
+          {average.toFixed(2) > 3.8 ? <WarningIconX></WarningIconX> : <></>}
+          {average.toFixed(2) < 3.8 && average.toFixed(2) > 3 ? (
+            <WarningIconX type={"mid"}></WarningIconX>
+          ) : (
+            <></>
+          )}
+
           <h1>RTAT VD</h1>
-          <h1>{average.toFixed(2)}</h1>
+          <div className="divider"></div>
+
+          <h2>{average.toFixed(2)}</h2>
         </BlockLTP>
         <BlockLTP>
+          {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
           <h1>RTAT DA</h1>
-          <h1>{average2.toFixed(2)}</h1>
+          <div className="divider"></div>
+
+          <h2>{average2.toFixed(2)}</h2>
         </BlockLTP>
       </Dashboard>
-      <h1>Análise</h1>
+
+      <SubMenuSection>
+        <h1>Análise</h1>
+        <div className="divider"></div>
+      </SubMenuSection>
       <Dashboard>
         <BlockLTP
           state={visibleComponents[6]}
           onClick={() => toggleVisibility(6)}
         >
-          <h1>DA sem peça</h1>
-          <h1>OW e LP</h1>
-          <h1>{quantity_DA_noParts}</h1>
+          <h1>DA sem peça (OW/LP)</h1>
+          <div className="divider"></div>
+          <h2>{quantity_DA_noParts}</h2>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[8]}
+          onClick={() => toggleVisibility(8)}
+        >
+          <h1>Consumidor fora do prazo</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_Oudated_IH}</h2>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[9]}
+          onClick={() => toggleVisibility(9)}
+        >
+          <h1>R. completo fora do prazo</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_Oudated_Repair_complete_IH}</h2>
         </BlockLTP>
         <BlockLTP
           state={visibleComponents[7]}
@@ -443,20 +490,7 @@ const HomePage = () => {
           <h1>LTP IH</h1>
           <h1> Em até 4 dias</h1>
         </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[8]}
-          onClick={() => toggleVisibility(8)}
-        >
-          <h1>Consumidor fora do prazo</h1>
-          <h1>{quantity_Oudated_IH}</h1>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[9]}
-          onClick={() => toggleVisibility(9)}
-        >
-          <h1>R. completo fora do prazo</h1>
-          <h1>{quantity_Oudated_Repair_complete_IH}</h1>
-        </BlockLTP>
+
         <BlockLTP
           state={visibleComponents[10]}
           onClick={() => toggleVisibility(10)}
@@ -466,6 +500,10 @@ const HomePage = () => {
       </Dashboard>
       {data.length > 0 && (
         <>
+          <SubMenuSection>
+            <h1>Planilhas</h1>
+            <div className="divider"></div>
+          </SubMenuSection>
           <ToggleableComponent isVisible={visibleComponents[1]}>
             <h2>EM LTP DTV </h2>
             <table className="toggleDiv">
@@ -720,41 +758,79 @@ const HomePage = () => {
   );
 };
 
+const UploadBox = styled.div``;
+const WarningIconX = styled(WarningIcon)`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: ${(props) => (props.type === "mid" ? "#818300" : "#ff0000e0")};
+`;
 const BlockLTP = styled.div`
-  width: 100px;
-  height: 50px;
-  background-color: #a1a1a1;
+  position: relative;
+  width: 250px;
+  height: 150px;
   padding: 10px;
+  margin: 10px;
   display: flex;
   flex-direction: column;
   text-align: center;
-  justify-content: center;
-  align-items: center;
+  h1 {
+    font-size: 18px;
+    /* margin-bottom: 10px; */
+  }
+  h2 {
+    font-size: 50px;
+  }
+  /* justify-content: center; */
+  /* align-items: center; */
+  justify-content: space-evenly;
   border-radius: 10px;
   font-weight: 900;
+  .divider {
+    background-color: #757575;
+    width: 100%;
+    height: 2px;
+  }
+
   /* ${(state) =>
     state &&
     `  background-color: #80e200;
 `} */
 
+  color: ${(props) => (props.type === "CI" ? "#000264" : "#000000e1")};
+
   background-color: ${(props) =>
-    props.state === true ? "#6fb0ff" : "#939393"};
+    props.state === true ? "#6fb0ff" : "#ececece2"};
+`;
+
+const SubMenuSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  .divider {
+    height: 2px;
+    width: 100%;
+    background-color: #5a5a5a;
+  }
+  margin: 0px 10px;
+  font-weight: 500;
+  font-size: 20px;
 `;
 const Dashboard = styled.div`
-  width: 100vh;
+  /* width: 100vh; */
   display: flex;
   align-items: center;
-  justify-content: space-around;
+  /* justify-content: space-around; */
   margin: 10px;
   padding: 10px;
-  border: 2px;
-  border-style: solid;
+  /* border: 2px; */
+  /* border-style: solid; */
 `;
 const MainContainer = styled.div`
   display: flex;
   flex-direction: column;
   /* justify-content: space-between; */
-  align-items: center;
+  /* align-items: center; */
   /* height: 100vh; */
   h2 {
     font-weight: 900;

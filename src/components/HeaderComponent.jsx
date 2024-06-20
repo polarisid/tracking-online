@@ -5,6 +5,10 @@ const HeaderComponent = () => {
     <>
       <Header>
         <Title>Tracking Online</Title>
+        {/* <h2>Inhome</h2>
+        <h2>Balcão</h2>
+        <h2>RMA</h2>
+        <h2>Outros</h2> */}
       </Header>
     </>
   );
@@ -17,10 +21,10 @@ const Title = styled.h1`
 
 const Header = styled.div`
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   width: 100%;
   align-items: center;
-  justify-content: center;
+  /* justify-content: center; */
   padding: 20px;
   /* background-color: #007bff; */
   -webkit-box-shadow: 0px 9px 17px -7px rgba(0, 0, 0, 0.33);
@@ -34,5 +38,8 @@ const Header = styled.div`
 
   background-color: #0093e9;
   background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%);
+  h2 {
+    margin-right: 10px;
+  }
 `;
 export default HeaderComponent;
