@@ -5,10 +5,6 @@ const HeaderComponent = () => {
     <>
       <Header>
         <Title>Tracking Online</Title>
-        {/* <h2>Inhome</h2>
-        <h2>Balcão</h2>
-        <h2>RMA</h2>
-        <h2>Outros</h2> */}
       </Header>
     </>
   );

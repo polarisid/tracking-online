@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
 import WarningIcon from "@mui/icons-material/Warning";
 
@@ -51,6 +51,7 @@ const HomePage = () => {
     8: false,
     9: false,
     10: false,
+    11: false,
   });
 
   const toggleVisibility = (id) => {
@@ -74,7 +75,40 @@ const HomePage = () => {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      setData(sheetData);
+      // Função para verificar se um valor é uma data válida
+      const isValidDate = (d) => {
+        return d instanceof Date && !isNaN(d);
+      };
+
+      // Função para converter números em datas
+      const convertToDate = (value) => {
+        const date = XLSX.SSF.parse_date_code(value);
+        if (date) {
+          return new Date(Date.UTC(date.y, date.m - 1, date.d));
+        }
+        return null;
+      };
+
+      // Colunas que sabemos que devem conter datas
+      const dateColumns = [16, 22, 24, 27];
+
+      // Formatar as datas corretamente apenas nas colunas especificadas
+      const formattedData = sheetData.map((row) =>
+        row.map((cell, index) => {
+          if (dateColumns.includes(index) && typeof cell === "number") {
+            const date = convertToDate(cell);
+            if (isValidDate(date)) {
+              const day = String(date.getUTCDate()).padStart(2, "0");
+              const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+              const year = date.getUTCFullYear();
+              return `${day}/${month}/${year}`;
+            }
+          }
+          return cell;
+        })
+      );
+
+      setData(formattedData);
       setLoading(false);
       setMessage("Upload successful!");
     };
@@ -86,6 +120,33 @@ const HomePage = () => {
 
     reader.readAsBinaryString(uploadedFile);
   };
+
+  // const handleFileUpload = (e) => {
+  //   const uploadedFile = e.target.files[0];
+  //   setFile(uploadedFile);
+  //   setLoading(true);
+  //   setMessage("");
+
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const binaryStr = event.target.result;
+  //     const workbook = XLSX.read(binaryStr, { type: "binary" });
+
+  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  //     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+  //     setData(sheetData);
+  //     setLoading(false);
+  //     setMessage("Upload successful!");
+  //   };
+
+  //   reader.onerror = () => {
+  //     setLoading(false);
+  //     setMessage("Error reading file!");
+  //   };
+
+  //   reader.readAsBinaryString(uploadedFile);
+  // };
 
   // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
   const filter_VD_LTP_LP = (row) => {
@@ -118,7 +179,16 @@ const HomePage = () => {
     return format.replace(/mm|dd|yy|yyy/gi, (matched) => map[matched]);
   }
 
-  const today_Form = formatDate(today, "mm/dd/yy");
+  function formatDateToDDMMYYYY(date) {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
+
+  // const today_Form = formatDate(today, "dd/mm/yyyy");
+  const today_Form = formatDateToDDMMYYYY(today);
   // Função para aplicar o filtro na coluna 37 e 58 para a segunda tabela
   const filter_REF_RAC_LTP_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
@@ -211,6 +281,17 @@ const HomePage = () => {
 
     return isCol37Valid && isEffect && isInHome;
   };
+  const filter_potential_first_visit = (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isTODAY = row[27] === today_Form;
+    const isFromToday = row[16] === today_Form;
+
+    const isInHome = row[34] === "CI";
+    console.log(row[27] + "  opa " + today_Form);
+
+    return isCol37Valid && isTODAY && isInHome && isFromToday;
+  };
+
   const filter_next_isEffect_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
     const isEffect = row[22] < row[24];
@@ -311,6 +392,9 @@ const HomePage = () => {
   const filteredAndSortedData14 = sortData(
     data.slice(1).filter(filter_next_isEffect_LP)
   );
+  const filteredAndSortedData15 = sortData(
+    data.slice(1).filter(filter_potential_first_visit)
+  );
 
   const quantity_DA_noParts = filteredAndSortedData4.length;
 
@@ -321,6 +405,7 @@ const HomePage = () => {
   const quantity_LTP_MX_CI = filteredAndSortedData10.length;
   const quantity_Oudated_IH = filteredAndSortedData11.length;
   const quantity_Oudated_Repair_complete_IH = filteredAndSortedData12.length;
+  const quantity_POTENTIAL_first_visit = filteredAndSortedData15.length;
 
   const all_lp_vd = (row) => {
     const isCol37Valid = row[37] === "LP";
@@ -445,6 +530,12 @@ const HomePage = () => {
         </BlockLTP>
         <BlockLTP>
           {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
+          {average2.toFixed(2) < 4.5 && average2.toFixed(2) > 3.8 ? (
+            <WarningIconX type={"mid"}></WarningIconX>
+          ) : (
+            <></>
+          )}
+
           <h1>RTAT DA</h1>
           <div className="divider"></div>
 
@@ -496,6 +587,16 @@ const HomePage = () => {
           onClick={() => toggleVisibility(10)}
         >
           <h1>Effect Appointment</h1>
+        </BlockLTP>
+
+        <BlockLTP
+          state={visibleComponents[11]}
+          onClick={() => toggleVisibility(11)}
+        >
+          <h1>First Visit - Aguardando</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_POTENTIAL_first_visit}</h2>
         </BlockLTP>
       </Dashboard>
       {data.length > 0 && (
@@ -693,6 +794,27 @@ const HomePage = () => {
               </tbody>
             </table>
           </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[11]}>
+            <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_complete_repair.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData15.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_complete_repair.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
           <ToggleableComponent isVisible={visibleComponents[10]}>
             <h2>Effect Appointment</h2>
             <table>
@@ -766,6 +888,9 @@ const WarningIconX = styled(WarningIcon)`
   color: ${(props) => (props.type === "mid" ? "#818300" : "#ff0000e0")};
 `;
 const BlockLTP = styled.div`
+  box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
+  -webkit-box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
+  -moz-box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
   position: relative;
   width: 250px;
   height: 150px;
@@ -798,6 +923,8 @@ const BlockLTP = styled.div`
 `} */
 
   color: ${(props) => (props.type === "CI" ? "#000264" : "#000000e1")};
+  animation: ${(props) => (props.state ? colorChange : colorChangeout)} 500ms
+    forwards;
 
   background-color: ${(props) =>
     props.state === true ? "#6fb0ff" : "#ececece2"};
@@ -836,5 +963,20 @@ const MainContainer = styled.div`
     font-weight: 900;
   }
 `;
-
+const colorChange = keyframes`
+  from {
+    background-color: #ececece2;
+  }
+  to {
+    background-color: #6fb0ff;
+  }
+`;
+const colorChangeout = keyframes`
+  from {
+    background-color: #6fb0ff;
+  }
+  to {
+    background-color: #ececece2;
+  }
+`;
 export default HomePage;
