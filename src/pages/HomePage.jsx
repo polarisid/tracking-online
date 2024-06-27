@@ -4,6 +4,9 @@ import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
 import WarningIcon from "@mui/icons-material/Warning";
+import Button from "@mui/material/Button";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import LoadingButton from "@mui/lab/LoadingButton";
 
 const HomePage = () => {
   const useToggle = (initialState) => {
@@ -14,7 +17,7 @@ const HomePage = () => {
     };
     return [toggleValue, toggler];
   };
-  const [toggle, setToggle] = useToggle();
+  // const [toggle, setToggle] = useToggle();
 
   const useToggle1 = (initialState) => {
     const [toggleValue1, setToggleValue1] = useState(initialState);
@@ -52,6 +55,8 @@ const HomePage = () => {
     9: false,
     10: false,
     11: false,
+    12: false,
+    13: false,
   });
 
   const toggleVisibility = (id) => {
@@ -110,7 +115,7 @@ const HomePage = () => {
 
       setData(formattedData);
       setLoading(false);
-      setMessage("Upload successful!");
+      setMessage("Carregamento completo!");
     };
 
     reader.onerror = () => {
@@ -167,17 +172,7 @@ const HomePage = () => {
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   };
   const today = new Date();
-
-  function formatDate(date, format) {
-    const map = {
-      mm: date.getMonth() + 1,
-      dd: date.getDate(),
-      yy: date.getFullYear().toString().slice(-2),
-      yyyy: date.getFullYear(),
-    };
-
-    return format.replace(/mm|dd|yy|yyy/gi, (matched) => map[matched]);
-  }
+  const tomorrow = new Date(today);
 
   function formatDateToDDMMYYYY(date) {
     const day = String(date.getDate()).padStart(2, "0");
@@ -186,9 +181,18 @@ const HomePage = () => {
 
     return `${day}/${month}/${year}`;
   }
+  function formatDateToDDMMYYYY_tomorrow(date) {
+    const day = String(date.getDate() + 1).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  }
 
   // const today_Form = formatDate(today, "dd/mm/yyyy");
   const today_Form = formatDateToDDMMYYYY(today);
+  const tomorrow_Form = formatDateToDDMMYYYY_tomorrow(today);
+
   // Função para aplicar o filtro na coluna 37 e 58 para a segunda tabela
   const filter_REF_RAC_LTP_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
@@ -273,7 +277,20 @@ const HomePage = () => {
 
     return isCol37Valid && isEffect && isInHome;
   };
+  const filter_agenda_today = (row) => {
+    const isEffect = row[24] === today_Form;
+    // const isInHome = row[34] === "IH";
+    const isFTF = row[11] === "ST025";
 
+    return isEffect && isFTF;
+  };
+  const filter_agenda_tomorrow = (row) => {
+    const isEffect = row[24] === tomorrow_Form;
+    // const isInHome = row[34] === "IH";
+    const isFTF = row[11] === "ST025";
+
+    return isEffect && isFTF;
+  };
   const filter_near_isEffect_LP = (row) => {
     const isCol37Valid = row[37] === "LP";
     const isEffect = row[22] > row[24];
@@ -287,7 +304,6 @@ const HomePage = () => {
     const isFromToday = row[16] === today_Form;
 
     const isInHome = row[34] === "CI";
-    console.log(row[27] + "  opa " + today_Form);
 
     return isCol37Valid && isTODAY && isInHome && isFromToday;
   };
@@ -341,7 +357,7 @@ const HomePage = () => {
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
   const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
-  const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 24, 27];
+  const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 34, 24, 27];
   const columnsToShow_type_service = [1, 9, 14, 15, 37, 22, 34];
 
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
@@ -395,6 +411,12 @@ const HomePage = () => {
   const filteredAndSortedData15 = sortData(
     data.slice(1).filter(filter_potential_first_visit)
   );
+  const filteredAndSortedData16 = sortData(
+    data.slice(1).filter(filter_agenda_today)
+  );
+  const filteredAndSortedData17 = sortData(
+    data.slice(1).filter(filter_agenda_tomorrow)
+  );
 
   const quantity_DA_noParts = filteredAndSortedData4.length;
 
@@ -406,6 +428,8 @@ const HomePage = () => {
   const quantity_Oudated_IH = filteredAndSortedData11.length;
   const quantity_Oudated_Repair_complete_IH = filteredAndSortedData12.length;
   const quantity_POTENTIAL_first_visit = filteredAndSortedData15.length;
+  const quantity_agenda_today = filteredAndSortedData16.length;
+  const quantity_agenda_tomorrow = filteredAndSortedData17.length;
 
   const all_lp_vd = (row) => {
     const isCol37Valid = row[37] === "LP";
@@ -461,9 +485,35 @@ const HomePage = () => {
   return (
     <MainContainer>
       <HeaderComponent />
+      {/* <ButtonUpload
+        component="label"
+        role={undefined}
+        variant="contained"
+        tabIndex={-1}
+        startIcon={<CloudUploadIcon />}
+        accept=".xlsx, .xls"
+        onChange={handleFileUpload}
+      >
+        Upload file
+        <VisuallyHiddenInput type="file" />
+      </ButtonUpload> */}
       <UploadBox>
-        <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
-        {loading && <p>Uploading...</p>} {message && <p>{message}</p>}
+        <ButtonUpload
+          component="label"
+          loading={loading}
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+          // endIcon={<WarningIcon />}
+          accept=".xlsx, .xls"
+          onChange={handleFileUpload}
+        >
+          <p> Carregar Planilha</p>
+          <VisuallyHiddenInput type="file" />
+        </ButtonUpload>
+        {/* <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} /> */}
+        {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
       </UploadBox>
       <SubMenuSection>
         <h1>Indicadores</h1>
@@ -597,6 +647,24 @@ const HomePage = () => {
           <div className="divider"></div>
 
           <h2>{quantity_POTENTIAL_first_visit}</h2>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[12]}
+          onClick={() => toggleVisibility(12)}
+        >
+          <h1>Agenda do dia</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_agenda_today}</h2>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[13]}
+          onClick={() => toggleVisibility(13)}
+        >
+          <h1>Agenda de amanhã</h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_agenda_tomorrow}</h2>
         </BlockLTP>
       </Dashboard>
       {data.length > 0 && (
@@ -874,13 +942,62 @@ const HomePage = () => {
               </tbody>
             </table>
           </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[12]}>
+            <h2>Agenda do Dia</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_complete_repair.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData16.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_complete_repair.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[13]}>
+            <h2>Agenda do Dia</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_complete_repair.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData17.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_complete_repair.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
         </>
       )}
     </MainContainer>
   );
 };
 
-const UploadBox = styled.div``;
+const UploadBox = styled.div`
+  display: flex;
+  margin: 10px;
+  align-items: center;
+  p {
+    margin-left: 5px;
+  }
+`;
 const WarningIconX = styled(WarningIcon)`
   position: absolute;
   top: 10px;
@@ -929,7 +1046,24 @@ const BlockLTP = styled.div`
   background-color: ${(props) =>
     props.state === true ? "#6fb0ff" : "#ececece2"};
 `;
+const VisuallyHiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  overflow: "hidden",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  whiteSpace: "nowrap",
+  width: 1,
+});
 
+const ButtonUpload = styled(Button)`
+  width: 190px;
+  p {
+    font-size: 11px;
+  }
+`;
 const SubMenuSection = styled.div`
   display: flex;
   flex-direction: column;
