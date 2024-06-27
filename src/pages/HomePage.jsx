@@ -6,7 +6,7 @@ import ToggleableComponent from "../components/ToggleableComponent";
 import WarningIcon from "@mui/icons-material/Warning";
 import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import LoadingButton from "@mui/lab/LoadingButton";
+import filters from "../utils/filters";
 
 const HomePage = () => {
   const useToggle = (initialState) => {
@@ -17,7 +17,6 @@ const HomePage = () => {
     };
     return [toggleValue, toggler];
   };
-  // const [toggle, setToggle] = useToggle();
 
   const useToggle1 = (initialState) => {
     const [toggleValue1, setToggleValue1] = useState(initialState);
@@ -27,21 +26,11 @@ const HomePage = () => {
     };
     return [toggleValue1, toggler1];
   };
-  const [toggle1, setToggle1] = useToggle1();
 
   const [file, setFile] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [matchCount, setMatchCount] = useState(0);
-  const [totalRows, setTotalRows] = useState(0);
-  const [averageValue, setAverageValue] = useState(0);
-
-  const [isVisible, setIsVisible] = useState(false);
-
-  // const toggleVisibility = () => {
-  //   setIsVisible(!isVisible);
-  // };
 
   const [visibleComponents, setVisibleComponents] = useState({
     1: false,
@@ -126,234 +115,8 @@ const HomePage = () => {
     reader.readAsBinaryString(uploadedFile);
   };
 
-  // const handleFileUpload = (e) => {
-  //   const uploadedFile = e.target.files[0];
-  //   setFile(uploadedFile);
-  //   setLoading(true);
-  //   setMessage("");
-
-  //   const reader = new FileReader();
-  //   reader.onload = (event) => {
-  //     const binaryStr = event.target.result;
-  //     const workbook = XLSX.read(binaryStr, { type: "binary" });
-
-  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-  //     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-  //     setData(sheetData);
-  //     setLoading(false);
-  //     setMessage("Upload successful!");
-  //   };
-
-  //   reader.onerror = () => {
-  //     setLoading(false);
-  //     setMessage("Error reading file!");
-  //   };
-
-  //   reader.readAsBinaryString(uploadedFile);
-  // };
-
   // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
-  const filter_VD_LTP_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-    ].includes(row[58]);
-    const isLTP = row[15] > 6;
-    return isCol37Valid && isCol58Valid && isLTP && isInHome;
-  };
-  const today = new Date();
-  const tomorrow = new Date(today);
 
-  function formatDateToDDMMYYYY(date) {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  }
-  function formatDateToDDMMYYYY_tomorrow(date) {
-    const day = String(date.getDate() + 1).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are zero-based
-    const year = date.getFullYear();
-
-    return `${day}/${month}/${year}`;
-  }
-
-  // const today_Form = formatDate(today, "dd/mm/yyyy");
-  const today_Form = formatDateToDDMMYYYY(today);
-  const tomorrow_Form = formatDateToDDMMYYYY_tomorrow(today);
-
-  // Função para aplicar o filtro na coluna 37 e 58 para a segunda tabela
-  const filter_REF_RAC_LTP_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]);
-    const isLTP = row[15] > 4;
-    return isCol37Valid && isCol58Valid && isLTP && isInHome;
-  };
-  const filter_Customer_outdated = (row) => {
-    // const isCol37Valid = row[37] === "LP";
-    const isCol14Valid = row[13] === "HP030";
-    // const isOutadate = row[24] < today;
-    const isLTP = row[15] > 1;
-    // const isInHome = row[34] === "IH";
-
-    return isCol14Valid && isLTP;
-  };
-  const filter_repair_complete_outdated = (row) => {
-    // const isCol37Valid = row[37] === "LP";
-    const isCol14Valid = row[13] === "HL005";
-    const isOutadate = row[27] < today_Form;
-    // const isOutadate = today_Form.getDate() - row[27].getDate() > 0;
-
-    // const isInHome = row[34] === "IH";
-
-    return isCol14Valid && isOutadate;
-  };
-  // Função para aplicar o filtro na coluna 37 e 58 para a terceira tabela
-  const filter_WSM_LP_LTP = (row) => {
-    const isInHome = row[34] === "IH";
-    const isCol37Valid = row[37] === "LP";
-    const isCol58Valid = ["SWM01", "SWM03"].includes(row[58]);
-    const isLTP = row[15] > 6;
-    return isCol37Valid && isCol58Valid && isLTP && isInHome;
-  };
-
-  const filter_DA_noParts = (row) => {
-    // const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "SWM01",
-      "SWM03",
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]);
-    const notParts = row[61] == null;
-
-    return isCol58Valid && notParts && isInHome;
-  };
-
-  const filter_allNext_LTP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH";
-    const isLTPnear = row[15] > 2;
-    const isLTPnearby = row[15] < 7;
-    return isCol37Valid && isLTPnear && isLTPnearby && isInHome;
-  };
-
-  const filter_isEffect_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isEffect = row[22] == row[24];
-    const isInHome = row[34] === "IH";
-
-    return isCol37Valid && isEffect && isInHome;
-  };
-  const filter_agenda_today = (row) => {
-    const isEffect = row[24] === today_Form;
-    // const isInHome = row[34] === "IH";
-    const isFTF = row[11] === "ST025";
-
-    return isEffect && isFTF;
-  };
-  const filter_agenda_tomorrow = (row) => {
-    const isEffect = row[24] === tomorrow_Form;
-    // const isInHome = row[34] === "IH";
-    const isFTF = row[11] === "ST025";
-
-    return isEffect && isFTF;
-  };
-  const filter_near_isEffect_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isEffect = row[22] > row[24];
-    const isInHome = row[34] === "IH";
-
-    return isCol37Valid && isEffect && isInHome;
-  };
-  const filter_potential_first_visit = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isTODAY = row[27] === today_Form;
-    const isFromToday = row[16] === today_Form;
-
-    const isInHome = row[34] === "CI";
-
-    return isCol37Valid && isTODAY && isInHome && isFromToday;
-  };
-
-  const filter_next_isEffect_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isEffect = row[22] < row[24];
-    const isOutadate = row[22] > today_Form;
-
-    const isInHome = row[34] === "IH";
-
-    return isCol37Valid && isEffect && isInHome;
-  };
-
-  const filter_CI_VD_LTP_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isCI = row[34] === "CI";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-    ].includes(row[58]);
-    const isLTP = row[15] > 2;
-    return isCol37Valid && isCol58Valid && isLTP && isCI;
-  };
-
-  const filter_CI_MX_LTP_LP = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isCI = row[34] === "CI";
-    const isCol58Valid = [
-      "NPC01",
-      "NPC02",
-      "NPC03",
-      "THB01",
-      "THB02",
-      "THB03",
-      "THB05",
-      "THB42",
-      "THB43",
-      "THB96",
-    ].includes(row[58]);
-    const isLTP = row[15] > 2;
-    return isCol37Valid && isCol58Valid && isLTP && isCI;
-  };
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
   const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
@@ -370,56 +133,53 @@ const HomePage = () => {
       return 0;
     });
   };
-
   const filteredAndSortedData1 = sortData(
-    data.slice(1).filter(filter_VD_LTP_LP)
+    data.slice(1).filter(filters.filter_VD_LTP_LP)
   );
   const filteredAndSortedData2 = sortData(
-    data.slice(1).filter(filter_REF_RAC_LTP_LP)
+    data.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
   );
   const filteredAndSortedData3 = sortData(
-    data.slice(1).filter(filter_WSM_LP_LTP)
+    data.slice(1).filter(filters.filter_WSM_LP_LTP)
   );
   const filteredAndSortedData4 = sortData(
-    data.slice(1).filter(filter_DA_noParts)
+    data.slice(1).filter(filters.filter_DA_noParts)
   );
   const filteredAndSortedData5 = sortData(
-    data.slice(1).filter(filter_allNext_LTP)
+    data.slice(1).filter(filters.filter_allNext_LTP)
   );
   const filteredAndSortedData6 = sortData(
-    data.slice(1).filter(filter_isEffect_LP)
+    data.slice(1).filter(filters.filter_isEffect_LP)
   );
-
   const filteredAndSortedData9 = sortData(
-    data.slice(1).filter(filter_CI_VD_LTP_LP)
+    data.slice(1).filter(filters.filter_CI_VD_LTP_LP)
   );
   const filteredAndSortedData10 = sortData(
-    data.slice(1).filter(filter_CI_MX_LTP_LP)
+    data.slice(1).filter(filters.filter_CI_MX_LTP_LP)
   );
   const filteredAndSortedData11 = sortData(
-    data.slice(1).filter(filter_Customer_outdated)
+    data.slice(1).filter(filters.filter_Customer_outdated)
   );
   const filteredAndSortedData12 = sortData(
-    data.slice(1).filter(filter_repair_complete_outdated)
+    data.slice(1).filter(filters.filter_repair_complete_outdated)
   );
   const filteredAndSortedData13 = sortData(
-    data.slice(1).filter(filter_near_isEffect_LP)
+    data.slice(1).filter(filters.filter_near_isEffect_LP)
   );
   const filteredAndSortedData14 = sortData(
-    data.slice(1).filter(filter_next_isEffect_LP)
+    data.slice(1).filter(filters.filter_next_isEffect_LP)
   );
   const filteredAndSortedData15 = sortData(
-    data.slice(1).filter(filter_potential_first_visit)
+    data.slice(1).filter(filters.filter_potential_first_visit)
   );
   const filteredAndSortedData16 = sortData(
-    data.slice(1).filter(filter_agenda_today)
+    data.slice(1).filter(filters.filter_agenda_today)
   );
   const filteredAndSortedData17 = sortData(
-    data.slice(1).filter(filter_agenda_tomorrow)
+    data.slice(1).filter(filters.filter_agenda_tomorrow)
   );
 
   const quantity_DA_noParts = filteredAndSortedData4.length;
-
   const quantity_LTP_VD = filteredAndSortedData1.length;
   const quantity_LTP_RAC_REF = filteredAndSortedData2.length;
   const quantity_LTP_WSM = filteredAndSortedData3.length;
@@ -505,7 +265,6 @@ const HomePage = () => {
           variant="contained"
           tabIndex={-1}
           startIcon={<CloudUploadIcon />}
-          // endIcon={<WarningIcon />}
           accept=".xlsx, .xls"
           onChange={handleFileUpload}
         >
@@ -631,14 +390,12 @@ const HomePage = () => {
           <h1>LTP IH</h1>
           <h1> Em até 4 dias</h1>
         </BlockLTP>
-
         <BlockLTP
           state={visibleComponents[10]}
           onClick={() => toggleVisibility(10)}
         >
           <h1>Effect Appointment</h1>
         </BlockLTP>
-
         <BlockLTP
           state={visibleComponents[11]}
           onClick={() => toggleVisibility(11)}
@@ -964,7 +721,7 @@ const HomePage = () => {
             </table>
           </ToggleableComponent>
           <ToggleableComponent isVisible={visibleComponents[13]}>
-            <h2>Agenda do Dia</h2>
+            <h2>Agenda de amanhã</h2>
             <table>
               <thead>
                 <tr>
@@ -1057,7 +814,6 @@ const VisuallyHiddenInput = styled("input")({
   whiteSpace: "nowrap",
   width: 1,
 });
-
 const ButtonUpload = styled(Button)`
   width: 190px;
   p {

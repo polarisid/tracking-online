@@ -8,7 +8,7 @@ const App = () => {
       <HomePage />
       <Footer>
         <p>2024 - Desenvolvido por Daniel Carvalho</p>
-        <p>Versão 1.2.2</p>
+        <p>Versão 1.5</p>
       </Footer>
     </div>
   );
