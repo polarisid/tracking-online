@@ -211,9 +211,9 @@ const HomePage = () => {
           };
 
           return {
-            title: `${row[1] || "Service Order"}${
-              cityInfo.city ? ` - ${cityInfo.city}` : ""
-            }${cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+            title: `${row[1]}${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
+              cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
+            }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
             start: startDate,
             end: startDate,
             type: row[34], // Armazenar o tipo para usar no eventPropGetter
