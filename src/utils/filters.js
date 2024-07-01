@@ -4,7 +4,6 @@ import {
 } from "./dateFomatter";
 
 const today = new Date();
-
 const today_Form = formatDateToDDMMYYYY(today);
 const tomorrow_Form = formatDateToDDMMYYYY_tomorrow(today);
 
@@ -80,7 +79,8 @@ const filters = {
     const isEffect = row[24] === today_Form;
     const isNOTCI = row[34] != "CI";
     const isFTF = row[11] === "ST025";
-    return isEffect && isFTF && isNOTCI;
+    return isNOTCI && isFTF && isEffect;
+    // return isEffect && isFTF && isNOTCI;
   },
   filter_agenda_tomorrow: (row) => {
     const isEffect = row[24] === tomorrow_Form;

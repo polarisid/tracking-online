@@ -108,7 +108,10 @@ const HomePage = () => {
               const day = String(date.getUTCDate()).padStart(2, "0");
               const month = String(date.getUTCMonth() + 1).padStart(2, "0");
               const year = date.getUTCFullYear();
-              return `${day}/${month}/${year}`;
+
+              // console.log(`${month}/${day}/${year}`);
+              // return `${day}/${month}/${year}`;
+              return `${month}/${day}/${year}`;
             }
           }
           return cell;
@@ -127,41 +130,41 @@ const HomePage = () => {
 
     reader.readAsBinaryString(uploadedFile);
   };
-  const handleFile2Upload = (e) => {
-    const uploadedFile = e.target.files[0];
-    setFile2(uploadedFile);
-    setLoading(true);
-    setMessage("");
+  // const handleFile2Upload = (e) => {
+  //   const uploadedFile = e.target.files[0];
+  //   setFile2(uploadedFile);
+  //   setLoading(true);
+  //   setMessage("");
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const binaryStr = event.target.result;
-      const workbook = XLSX.read(binaryStr, { type: "binary" });
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const binaryStr = event.target.result;
+  //     const workbook = XLSX.read(binaryStr, { type: "binary" });
 
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  //     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      // Criar um mapeamento das ordens de serviço para os valores das colunas L e M
-      const cityMapping = {};
-      sheetData.slice(1).forEach((row) => {
-        const orderId = row[1]; // Índice da coluna B
-        const city = row[11]; // Índice da coluna L
-        const additionalInfo = row[12]; // Índice da coluna M
-        cityMapping[orderId] = { city, additionalInfo };
-      });
+  //     // Criar um mapeamento das ordens de serviço para os valores das colunas L e M
+  //     const cityMapping = {};
+  //     sheetData.slice(1).forEach((row) => {
+  //       const orderId = row[1]; // Índice da coluna B
+  //       const city = row[11]; // Índice da coluna L
+  //       const additionalInfo = row[12]; // Índice da coluna M
+  //       cityMapping[orderId] = { city, additionalInfo };
+  //     });
 
-      setCityData(cityMapping);
-      setLoading(false);
-      setMessage("Carregamento completo!");
-    };
+  //     setCityData(cityMapping);
+  //     setLoading(false);
+  //     setMessage("Carregamento completo!");
+  //   };
 
-    reader.onerror = () => {
-      setLoading(false);
-      setMessage("Error reading file!");
-    };
+  //   reader.onerror = () => {
+  //     setLoading(false);
+  //     setMessage("Error reading file!");
+  //   };
 
-    reader.readAsBinaryString(uploadedFile);
-  };
+  //   reader.readAsBinaryString(uploadedFile);
+  // };
 
   const eventPropGetter = (event) => {
     let className = "";
@@ -197,11 +200,14 @@ const HomePage = () => {
           );
         })
         .map((row) => {
-          const date = new Date(row[24]); // Usando o índice da coluna para a data (Y)
+          const date = new Date(row[24]);
+          // Usando o índice da coluna para a data (Y)
           const isValidDate = !isNaN(date);
-          const startDate = isValidDate
-            ? date
-            : new Date(moment(row[24], "DD/MM/YYYY").toDate());
+          // const startDate = isValidDate
+          //   ? date
+          //   : new Date(moment(row[24], "DD/MM/YYYY").toDate());
+          const startDate = row[24];
+          // const startDate = date;
           const orderId = row[1]; // Índice da coluna B
 
           // Adicionar os valores das colunas L e M da segunda planilha se disponível
@@ -261,7 +267,6 @@ const HomePage = () => {
 
     setEvents(formattedEvents);
   };
-  // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
 
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
@@ -362,7 +367,7 @@ const HomePage = () => {
       <HeaderComponent />
 
       <UploadBox>
-        <CalendarBox>
+        {/*        <CalendarBox>
           <Button
             onClick={() => toggleVisibility(14)}
             variant="outlined"
@@ -370,7 +375,7 @@ const HomePage = () => {
           >
             Calendário
           </Button>
-        </CalendarBox>
+        </CalendarBox> */}
         <ButtonUpload
           component="label"
           loading={loading}
