@@ -184,6 +184,51 @@ const HomePage = () => {
     return { className };
   };
 
+  // useEffect(() => {
+  //   if (data.length > 0) {
+  //     const formattedEvents = data
+  //       .slice(1)
+  //       .filter((row) => {
+  //         const filterValueAI = row[34]; // Índice da coluna AI
+  //         const filterValueN = row[13]; // Índice da coluna N
+  //         const validValuesAI = ["II", "IH", "SH"];
+  //         const invalidValuesN = ["HP035", "HP080", "HP081", "HPZ20", "HL005"];
+
+  //         return (
+  //           validValuesAI.includes(filterValueAI) &&
+  //           !invalidValuesN.includes(filterValueN)
+  //         );
+  //       })
+  //       .map((row) => {
+  //         const date = new Date(row[24]);
+  //         // Usando o índice da coluna para a data (Y)
+  //         const isValidDate = !isNaN(date);
+  //         // const startDate = isValidDate
+  //         //   ? date
+  //         //   : new Date(moment(row[24], "DD/MM/YYYY").toDate());
+  //         const startDate = row[24];
+  //         // const startDate = date;
+  //         const orderId = row[1]; // Índice da coluna B
+
+  //         // Adicionar os valores das colunas L e M da segunda planilha se disponível
+  //         const cityInfo = cityData[orderId] || {
+  //           city: "",
+  //           additionalInfo: "",
+  //         };
+
+  //         return {
+  //           title: `${row[1]}${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
+  //             cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
+  //           }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+  //           start: startDate,
+  //           end: startDate,
+  //           type: row[34], // Armazenar o tipo para usar no eventPropGetter
+  //         };
+  //       });
+
+  //     setEvents(formattedEvents);
+  //   }
+  // }, [data, cityData]);
   useEffect(() => {
     if (data.length > 0) {
       const formattedEvents = data
@@ -200,14 +245,12 @@ const HomePage = () => {
           );
         })
         .map((row) => {
-          const date = new Date(row[24]);
-          // Usando o índice da coluna para a data (Y)
+          const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
+          const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
           const isValidDate = !isNaN(date);
-          // const startDate = isValidDate
-          //   ? date
-          //   : new Date(moment(row[24], "DD/MM/YYYY").toDate());
-          const startDate = row[24];
-          // const startDate = date;
+          const startDate = isValidDate
+            ? date
+            : moment(dateStr, "YYYY-MM-DD").toDate();
           const orderId = row[1]; // Índice da coluna B
 
           // Adicionar os valores das colunas L e M da segunda planilha se disponível
@@ -367,7 +410,7 @@ const HomePage = () => {
       <HeaderComponent />
 
       <UploadBox>
-        {/*        <CalendarBox>
+        <CalendarBox>
           <Button
             onClick={() => toggleVisibility(14)}
             variant="outlined"
@@ -375,7 +418,7 @@ const HomePage = () => {
           >
             Calendário
           </Button>
-        </CalendarBox> */}
+        </CalendarBox>
         <ButtonUpload
           component="label"
           loading={loading}
