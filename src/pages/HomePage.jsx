@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
@@ -7,6 +7,12 @@ import WarningIcon from "@mui/icons-material/Warning";
 import Button from "@mui/material/Button";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import filters from "../utils/filters";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+const localizer = momentLocalizer(moment);
 
 const HomePage = () => {
   const useToggle = (initialState) => {
@@ -27,6 +33,12 @@ const HomePage = () => {
     return [toggleValue1, toggler1];
   };
 
+  const [file1, setFile1] = useState(null);
+  const [file2, setFile2] = useState(null);
+
+  const [events, setEvents] = useState([]);
+  const [cityData, setCityData] = useState({});
+
   const [file, setFile] = useState(null);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +58,7 @@ const HomePage = () => {
     11: false,
     12: false,
     13: false,
+    14: false,
   });
 
   const toggleVisibility = (id) => {
@@ -114,11 +127,145 @@ const HomePage = () => {
 
     reader.readAsBinaryString(uploadedFile);
   };
+  const handleFile2Upload = (e) => {
+    const uploadedFile = e.target.files[0];
+    setFile2(uploadedFile);
+    setLoading(true);
+    setMessage("");
 
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const binaryStr = event.target.result;
+      const workbook = XLSX.read(binaryStr, { type: "binary" });
+
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // Criar um mapeamento das ordens de serviço para os valores das colunas L e M
+      const cityMapping = {};
+      sheetData.slice(1).forEach((row) => {
+        const orderId = row[1]; // Índice da coluna B
+        const city = row[11]; // Índice da coluna L
+        const additionalInfo = row[12]; // Índice da coluna M
+        cityMapping[orderId] = { city, additionalInfo };
+      });
+
+      setCityData(cityMapping);
+      setLoading(false);
+      setMessage("Carregamento completo!");
+    };
+
+    reader.onerror = () => {
+      setLoading(false);
+      setMessage("Error reading file!");
+    };
+
+    reader.readAsBinaryString(uploadedFile);
+  };
+
+  const eventPropGetter = (event) => {
+    let className = "";
+    switch (event.type) {
+      case "II":
+        className = "ii-event";
+        break;
+      case "IH":
+        className = "ih-event";
+        break;
+      case "SH":
+        className = "sh-event";
+        break;
+      default:
+        break;
+    }
+    return { className };
+  };
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const formattedEvents = data
+        .slice(1)
+        .filter((row) => {
+          const filterValueAI = row[34]; // Índice da coluna AI
+          const filterValueN = row[13]; // Índice da coluna N
+          const validValuesAI = ["II", "IH", "SH"];
+          const invalidValuesN = ["HP035", "HP080", "HP081", "HPZ20", "HL005"];
+
+          return (
+            validValuesAI.includes(filterValueAI) &&
+            !invalidValuesN.includes(filterValueN)
+          );
+        })
+        .map((row) => {
+          const date = new Date(row[24]); // Usando o índice da coluna para a data (Y)
+          const isValidDate = !isNaN(date);
+          const startDate = isValidDate
+            ? date
+            : new Date(moment(row[24], "DD/MM/YYYY").toDate());
+          const orderId = row[1]; // Índice da coluna B
+
+          // Adicionar os valores das colunas L e M da segunda planilha se disponível
+          const cityInfo = cityData[orderId] || {
+            city: "",
+            additionalInfo: "",
+          };
+
+          return {
+            title: `${row[1] || "Service Order"}${
+              cityInfo.city ? ` - ${cityInfo.city}` : ""
+            }${cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+            start: startDate,
+            end: startDate,
+            type: row[34], // Armazenar o tipo para usar no eventPropGetter
+          };
+        });
+
+      setEvents(formattedEvents);
+    }
+  }, [data, cityData]);
+
+  const displayCalendarEvents = () => {
+    const formattedEvents = data
+      .slice(1)
+      .filter((row) => {
+        const filterValueAI = row[34]; // Índice da coluna AI
+        const filterValueN = row[13]; // Índice da coluna N
+        const validValuesAI = ["II", "IH", "SH"];
+        const invalidValuesN = ["HP035", "HP080", "HP081", "HPZ20", "HL005"];
+
+        return (
+          validValuesAI.includes(filterValueAI) &&
+          !invalidValuesN.includes(filterValueN)
+        );
+      })
+      .map((row) => {
+        const date = new Date(row[24]); // Usando o índice da coluna para a data (Y)
+        const isValidDate = !isNaN(date);
+        const startDate = isValidDate
+          ? date
+          : new Date(moment(row[24], "DD/MM/YYYY").toDate());
+        const orderId = row[1]; // Índice da coluna B
+
+        // Adicionar os valores das colunas L e M da segunda planilha se disponível
+        const cityInfo = cityData[orderId] || { city: "", additionalInfo: "" };
+
+        return {
+          title: `${row[1] || "Service Order"}${
+            cityInfo.city ? ` - ${cityInfo.city}` : ""
+          }${cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+          start: startDate,
+          end: startDate,
+          type: row[34], // Armazenar o tipo para usar no eventPropGetter
+        };
+      });
+
+    setEvents(formattedEvents);
+  };
   // Função para aplicar o filtro na coluna 37 e 58 para a primeira tabela
 
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
+  const columnsToShow_cities = [1, 9, 14, 15, 24, 61];
   const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
   const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 34, 24, 27];
   const columnsToShow_type_service = [1, 9, 14, 15, 37, 22, 34];
@@ -133,13 +280,14 @@ const HomePage = () => {
       return 0;
     });
   };
-  const filteredAndSortedData1 = sortData(
+
+  const planilha_LTP_IH_VD_LP = sortData(
     data.slice(1).filter(filters.filter_VD_LTP_LP)
   );
-  const filteredAndSortedData2 = sortData(
+  const planilha_LTP_IH_RAC_REF_LP = sortData(
     data.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
   );
-  const filteredAndSortedData3 = sortData(
+  const planilha_LTP_IH_WSM_LP = sortData(
     data.slice(1).filter(filters.filter_WSM_LP_LTP)
   );
   const filteredAndSortedData4 = sortData(
@@ -180,9 +328,9 @@ const HomePage = () => {
   );
 
   const quantity_DA_noParts = filteredAndSortedData4.length;
-  const quantity_LTP_VD = filteredAndSortedData1.length;
-  const quantity_LTP_RAC_REF = filteredAndSortedData2.length;
-  const quantity_LTP_WSM = filteredAndSortedData3.length;
+  const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
+  const quantity_LTP_RAC_REF = planilha_LTP_IH_RAC_REF_LP.length;
+  const quantity_LTP_WSM = planilha_LTP_IH_WSM_LP.length;
   const quantity_LTP_VD_CI = filteredAndSortedData9.length;
   const quantity_LTP_MX_CI = filteredAndSortedData10.length;
   const quantity_Oudated_IH = filteredAndSortedData11.length;
@@ -191,48 +339,15 @@ const HomePage = () => {
   const quantity_agenda_today = filteredAndSortedData16.length;
   const quantity_agenda_tomorrow = filteredAndSortedData17.length;
 
-  const all_lp_vd = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH" || row[34] === "CI";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-    ].includes(row[58]);
-    return isCol37Valid && isCol58Valid && isInHome;
-  };
+  const filteredAndSortedData7 = sortData(
+    data.slice(1).filter(filters.all_lp_vd)
+  );
+  const filteredAndSortedData8 = sortData(
+    data.slice(1).filter(filters.all_lp_DA)
+  );
 
-  const all_lp_DA = (row) => {
-    const isCol37Valid = row[37] === "LP";
-    const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "SWM01",
-      "SWM03",
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]);
-    return isCol37Valid && isCol58Valid && isInHome;
-  };
-
-  const filteredAndSortedData7 = sortData(data.slice(1).filter(all_lp_vd));
-  const filteredAndSortedData8 = sortData(data.slice(1).filter(all_lp_DA));
-
-  const midVar = data.slice(1).filter(all_lp_vd);
-  const midVar2 = data.slice(1).filter(all_lp_DA);
+  const midVar = data.slice(1).filter(filters.all_lp_vd);
+  const midVar2 = data.slice(1).filter(filters.all_lp_DA);
 
   const matches = filteredAndSortedData7.length;
   const sum = midVar.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
@@ -245,19 +360,17 @@ const HomePage = () => {
   return (
     <MainContainer>
       <HeaderComponent />
-      {/* <ButtonUpload
-        component="label"
-        role={undefined}
-        variant="contained"
-        tabIndex={-1}
-        startIcon={<CloudUploadIcon />}
-        accept=".xlsx, .xls"
-        onChange={handleFileUpload}
-      >
-        Upload file
-        <VisuallyHiddenInput type="file" />
-      </ButtonUpload> */}
+
       <UploadBox>
+        <CalendarBox>
+          <Button
+            onClick={() => toggleVisibility(14)}
+            variant="outlined"
+            startIcon={<CalendarMonthIcon />}
+          >
+            Calendário
+          </Button>
+        </CalendarBox>
         <ButtonUpload
           component="label"
           loading={loading}
@@ -271,9 +384,22 @@ const HomePage = () => {
           <p> Carregar Planilha</p>
           <VisuallyHiddenInput type="file" />
         </ButtonUpload>
-        {/* <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} /> */}
+        {/* <ButtonUpload
+          component="label"
+          loading={loading}
+          role={undefined}
+          variant="contained"
+          tabIndex={-1}
+          startIcon={<CloudUploadIcon />}
+          accept=".xlsx, .xls"
+          onChange={handleFile2Upload}
+        >
+          <p> Carregar (Light)</p>
+          <VisuallyHiddenInput type="file" />
+        </ButtonUpload> */}
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
       </UploadBox>
+
       <SubMenuSection>
         <h1>Indicadores</h1>
         <div className="divider"></div>
@@ -424,6 +550,19 @@ const HomePage = () => {
           <h2>{quantity_agenda_tomorrow}</h2>
         </BlockLTP>
       </Dashboard>
+      <CalendarContainer>
+        <ToggleableComponent isVisible={visibleComponents[14]}>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 500 }}
+            eventPropGetter={eventPropGetter}
+          />
+        </ToggleableComponent>
+      </CalendarContainer>
+
       {data.length > 0 && (
         <>
           <SubMenuSection>
@@ -441,7 +580,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData1.map((row, rowIndex) => (
+                {planilha_LTP_IH_VD_LP.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>
@@ -462,7 +601,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData2.map((row, rowIndex) => (
+                {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>
@@ -483,7 +622,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData3.map((row, rowIndex) => (
+                {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>
@@ -599,7 +738,7 @@ const HomePage = () => {
             </table>
           </ToggleableComponent>
           <ToggleableComponent isVisible={visibleComponents[9]}>
-            <h2>Reparo comleto fora do prazo de todos os serviços</h2>
+            <h2>Reparo completo fora do prazo de todos os serviços</h2>
             <table>
               <thead>
                 <tr>
@@ -741,12 +880,47 @@ const HomePage = () => {
               </tbody>
             </table>
           </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[13]}>
+            <h2>Agenda de amanhã</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow_complete_repair.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData17.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_complete_repair.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
         </>
       )}
     </MainContainer>
   );
 };
 
+const CalendarBox = styled.div`
+  display: flex;
+  padding-right: 10px;
+`;
+
+const CalendarContainer = styled.div`
+  padding: 10px 0px;
+  width: 60%;
+  background-color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  margin-left: auto;
+  margin-right: auto;
+`;
 const UploadBox = styled.div`
   display: flex;
   margin: 10px;
@@ -815,12 +989,15 @@ const VisuallyHiddenInput = styled("input")({
   width: 1,
 });
 const ButtonUpload = styled(Button)`
+  margin: 10px 10px;
+
   width: 190px;
   p {
     font-size: 11px;
   }
 `;
 const SubMenuSection = styled.div`
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   align-items: start;
@@ -828,6 +1005,7 @@ const SubMenuSection = styled.div`
     height: 2px;
     width: 100%;
     background-color: #5a5a5a;
+    margin: 5px 0px;
   }
   margin: 0px 10px;
   font-weight: 500;
@@ -846,9 +1024,7 @@ const Dashboard = styled.div`
 const MainContainer = styled.div`
   display: flex;
   flex-direction: column;
-  /* justify-content: space-between; */
-  /* align-items: center; */
-  /* height: 100vh; */
+
   h2 {
     font-weight: 900;
   }

@@ -1,11 +1,15 @@
 import React from "react";
 import "./App.css";
-import HomePage from "./pages/HomePage";
+import PagesRoutes from "./Router";
 import styled from "styled-components";
+import HeaderComponent from "./components/HeaderComponent";
+
 const App = () => {
   return (
     <div className="App">
-      <HomePage />
+      {/* <HeaderComponent /> */}
+      {/* <HomePage /> */}
+      <PagesRoutes />
       <Footer>
         <p>2024 - Desenvolvido por Daniel Carvalho</p>
         <p>Versão 1.5</p>

@@ -161,6 +161,43 @@ const filters = {
     const isLTP = row[15] > 2;
     return isCol37Valid && isCol58Valid && isLTP && isCI;
   },
+
+  all_lp_vd: (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH" || row[34] === "CI";
+    const isCol58Valid = [
+      "LED01",
+      "LED02",
+      "LED03",
+      "LFD01",
+      "LFD02",
+      "HTS01",
+      "PJT01",
+      "TFT01",
+      "TFT02",
+    ].includes(row[58]);
+    return isCol37Valid && isCol58Valid && isInHome;
+  },
+
+  all_lp_DA: (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH";
+    const isCol58Valid = [
+      "SWM01",
+      "SWM03",
+      "FJM01",
+      "RAO01",
+      "RAO02",
+      "RAC01",
+      "RAC02",
+      "RAC03",
+      "RAS01",
+      "SBS01",
+      "REF01",
+      "REF02",
+    ].includes(row[58]);
+    return isCol37Valid && isCol58Valid && isInHome;
+  },
 };
 
 export default filters;

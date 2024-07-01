@@ -29,10 +29,10 @@ table {
 
 th,
 td {
-  border: 1px solid #ddd;
-  padding: 8px;
+  border: 1px solid #727272;
+  padding: 6px;
 }
 
 th {
-  background-color: #f4f4f4;
+  background-color: #adadad;
 }
