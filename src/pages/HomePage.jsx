@@ -11,6 +11,11 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import handleFileUpload from "../utils/fileUploader";
+import { UploadButton } from "../components/UploadButton";
+
+import { saveAs } from "file-saver";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const localizer = momentLocalizer(moment);
 
@@ -35,14 +40,19 @@ const HomePage = () => {
 
   const [file1, setFile1] = useState(null);
   const [file2, setFile2] = useState(null);
+  const [data1, setData1] = useState([]);
+  const [data2, setData2] = useState([]);
+  const [combinedData, setCombinedData] = useState([]);
+  const [combinedData_download, setCombinedData_download] = useState([]);
 
   const [events, setEvents] = useState([]);
   const [cityData, setCityData] = useState({});
 
   const [file, setFile] = useState(null);
-  const [data, setData] = useState([]);
+  // const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const data = combinedData;
 
   const [visibleComponents, setVisibleComponents] = useState({
     1: false,
@@ -61,6 +71,264 @@ const HomePage = () => {
     14: false,
   });
 
+  ///////////////////////////////
+  const downloadExcel = (data, fileName = "planilha.xlsx") => {
+    // Cria uma nova planilha
+    if (data2.length == 0) {
+      alert("Não possui planilha Service Light na base!");
+      return;
+    }
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+    // Converte a planilha para um blob
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+
+    // Usa file-saver para baixar o arquivo
+    saveAs(blob, fileName);
+  };
+
+  const selectSpecificColumns = (data, columnsToShow) => {
+    return data.map((row) => {
+      return columnsToShow.map((colIndex) => row[colIndex]);
+    });
+  };
+
+  useEffect(() => {
+    if (data1.length > 0) {
+      const columnsToShow_complete_repair = [
+        1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+        40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
+        58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
+        76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+      ];
+      const columnsTo_Download = [
+        1, 3, 4, 11, 14, 16, 17, 18, 24, 26, 36, 39, 45, 46, 47, 48, 49, 58, 59,
+        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+        78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+      ];
+      const data1SelectedCols = selectSpecificColumns(
+        data1,
+        columnsToShow_complete_repair
+      );
+      const data1SelectedCols_d = selectSpecificColumns(
+        data1,
+        columnsTo_Download
+      );
+
+      const headers = [
+        data1[0][1], // Número da Ordem de Serviço
+        "Nome do Cliente",
+        "Cidade do Cliente",
+        ...columnsToShow_complete_repair
+          .slice(1)
+          .map((index) => data1[0][index]),
+      ];
+
+      const dataMapping = data2.slice(1).reduce((acc, row) => {
+        acc[row[1]] = { nome: row[11], cidade: row[12] }; // Mapeando pelo número da ordem de serviço
+        return acc;
+      }, {});
+
+      const combined = data1SelectedCols.slice(1).map((row, rowIndex) => {
+        const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
+        const additionalData = dataMapping[orderId] || { nome: "", cidade: "" };
+        return [
+          row[0], // Número da Ordem de Serviço
+          additionalData.nome,
+          additionalData.cidade,
+          ...row.slice(1), // Outras colunas selecionadas
+        ];
+      });
+      const combined_d = data1SelectedCols_d.slice(1).map((row, rowIndex) => {
+        const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
+        const additionalData = dataMapping[orderId] || { nome: "", cidade: "" };
+        return [
+          row[0], // Número da Ordem de Serviço
+          additionalData.nome,
+          additionalData.cidade,
+          ...row.slice(1), // Outras colunas selecionadas
+        ];
+      });
+      if (combinedData.length > 0) {
+        const formattedEvents = combinedData
+          .slice(1)
+          .filter((row) => {
+            const filterValueAI = row[34]; // Índice da coluna AI
+            const filterValueN = row[13]; // Índice da coluna N
+            const validValuesAI = ["II", "IH", "SH"];
+            const invalidValuesN = [
+              "HP035",
+              "HP080",
+              "HP081",
+              "HPZ20",
+              "HL005",
+            ];
+
+            return (
+              validValuesAI.includes(filterValueAI) &&
+              !invalidValuesN.includes(filterValueN)
+            );
+          })
+          .map((row) => {
+            const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
+            const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
+            const isValidDate = !isNaN(date);
+            const startDate = isValidDate
+              ? date
+              : moment.utc(dateStr, "YYYY-MM-DD").toDate();
+            const orderId = row[2]; // Índice da coluna B
+
+            // Adicionar os valores das colunas L e M da segunda planilha se disponível
+            const cityInfo = cityData[orderId] || {
+              city: "",
+              additionalInfo: "",
+            };
+
+            return {
+              title: `${row[0]} - ${row[2]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+              start: startDate,
+              end: startDate,
+              type: row[34], // Armazenar o tipo para usar no eventPropGetter
+            };
+          });
+
+        setEvents(formattedEvents);
+      } else {
+        const formattedEvents = data1
+          .slice(1)
+          .filter((row) => {
+            const filterValueAI = row[34]; // Índice da coluna AI
+            const filterValueN = row[13]; // Índice da coluna N
+            const validValuesAI = ["II", "IH", "SH"];
+            const invalidValuesN = [
+              "HP035",
+              "HP080",
+              "HP081",
+              "HPZ20",
+              "HL005",
+            ];
+
+            return (
+              validValuesAI.includes(filterValueAI) &&
+              !invalidValuesN.includes(filterValueN)
+            );
+          })
+          .map((row) => {
+            const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
+            const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
+            const isValidDate = !isNaN(date);
+            const startDate = isValidDate
+              ? date
+              : moment.utc(dateStr, "YYYY-MM-DD").toDate();
+            const orderId = row[2]; // Índice da coluna B
+
+            // Adicionar os valores das colunas L e M da segunda planilha se disponível
+            const cityInfo = cityData[orderId] || {
+              city: "",
+              additionalInfo: "",
+            };
+
+            return {
+              title: `${row[1]} ${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
+                cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
+              }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+              start: startDate,
+              end: startDate,
+              type: row[34], // Armazenar o tipo para usar no eventPropGetter
+            };
+          });
+
+        setEvents(formattedEvents);
+      }
+      setCombinedData_download([headers, ...combined_d]);
+      setCombinedData([headers, ...combined]);
+    }
+  }, [data1, data2, cityData]);
+
+  /////////////////////////////////
+
+  const handleFileUpload_beta = (e, setFileFunction, setDataFunction) => {
+    handleFileUpload(
+      e,
+      setFileFunction,
+      setDataFunction,
+      setLoading,
+      setMessage
+    );
+  };
+
+  // const handleFileUpload_beta = (
+  // e,
+  // setFileFunction,
+  // setDataFunction,
+  // ) => {
+  //   const uploadedFile = e.target.files[0];
+  //   setFileFunction(uploadedFile);
+  //   setLoading(true);
+  //   setMessage("");
+
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const binaryStr = event.target.result;
+  //     const workbook = XLSX.read(binaryStr, { type: "binary" });
+
+  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  //     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+  //     const convertToDate = (value) => {
+  //       const date = XLSX.SSF.parse_date_code(value);
+  //       if (date) {
+  //         return new Date(Date.UTC(date.y, date.m - 1, date.d));
+  //       }
+  //       return null;
+  //     };
+
+  //     // Colunas que sabemos que devem conter datas
+  //     const dateColumns = [16, 22, 24, 27];
+  //     const isValidDate = (d) => {
+  //       return d instanceof Date && !isNaN(d);
+  //     };
+
+  //     // Formatar as datas corretamente apenas nas colunas especificadas
+  //     const formattedData = sheetData.map((row) =>
+  //       row.map((cell, index) => {
+  //         if (dateColumns.includes(index) && typeof cell === "number") {
+  //           const date = convertToDate(cell);
+  //           if (isValidDate(date)) {
+  //             const day = String(date.getUTCDate()).padStart(2, "0");
+  //             const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  //             const year = date.getUTCFullYear();
+
+  //             // console.log(`${month}/${day}/${year}`);
+  //             // return `${day}/${month}/${year}`;
+  //             return `${month}/${day}/${year}`;
+  //           }
+  //         }
+  //         return cell;
+  //       })
+  //     );
+
+  //     // setDataFunction(sheetData);
+  //     setDataFunction(formattedData);
+  //     setLoading(false);
+  //     setMessage("Carregamento completo!");
+  //   };
+
+  //   reader.onerror = () => {
+  //     setLoading(false);
+  //     setMessage("Error reading file!");
+  //   };
+
+  //   reader.readAsBinaryString(uploadedFile);
+  // };
+
   const toggleVisibility = (id) => {
     setVisibleComponents((prevState) => ({
       ...prevState,
@@ -68,68 +336,68 @@ const HomePage = () => {
     }));
   };
 
-  const handleFileUpload = (e) => {
-    const uploadedFile = e.target.files[0];
-    setFile(uploadedFile);
-    setLoading(true);
-    setMessage("");
+  // const handleFileUpload = (e) => {
+  //   const uploadedFile = e.target.files[0];
+  //   setFile(uploadedFile);
+  //   setLoading(true);
+  //   setMessage("");
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const binaryStr = event.target.result;
-      const workbook = XLSX.read(binaryStr, { type: "binary" });
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const binaryStr = event.target.result;
+  //     const workbook = XLSX.read(binaryStr, { type: "binary" });
 
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  //     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+  //     const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      // Função para verificar se um valor é uma data válida
-      const isValidDate = (d) => {
-        return d instanceof Date && !isNaN(d);
-      };
+  //     // Função para verificar se um valor é uma data válida
+  //     const isValidDate = (d) => {
+  //       return d instanceof Date && !isNaN(d);
+  //     };
 
-      // Função para converter números em datas
-      const convertToDate = (value) => {
-        const date = XLSX.SSF.parse_date_code(value);
-        if (date) {
-          return new Date(Date.UTC(date.y, date.m - 1, date.d));
-        }
-        return null;
-      };
+  //     // Função para converter números em datas
+  //     const convertToDate = (value) => {
+  //       const date = XLSX.SSF.parse_date_code(value);
+  //       if (date) {
+  //         return new Date(Date.UTC(date.y, date.m - 1, date.d));
+  //       }
+  //       return null;
+  //     };
 
-      // Colunas que sabemos que devem conter datas
-      const dateColumns = [16, 22, 24, 27];
+  //     // Colunas que sabemos que devem conter datas
+  //     const dateColumns = [16, 22, 24, 27];
 
-      // Formatar as datas corretamente apenas nas colunas especificadas
-      const formattedData = sheetData.map((row) =>
-        row.map((cell, index) => {
-          if (dateColumns.includes(index) && typeof cell === "number") {
-            const date = convertToDate(cell);
-            if (isValidDate(date)) {
-              const day = String(date.getUTCDate()).padStart(2, "0");
-              const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-              const year = date.getUTCFullYear();
+  //     // Formatar as datas corretamente apenas nas colunas especificadas
+  //     const formattedData = sheetData.map((row) =>
+  //       row.map((cell, index) => {
+  //         if (dateColumns.includes(index) && typeof cell === "number") {
+  //           const date = convertToDate(cell);
+  //           if (isValidDate(date)) {
+  //             const day = String(date.getUTCDate()).padStart(2, "0");
+  //             const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  //             const year = date.getUTCFullYear();
 
-              // console.log(`${month}/${day}/${year}`);
-              // return `${day}/${month}/${year}`;
-              return `${month}/${day}/${year}`;
-            }
-          }
-          return cell;
-        })
-      );
+  //             // console.log(`${month}/${day}/${year}`);
+  //             // return `${day}/${month}/${year}`;
+  //             return `${month}/${day}/${year}`;
+  //           }
+  //         }
+  //         return cell;
+  //       })
+  //     );
 
-      setData(formattedData);
-      setLoading(false);
-      setMessage("Carregamento completo!");
-    };
+  //     setData(formattedData);
+  //     setLoading(false);
+  //     setMessage("Carregamento completo!");
+  //   };
 
-    reader.onerror = () => {
-      setLoading(false);
-      setMessage("Error reading file!");
-    };
+  //   reader.onerror = () => {
+  //     setLoading(false);
+  //     setMessage("Error reading file!");
+  //   };
 
-    reader.readAsBinaryString(uploadedFile);
-  };
+  //   reader.readAsBinaryString(uploadedFile);
+  // };
 
   const eventPropGetter = (event) => {
     let className = "";
@@ -149,61 +417,65 @@ const HomePage = () => {
     return { className };
   };
 
-  useEffect(() => {
-    if (data.length > 0) {
-      const formattedEvents = data
-        .slice(1)
-        .filter((row) => {
-          const filterValueAI = row[34]; // Índice da coluna AI
-          const filterValueN = row[13]; // Índice da coluna N
-          const validValuesAI = ["II", "IH", "SH"];
-          const invalidValuesN = ["HP035", "HP080", "HP081", "HPZ20", "HL005"];
+  // useEffect(() => {
+  //   if (data.length > 0) {
+  //     const formattedEvents = data
+  //       .slice(1)
+  //       .filter((row) => {
+  //         const filterValueAI = row[34]; // Índice da coluna AI
+  //         const filterValueN = row[13]; // Índice da coluna N
+  //         const validValuesAI = ["II", "IH", "SH"];
+  //         const invalidValuesN = ["HP035", "HP080", "HP081", "HPZ20", "HL005"];
 
-          return (
-            validValuesAI.includes(filterValueAI) &&
-            !invalidValuesN.includes(filterValueN)
-          );
-        })
-        .map((row) => {
-          const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
-          const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
-          const isValidDate = !isNaN(date);
-          const startDate = isValidDate
-            ? date
-            : moment.utc(dateStr, "YYYY-MM-DD").toDate();
-          const orderId = row[1]; // Índice da coluna B
+  //         return (
+  //           validValuesAI.includes(filterValueAI) &&
+  //           !invalidValuesN.includes(filterValueN)
+  //         );
+  //       })
+  //       .map((row) => {
+  //         const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
+  //         const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
+  //         const isValidDate = !isNaN(date);
+  //         const startDate = isValidDate
+  //           ? date
+  //           : moment.utc(dateStr, "YYYY-MM-DD").toDate();
+  //         const orderId = row[1]; // Índice da coluna B
 
-          // Adicionar os valores das colunas L e M da segunda planilha se disponível
-          const cityInfo = cityData[orderId] || {
-            city: "",
-            additionalInfo: "",
-          };
+  //         // Adicionar os valores das colunas L e M da segunda planilha se disponível
+  //         const cityInfo = cityData[orderId] || {
+  //           city: "",
+  //           additionalInfo: "",
+  //         };
 
-          return {
-            title: `${row[1]}${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
-              cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
-            }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
-            start: startDate,
-            end: startDate,
-            type: row[34], // Armazenar o tipo para usar no eventPropGetter
-          };
-        });
+  //         return {
+  //           title: `${row[1]}${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
+  //             cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
+  //           }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+  //           start: startDate,
+  //           end: startDate,
+  //           type: row[34], // Armazenar o tipo para usar no eventPropGetter
+  //         };
+  //       });
 
-      setEvents(formattedEvents);
-    }
-  }, [data, cityData]);
+  //     setEvents(formattedEvents);
+  //   }
+  // }, [data, cityData]);
 
   // Índices das colunas que queremos exibir (baseado em zero)
-  const columnsToShow = [1, 9, 14, 15, 24, 61];
-  const columnsToShow_intoogle = [1, 9, 14, 15, 37, 22, 24, 61];
-  const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 34, 24, 27];
-  const columnsToShow_type_service = [1, 9, 14, 15, 37, 22, 34];
+  // const columnsToShow = [1, 2, 3, 11, 16, 17, 36, 39];
+  const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61];
+
+  const columnsToShow_intoogle = [0, 1, 2, 9, 14, 15, 37, 22, 24, 61];
+  const columnsToShow_complete_repair = [
+    0, 1, 2, 9, 14, 15, 37, 22, 34, 24, 27,
+  ];
+  const columnsToShow_type_service = [0, 1, 2, 9, 14, 15, 37, 22, 34];
 
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
   const sortData = (filteredData) => {
     return filteredData.sort((a, b) => {
-      const valA = a[15];
-      const valB = b[15];
+      const valA = a[17]; //15 ->16
+      const valB = b[17];
       if (valA > valB) return -1;
       if (valA < valB) return 1;
       return 0;
@@ -211,8 +483,9 @@ const HomePage = () => {
   };
 
   const planilha_LTP_IH_VD_LP = sortData(
-    data.slice(1).filter(filters.filter_VD_LTP_LP)
+    combinedData.slice(1).filter(filters.filter_VD_LTP_LP)
   );
+  // const planilha_LTP_IH_VD_LP = sortData(combinedData.slice(1));
   const planilha_LTP_IH_RAC_REF_LP = sortData(
     data.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
   );
@@ -300,19 +573,15 @@ const HomePage = () => {
             Calendário
           </Button>
         </CalendarBox>
-        <ButtonUpload
-          component="label"
-          loading={loading}
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-          accept=".xlsx, .xls"
-          onChange={handleFileUpload}
-        >
-          <p> Carregar Planilha</p>
-          <VisuallyHiddenInput type="file" />
-        </ButtonUpload>
+        <UploadButton
+          onChange={(e) => handleFileUpload_beta(e, setFile1, setData1)}
+          text={"Carregar A. Pending"}
+        />
+        <UploadButton
+          onChange={(e) => handleFileUpload_beta(e, setFile2, setData2)}
+          text={"Carregar Light"}
+        />
+        <DownloadIcon onClick={(e) => downloadExcel(combinedData)} />
         {/* <ButtonUpload
           component="label"
           loading={loading}
@@ -321,9 +590,9 @@ const HomePage = () => {
           tabIndex={-1}
           startIcon={<CloudUploadIcon />}
           accept=".xlsx, .xls"
-          onChange={handleFile2Upload}
+          onChange={(e) => downloadExcel(combinedData)}
         >
-          <p> Carregar (Light)</p>
+          <p> Baixar</p>
           <VisuallyHiddenInput type="file" />
         </ButtonUpload> */}
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
@@ -492,7 +761,7 @@ const HomePage = () => {
         </ToggleableComponent>
       </CalendarContainer>
 
-      {data.length > 0 && (
+      {combinedData.length > 0 && (
         <>
           <SubMenuSection>
             <h1>Planilhas</h1>
@@ -504,7 +773,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -900,9 +1169,9 @@ const VisuallyHiddenInput = styled("input")({
 const ButtonUpload = styled(Button)`
   margin: 10px 10px;
 
-  width: 190px;
+  width: 200px;
   p {
-    font-size: 11px;
+    font-size: 12px;
   }
 `;
 const SubMenuSection = styled.div`

@@ -12,7 +12,7 @@ const App = () => {
       <PagesRoutes />
       <Footer>
         <p>2024 - Desenvolvido por Daniel Carvalho</p>
-        <p>Versão 1.5</p>
+        <p>Versão 1.7</p>
       </Footer>
     </div>
   );
