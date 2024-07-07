@@ -474,8 +474,8 @@ const HomePage = () => {
   // Função para ordenar as linhas com base na coluna 15 (índice 14)
   const sortData = (filteredData) => {
     return filteredData.sort((a, b) => {
-      const valA = a[17]; //15 ->16
-      const valB = b[17];
+      const valA = a[15]; //15 ->16
+      const valB = b[15];
       if (valA > valB) return -1;
       if (valA < valB) return 1;
       return 0;
