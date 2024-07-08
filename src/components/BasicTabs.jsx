@@ -9,9 +9,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
 import styled from "styled-components";
-import Slider from "react-slick";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
   const { visibleComponents, setVisibleComponents } = useHomeContext();
