@@ -4,11 +4,14 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import useHomeContext from "../hooks/UseHomeContext";
-import SwipeableViews from "react-swipeable-views";
+// import SwipeableViews from "react-swipeable-views";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
 import styled from "styled-components";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
   const { visibleComponents, setVisibleComponents } = useHomeContext();
@@ -79,21 +82,21 @@ export default function BasicTabs({ children, child }) {
           />
         </Tabs>
       </Box>
-      <SwipeableViews
+      {/* <SwipeableViews
         // axis={theme.direction === "rtl" ? "x-reverse" : "x"}
         index={value}
         onChangeIndex={handleChangeIndex}
-      >
-        <CustomTabPanel value={value} index={0}>
-          {childrenArray[0]}
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={1}>
-          {childrenArray[1]}
-        </CustomTabPanel>
-        <CustomTabPanel value={value} index={2}>
-          {childrenArray[2]}
-        </CustomTabPanel>
-      </SwipeableViews>
+      > */}
+      <CustomTabPanel value={value} index={0}>
+        {childrenArray[0]}
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={1}>
+        {childrenArray[1]}
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={2}>
+        {childrenArray[2]}
+      </CustomTabPanel>
+      {/* </SwipeableViews> */}
     </Box>
   );
 }
