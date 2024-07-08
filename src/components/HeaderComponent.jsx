@@ -47,8 +47,9 @@ const Header = styled.div`
   font-weight: 800;
   font-style: normal;
 
-  background-color: #0093e9;
-  background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%);
+  /* background-color: #0093e9; */
+  background-color: #23323d;
+  /* background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%); */
   h2 {
     margin-right: 10px;
   }

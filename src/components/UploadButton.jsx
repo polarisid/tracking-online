@@ -3,14 +3,14 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import styled from "styled-components";
 export const UploadButton = ({ onChange, text }) => (
   <Container>
-    <Button
+    <ButtonStyled
       component="label"
       variant="contained"
       startIcon={<CloudUploadIcon />}
     >
       {text}
       <VisuallyHiddenInput type="file" onChange={onChange} />
-    </Button>
+    </ButtonStyled>
   </Container>
 );
 
@@ -28,4 +28,9 @@ const VisuallyHiddenInput = styled("input")({
   left: 0,
   whiteSpace: "nowrap",
   width: 1,
+  backgroundColor: "#5a5a5a",
 });
+
+const ButtonStyled = styled(Button)`
+  background-color: "#23323D";
+`;
