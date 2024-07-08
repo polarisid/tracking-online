@@ -25,7 +25,6 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "preinstall": "npm install --legacy-peer-deps",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
