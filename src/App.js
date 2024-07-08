@@ -4,20 +4,24 @@ import PagesRoutes from "./Router";
 import styled from "styled-components";
 import HeaderComponent from "./components/HeaderComponent";
 import LoadingScreen from "./components/LoadingScreen";
-
+import { HomeProvider } from "./Contexts/HomeContext";
 const App = () => {
   return (
-    <div className="App">
-      <LoadingScreen />
+    <>
+      <HomeProvider>
+        <div className="App">
+          <LoadingScreen />
 
-      {/* <HeaderComponent /> */}
-      {/* <HomePage /> */}
-      <PagesRoutes />
-      <Footer>
-        <p>2024 - Desenvolvido por Daniel Carvalho</p>
-        <p>Versão 2.0</p>
-      </Footer>
-    </div>
+          {/* <HeaderComponent /> */}
+          {/* <HomePage /> */}
+          <PagesRoutes />
+          <Footer>
+            <p>2024 - Desenvolvido por Daniel Carvalho</p>
+            <p>Versão 2.0</p>
+          </Footer>
+        </div>
+      </HomeProvider>
+    </>
   );
 };
 

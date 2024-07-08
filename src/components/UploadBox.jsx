@@ -2,8 +2,16 @@ import * as React from "react";
 import Button from "@mui/material/Button";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import useHomeContext from "../hooks/UseHomeContext";
+import { UploadButton } from "../components/UploadButton";
+import DownloadIcon from "@mui/icons-material/Download";
 
-export default function BasicMenu({ ...props }) {
+export default function UploadBoxMenu({ ...props }) {
+  const { file1, setFile1 } = useHomeContext();
+  const { file2, setFile2 } = useHomeContext();
+  const { data1, setData1 } = useHomeContext();
+  const { data2, setData2 } = useHomeContext();
+  const { combinedData, setCombinedData } = useHomeContext();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -33,9 +41,23 @@ export default function BasicMenu({ ...props }) {
           "aria-labelledby": "basic-button",
         }}
       >
-        <MenuItem onClick={handleClose}> {props.option1}</MenuItem>
-        <MenuItem onClick={handleClose}>{props.option2}</MenuItem>
-        <MenuItem onClick={handleClose}>{props.option3}</MenuItem>
+        <MenuItem onClick={handleClose}>
+          <UploadButton
+            onChange={(e) => props.handleFileUpload_beta(e, setFile1, setData1)}
+            text={"Carregar A. Pending"}
+          />
+        </MenuItem>
+        <MenuItem onClick={handleClose}>
+          <UploadButton
+            onChange={(e) => props.handleFileUpload_beta(e, setFile2, setData2)}
+            text={"Carregar Cidades "}
+          />
+        </MenuItem>
+
+        <MenuItem onClick={(e) => props.downloadExcel(combinedData)}>
+          Download
+          <DownloadIcon />
+        </MenuItem>
       </Menu>
     </div>
   );

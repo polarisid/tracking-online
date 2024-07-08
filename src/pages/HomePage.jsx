@@ -13,23 +13,26 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import handleFileUpload from "../utils/fileUploader";
 import { UploadButton } from "../components/UploadButton";
-import BasicMenu from "../components/UploadBox";
-
+import useHomeContext from "../hooks/UseHomeContext";
+import BasicTabs from "../components/BasicTabs";
+import styles from "./styles.css";
 import * as React from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-
+import UploadBoxMenu from "../components/UploadBox";
 import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
 
 const localizer = momentLocalizer(moment);
 
 const HomePage = () => {
-  const [file1, setFile1] = useState(null);
-  const [file2, setFile2] = useState(null);
-  const [data1, setData1] = useState([]);
-  const [data2, setData2] = useState([]);
-  const [combinedData, setCombinedData] = useState([]);
+  const { file1, setFile1 } = useHomeContext();
+  const { file2, setFile2 } = useHomeContext();
+  const { data1, setData1 } = useHomeContext();
+  const { data2, setData2 } = useHomeContext();
+  const { combinedData, setCombinedData } = useHomeContext();
+  const { visibleComponents, setVisibleComponents } = useHomeContext();
+
   const [combinedData_download, setCombinedData_download] = useState([]);
 
   const [events, setEvents] = useState([]);
@@ -41,23 +44,6 @@ const HomePage = () => {
   const [message, setMessage] = useState("");
   const data = combinedData;
 
-  const [visibleComponents, setVisibleComponents] = useState({
-    1: false,
-    2: false,
-    3: false,
-    4: false,
-    5: false,
-    6: false,
-    7: false,
-    8: false,
-    9: false,
-    10: false,
-    11: false,
-    12: false,
-    13: false,
-    14: false,
-  });
-  ///////////////////
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -103,7 +89,9 @@ const HomePage = () => {
         40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
         58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
         76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
-        94, 95, 96, 97, 98, 99,
+        94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
+        109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
+        123, 124,
       ];
       const columnsTo_Download = [
         1, 3, 4, 12, 14, 16, 17, 18, 24, 26, 36, 39, 45, 46, 47, 48, 49, 58, 59,
@@ -387,16 +375,11 @@ const HomePage = () => {
   return (
     <MainContainer>
       <HeaderComponent />
+      {/* <UploadBoxMenu
+        handleFileUpload_beta={handleFileUpload_beta}
+        downloadExcel={downloadExcel}
+      /> */}
       <UploadBox>
-        <CalendarBox>
-          <Button
-            onClick={() => toggleVisibility(14)}
-            variant="outlined"
-            startIcon={<CalendarMonthIcon />}
-          >
-            Calendário
-          </Button>
-        </CalendarBox>
         <Button
           id="basic-button"
           aria-controls={open ? "basic-menu" : undefined}
@@ -428,205 +411,183 @@ const HomePage = () => {
             />
           </MenuItem>
           <MenuItem onClick={(e) => downloadExcel(combinedData_download)}>
-            Download
-            <DownloadIcon />
+            <Button startIcon={<DownloadIcon />}>Download</Button>
           </MenuItem>
         </Menu>
-        {/* <ButtonUpload
-          component="label"
-          loading={loading}
-          role={undefined}
-          variant="contained"
-          tabIndex={-1}
-          startIcon={<CloudUploadIcon />}
-          accept=".xlsx, .xls"
-          onChange={(e) => downloadExcel(combinedData)}
-        >
-          <p> Baixar</p>
-          <VisuallyHiddenInput type="file" />
-        </ButtonUpload> */}
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
       </UploadBox>
+      <BasicTabs>
+        <Dashboard>
+          <BlockLTP
+            state={visibleComponents[1]}
+            onClick={() => toggleVisibility(1)}
+          >
+            <div className="divider">
+              <h1>LTP VD IH</h1>
+            </div>
+            <h2>{quantity_LTP_VD}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[2]}
+            onClick={() => toggleVisibility(2)}
+          >
+            <div className="divider">
+              <h1>LTP REF/RAC </h1>
+            </div>
 
-      <SubMenuSection>
-        <h1>Indicadores</h1>
-        <div className="divider"></div>
-      </SubMenuSection>
-      <Dashboard>
-        <BlockLTP
-          state={visibleComponents[1]}
-          onClick={() => toggleVisibility(1)}
-        >
-          <div className="divider">
-            <h1>LTP VD IH</h1>
-          </div>
-          <h2>{quantity_LTP_VD}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[2]}
-          onClick={() => toggleVisibility(2)}
-        >
-          <div className="divider">
-            <h1>LTP REF/RAC </h1>
-          </div>
+            <h2>{quantity_LTP_RAC_REF}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[3]}
+            onClick={() => toggleVisibility(3)}
+          >
+            <div className="divider">
+              <h1>LTP WSM</h1>
+            </div>
+            <h2>{quantity_LTP_WSM}</h2>
+          </BlockLTP>
+          <BlockLTP
+            type={"CI"}
+            state={visibleComponents[4]}
+            onClick={() => toggleVisibility(4)}
+          >
+            <div className="divider">
+              <h1>LTP VD CI</h1>
+            </div>
 
-          <h2>{quantity_LTP_RAC_REF}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[3]}
-          onClick={() => toggleVisibility(3)}
-        >
-          <div className="divider">
-            <h1>LTP WSM</h1>
-          </div>
-          <h2>{quantity_LTP_WSM}</h2>
-        </BlockLTP>
-        <BlockLTP
-          type={"CI"}
-          state={visibleComponents[4]}
-          onClick={() => toggleVisibility(4)}
-        >
-          <div className="divider">
-            <h1>LTP VD CI</h1>
-          </div>
+            <h2>{quantity_LTP_VD_CI}</h2>
+          </BlockLTP>
+          <BlockLTP
+            type={"CI"}
+            state={visibleComponents[5]}
+            onClick={() => toggleVisibility(5)}
+          >
+            <div className="divider">
+              <h1>LTP MX CI</h1>
+            </div>
 
-          <h2>{quantity_LTP_VD_CI}</h2>
-        </BlockLTP>
-        <BlockLTP
-          type={"CI"}
-          state={visibleComponents[5]}
-          onClick={() => toggleVisibility(5)}
-        >
-          <div className="divider">
-            <h1>LTP MX CI</h1>
-          </div>
+            <h2>{quantity_LTP_MX_CI}</h2>
+          </BlockLTP>
+          <BlockLTP>
+            {average.toFixed(2) > 3.8 ? <WarningIconX></WarningIconX> : <></>}
+            {average.toFixed(2) < 3.8 && average.toFixed(2) > 3 ? (
+              <WarningIconX type={"mid"}></WarningIconX>
+            ) : (
+              <></>
+            )}
 
-          <h2>{quantity_LTP_MX_CI}</h2>
-        </BlockLTP>
-        <BlockLTP>
-          {average.toFixed(2) > 3.8 ? <WarningIconX></WarningIconX> : <></>}
-          {average.toFixed(2) < 3.8 && average.toFixed(2) > 3 ? (
-            <WarningIconX type={"mid"}></WarningIconX>
-          ) : (
-            <></>
-          )}
+            <div className="divider">
+              <h1>RTAT VD</h1>
+            </div>
 
-          <div className="divider">
-            <h1>RTAT VD</h1>
-          </div>
+            <h2>{average.toFixed(2)}</h2>
+          </BlockLTP>
+          <BlockLTP>
+            {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
+            {average2.toFixed(2) < 4.5 && average2.toFixed(2) > 3.8 ? (
+              <WarningIconX type={"mid"}></WarningIconX>
+            ) : (
+              <></>
+            )}
 
-          <h2>{average.toFixed(2)}</h2>
-        </BlockLTP>
-        <BlockLTP>
-          {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
-          {average2.toFixed(2) < 4.5 && average2.toFixed(2) > 3.8 ? (
-            <WarningIconX type={"mid"}></WarningIconX>
-          ) : (
-            <></>
-          )}
+            <div className="divider">
+              <h1>RTAT DA</h1>
+            </div>
 
-          <div className="divider">
-            <h1>RTAT DA</h1>
-          </div>
+            <h2>{average2.toFixed(2)}</h2>
+          </BlockLTP>
+        </Dashboard>
+        <Dashboard>
+          <BlockLTP
+            state={visibleComponents[6]}
+            onClick={() => toggleVisibility(6)}
+          >
+            <div className="divider">
+              <h1>DA Sem Peça (OW/LP)</h1>
+            </div>
+            <h2>{quantity_DA_noParts}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[8]}
+            onClick={() => toggleVisibility(8)}
+          >
+            <div className="divider">
+              <h1>Consumidor Fora do Prazo</h1>
+            </div>
 
-          <h2>{average2.toFixed(2)}</h2>
-        </BlockLTP>
-      </Dashboard>
+            <h2>{quantity_Oudated_IH}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[9]}
+            onClick={() => toggleVisibility(9)}
+          >
+            <div className="divider">
+              <h1>R. Completo Fora do Prazo</h1>
+            </div>
 
-      <SubMenuSection>
-        <h1>Análise</h1>
-        <div className="divider"></div>
-      </SubMenuSection>
-      <Dashboard>
-        <BlockLTP
-          state={visibleComponents[6]}
-          onClick={() => toggleVisibility(6)}
-        >
-          <div className="divider">
-            <h1>DA Sem Peça (OW/LP)</h1>
-          </div>
-          <h2>{quantity_DA_noParts}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[8]}
-          onClick={() => toggleVisibility(8)}
-        >
-          <div className="divider">
-            <h1>Consumidor Fora do Prazo</h1>
-          </div>
+            <h2>{quantity_Oudated_Repair_complete_IH}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[7]}
+            onClick={() => toggleVisibility(7)}
+          >
+            <div className="divider"></div>
+            <h1>LTP IH</h1>
+            <h1> Em até 4 dias</h1>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[10]}
+            onClick={() => toggleVisibility(10)}
+          >
+            <div className="divider"></div>
 
-          <h2>{quantity_Oudated_IH}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[9]}
-          onClick={() => toggleVisibility(9)}
-        >
-          <div className="divider">
-            <h1>R. Completo Fora do Prazo</h1>
-          </div>
+            <h1>Effect Appointment</h1>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[11]}
+            onClick={() => toggleVisibility(11)}
+          >
+            <div className="divider">
+              {" "}
+              <h1>First Visit - Aguardando</h1>
+            </div>
 
-          <h2>{quantity_Oudated_Repair_complete_IH}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[7]}
-          onClick={() => toggleVisibility(7)}
-        >
-          <div className="divider"></div>
-          <h1>LTP IH</h1>
-          <h1> Em até 4 dias</h1>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[10]}
-          onClick={() => toggleVisibility(10)}
-        >
-          <div className="divider"></div>
+            <h2>{quantity_POTENTIAL_first_visit}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[12]}
+            onClick={() => toggleVisibility(12)}
+          >
+            <div className="divider">
+              <h1>Agenda do Dia</h1>
+            </div>
 
-          <h1>Effect Appointment</h1>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[11]}
-          onClick={() => toggleVisibility(11)}
-        >
-          <div className="divider">
-            {" "}
-            <h1>First Visit - Aguardando</h1>
-          </div>
+            <h2>{quantity_agenda_today}</h2>
+          </BlockLTP>
+          <BlockLTP
+            state={visibleComponents[13]}
+            onClick={() => toggleVisibility(13)}
+          >
+            <div className="divider">
+              <h1>Agenda de Amanhã</h1>
+            </div>
 
-          <h2>{quantity_POTENTIAL_first_visit}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[12]}
-          onClick={() => toggleVisibility(12)}
-        >
-          <div className="divider">
-            <h1>Agenda do Dia</h1>
-          </div>
-
-          <h2>{quantity_agenda_today}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[13]}
-          onClick={() => toggleVisibility(13)}
-        >
-          <div className="divider">
-            <h1>Agenda de Amanhã</h1>
-          </div>
-
-          <h2>{quantity_agenda_tomorrow}</h2>
-        </BlockLTP>
-      </Dashboard>
-      <CalendarContainer>
-        <ToggleableComponent isVisible={visibleComponents[14]}>
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            style={{ height: 500 }}
-            eventPropGetter={eventPropGetter}
-          />
-        </ToggleableComponent>
-      </CalendarContainer>
+            <h2>{quantity_agenda_tomorrow}</h2>
+          </BlockLTP>
+        </Dashboard>
+        <CalendarContainer>
+          <ToggleableComponent isVisible={true}>
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              style={{ height: 500 }}
+              eventPropGetter={eventPropGetter}
+            />
+          </ToggleableComponent>
+        </CalendarContainer>
+      </BasicTabs>
 
       {combinedData.length > 0 && (
         <>

@@ -5,7 +5,8 @@ export const UploadButton = ({ onChange, text }) => (
   <Container>
     <ButtonStyled
       component="label"
-      variant="contained"
+      // variant="contained"
+      // variant="outlined"
       startIcon={<CloudUploadIcon />}
     >
       {text}
@@ -15,7 +16,7 @@ export const UploadButton = ({ onChange, text }) => (
 );
 
 const Container = styled.div`
-  margin: 10px;
+  /* margin: 10px; */
 `;
 
 const VisuallyHiddenInput = styled("input")({
