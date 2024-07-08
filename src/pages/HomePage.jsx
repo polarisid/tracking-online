@@ -429,9 +429,7 @@ const HomePage = () => {
           </MenuItem>
           <MenuItem onClick={(e) => downloadExcel(combinedData_download)}>
             Download
-            <DownloadIcon
-              onClick={(e) => downloadExcel(combinedData_download)}
-            />
+            <DownloadIcon />
           </MenuItem>
         </Menu>
         {/* <ButtonUpload
