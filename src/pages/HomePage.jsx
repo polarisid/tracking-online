@@ -221,7 +221,7 @@ const HomePage = () => {
             };
 
             return {
-              title: `${row[1]} ${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
+              title: `${row[1]}  ${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
                 cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
               }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
               start: startDate,
@@ -229,13 +229,12 @@ const HomePage = () => {
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
             };
           });
-
         setEvents(formattedEvents);
       }
       setCombinedData_download([headers, ...combined_d]);
       setCombinedData([headers, ...combined]);
     }
-  }, [data1, data2, cityData]);
+  }, [data1, data2, cityData, events]);
 
   /////////////////////////////////
 
@@ -274,8 +273,6 @@ const HomePage = () => {
     return { className };
   };
 
-  // Índices das colunas que queremos exibir (baseado em zero)
-  // const columnsToShow = [1, 2, 3, 11, 16, 17, 36, 39];
   const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61];
 
   const columnsToShow_intoogle = [0, 1, 2, 9, 14, 15, 37, 22, 24, 61];
@@ -576,16 +573,14 @@ const HomePage = () => {
           </BlockLTP>
         </Dashboard>
         <CalendarContainer>
-          <ToggleableComponent isVisible={true}>
-            <Calendar
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              style={{ height: 500 }}
-              eventPropGetter={eventPropGetter}
-            />
-          </ToggleableComponent>
+          <Calendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 500 }}
+            eventPropGetter={eventPropGetter}
+          />
         </CalendarContainer>
       </BasicTabs>
 
