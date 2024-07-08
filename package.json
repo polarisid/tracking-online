@@ -26,8 +26,9 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
+    "preinstall": "npm install --legacy-peer-deps",
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "npm install --legacy-peer-deps && npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -50,6 +51,7 @@
     ]
   },
   "resolutions": {
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
