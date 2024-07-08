@@ -18,19 +18,17 @@
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.24.0",
     "react-scripts": "5.0.1",
-    "react-slick": "^0.30.2",
+    "react-swipeable-views": "^0.14.0",
     "react-table": "^7.8.0",
     "recharts": "^2.12.7",
-    "slick-carousel": "^1.8.1",
     "styled-components": "^6.1.11",
-    "swiper": "^11.1.4",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
   "scripts": {
     "preinstall": "npm install --legacy-peer-deps",
     "start": "react-scripts start",
-    "build": "npm install --legacy-peer-deps && npm run build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
