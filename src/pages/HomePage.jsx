@@ -5,9 +5,7 @@ import styled, { keyframes } from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
 import WarningIcon from "@mui/icons-material/Warning";
 import Button from "@mui/material/Button";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import filters from "../utils/filters";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -19,9 +17,9 @@ import styles from "./styles.css";
 import * as React from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import UploadBoxMenu from "../components/UploadBox";
 import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
+import UploadBoxMenu from "../components/UploadBox";
 
 const localizer = momentLocalizer(moment);
 
@@ -38,11 +36,8 @@ const HomePage = () => {
   const [events, setEvents] = useState([]);
   const [cityData, setCityData] = useState({});
 
-  const [file, setFile] = useState(null);
-  // const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const data = combinedData;
 
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
@@ -54,13 +49,13 @@ const HomePage = () => {
   };
 
   ///////////////////////////////
-  const downloadExcel = (data, fileName = "planilha.xlsx") => {
+  const downloadExcel = (combinedData, fileName = "planilha.xlsx") => {
     // Cria uma nova planilha
     if (data2.length == 0) {
       alert("Não possui planilha Service Light na base!");
       return;
     }
-    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const worksheet = XLSX.utils.aoa_to_sheet(combinedData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
@@ -75,8 +70,8 @@ const HomePage = () => {
     saveAs(blob, fileName);
   };
 
-  const selectSpecificColumns = (data, columnsToShow) => {
-    return data.map((row) => {
+  const selectSpecificColumns = (combinedData, columnsToShow) => {
+    return combinedData.map((row) => {
       return columnsToShow.map((colIndex) => row[colIndex]);
     });
   };
@@ -177,7 +172,7 @@ const HomePage = () => {
             };
 
             return {
-              title: `${row[0]} - ${row[2]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+              title: `${row[0]} - ${row[2]} - ${row[14]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
@@ -295,48 +290,53 @@ const HomePage = () => {
   const planilha_LTP_IH_VD_LP = sortData(
     combinedData.slice(1).filter(filters.filter_VD_LTP_LP)
   );
-  // const planilha_LTP_IH_VD_LP = sortData(combinedData.slice(1));
   const planilha_LTP_IH_RAC_REF_LP = sortData(
-    data.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
+    combinedData.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
   );
   const planilha_LTP_IH_WSM_LP = sortData(
-    data.slice(1).filter(filters.filter_WSM_LP_LTP)
+    combinedData.slice(1).filter(filters.filter_WSM_LP_LTP)
   );
   const filteredAndSortedData4 = sortData(
-    data.slice(1).filter(filters.filter_DA_noParts)
+    combinedData.slice(1).filter(filters.filter_DA_noParts)
   );
   const filteredAndSortedData5 = sortData(
-    data.slice(1).filter(filters.filter_allNext_LTP)
+    combinedData.slice(1).filter(filters.filter_allNext_LTP)
   );
   const filteredAndSortedData6 = sortData(
-    data.slice(1).filter(filters.filter_isEffect_LP)
+    combinedData.slice(1).filter(filters.filter_isEffect_LP)
   );
   const filteredAndSortedData9 = sortData(
-    data.slice(1).filter(filters.filter_CI_VD_LTP_LP)
+    combinedData.slice(1).filter(filters.filter_CI_VD_LTP_LP)
   );
   const filteredAndSortedData10 = sortData(
-    data.slice(1).filter(filters.filter_CI_MX_LTP_LP)
+    combinedData.slice(1).filter(filters.filter_CI_MX_LTP_LP)
   );
   const filteredAndSortedData11 = sortData(
-    data.slice(1).filter(filters.filter_Customer_outdated)
+    combinedData.slice(1).filter(filters.filter_Customer_outdated)
   );
   const filteredAndSortedData12 = sortData(
-    data.slice(1).filter(filters.filter_repair_complete_outdated)
+    combinedData.slice(1).filter(filters.filter_repair_complete_outdated)
   );
   const filteredAndSortedData13 = sortData(
-    data.slice(1).filter(filters.filter_near_isEffect_LP)
+    combinedData.slice(1).filter(filters.filter_near_isEffect_LP)
   );
   const filteredAndSortedData14 = sortData(
-    data.slice(1).filter(filters.filter_next_isEffect_LP)
+    combinedData.slice(1).filter(filters.filter_next_isEffect_LP)
   );
   const filteredAndSortedData15 = sortData(
-    data.slice(1).filter(filters.filter_potential_first_visit)
+    combinedData.slice(1).filter(filters.filter_potential_first_visit)
   );
   const filteredAndSortedData16 = sortData(
-    data.slice(1).filter(filters.filter_agenda_today)
+    combinedData.slice(1).filter(filters.filter_agenda_today)
   );
   const filteredAndSortedData17 = sortData(
-    data.slice(1).filter(filters.filter_agenda_tomorrow)
+    combinedData.slice(1).filter(filters.filter_agenda_tomorrow)
+  );
+  const filteredAndSortedData7 = sortData(
+    combinedData.slice(1).filter(filters.all_lp_vd)
+  );
+  const filteredAndSortedData8 = sortData(
+    combinedData.slice(1).filter(filters.all_lp_DA)
   );
 
   const quantity_DA_noParts = filteredAndSortedData4.length;
@@ -351,15 +351,8 @@ const HomePage = () => {
   const quantity_agenda_today = filteredAndSortedData16.length;
   const quantity_agenda_tomorrow = filteredAndSortedData17.length;
 
-  const filteredAndSortedData7 = sortData(
-    data.slice(1).filter(filters.all_lp_vd)
-  );
-  const filteredAndSortedData8 = sortData(
-    data.slice(1).filter(filters.all_lp_DA)
-  );
-
-  const midVar = data.slice(1).filter(filters.all_lp_vd);
-  const midVar2 = data.slice(1).filter(filters.all_lp_DA);
+  const midVar = combinedData.slice(1).filter(filters.all_lp_vd);
+  const midVar2 = combinedData.slice(1).filter(filters.all_lp_DA);
 
   const matches = filteredAndSortedData7.length;
   const sum = midVar.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
@@ -375,6 +368,16 @@ const HomePage = () => {
       {/* <UploadBoxMenu
         handleFileUpload_beta={handleFileUpload_beta}
         downloadExcel={downloadExcel}
+      /> */}
+      {/* <UploadBoxMenu
+        handleFileUpload_beta={handleFileUpload_beta}
+        downloadExcel={downloadExcel}
+        setFile1={setFile1}
+        setData1={setData1}
+        setFile2={setFile2}
+        setData2={setData2}
+        loading={loading}
+        message={message}
       /> */}
       <UploadBox>
         <Button
@@ -413,6 +416,7 @@ const HomePage = () => {
         </Menu>
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
       </UploadBox>
+
       <BasicTabs>
         <Dashboard>
           <BlockLTP
@@ -617,7 +621,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -638,7 +642,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -659,7 +663,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -680,7 +684,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -701,7 +705,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -722,7 +726,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -743,7 +747,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_type_service.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -764,7 +768,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -785,7 +789,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -806,7 +810,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -825,7 +829,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -844,7 +848,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -865,7 +869,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -886,7 +890,7 @@ const HomePage = () => {
               <thead>
                 <tr>
                   {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{data[0][colIndex]}</th>
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
                   ))}
                 </tr>
               </thead>
@@ -906,11 +910,6 @@ const HomePage = () => {
     </MainContainer>
   );
 };
-
-const CalendarBox = styled.div`
-  display: flex;
-  padding-right: 10px;
-`;
 
 const CalendarContainer = styled.div`
   padding: 10px 0px;
