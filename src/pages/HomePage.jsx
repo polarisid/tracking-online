@@ -82,16 +82,14 @@ const HomePage = () => {
         1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
         22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
         40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-        58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
+        58, 59, 60, 61, 62, 63, 64, 65, 66,67, 68, 69, 70, 71, 72, 73, 74, 75,
         76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
         94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
         109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
         123, 124,
       ];
       const columnsTo_Download = [
-        1, 3, 4, 12, 14, 16, 17, 18, 24, 26, 36, 39, 45, 46, 47, 48, 49, 58, 59,
-        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
-        78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+        1,2,9,12,14,15,16,22,24,25,27,30,34,37,43,44,45,46,50,53,55,58,59,61,63,70,72,79,81,88,90,97,99,106,108,115,117,124,126,133,135,142,144,150,151,152
       ];
       const data1SelectedCols = selectSpecificColumns(
         data1,
@@ -99,7 +97,7 @@ const HomePage = () => {
       );
       const data1SelectedCols_d = selectSpecificColumns(
         data1,
-        columnsToShow_complete_repair
+        columnsTo_Download
       );
 
       const headers = [
@@ -360,7 +358,7 @@ const HomePage = () => {
   const quantity_POTENTIAL_first_visit = filteredAndSortedData15.length;
   const quantity_agenda_today = filteredAndSortedData16.length;
   const quantity_agenda_tomorrow = filteredAndSortedData17.length;
-
+  const quantityDa = filteredAndSortedData8.length;
   const midVar = combinedData.slice(1).filter(filters.all_lp_vd);
   const midVar2 = combinedData.slice(1).filter(filters.all_lp_DA);
 
@@ -529,6 +527,16 @@ const HomePage = () => {
         </Dashboard>
         <Dashboard>
           <BlockLTP
+            state={visibleComponents[31]}
+            onClick={() => toggleVisibility(31)}
+          >
+            <div className="divider">
+              <h1> TODOS DA LP</h1>
+            </div>
+            <h2>{quantityDa}</h2>
+          </BlockLTP>
+
+          <BlockLTP
             state={visibleComponents[6]}
             onClick={() => toggleVisibility(6)}
           >
@@ -635,6 +643,27 @@ const HomePage = () => {
               </thead>
               <tbody>
                 {planilha_LTP_IH_VD_LP.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[31]}>
+            <h2>Todos DA LP </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedData8.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>

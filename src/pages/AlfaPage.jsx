@@ -61,6 +61,7 @@ const HomePage = () => {
     14: false,
     20:false,
     21:false,
+    31:false,
 
   });
 
@@ -265,9 +266,13 @@ const HomePage = () => {
     data.slice(1).filter(filters.filter_agenda_tomorrow)
   );
 
+  const allLpDAPlanilha = sortData( data.slice(1).filter(filters.all_lp_DA));
+
+
   const quantity_DA_noParts = filteredAndSortedData4.length;
   const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
   const quantity_LTP_RAC_REF = planilha_LTP_IH_RAC_REF_LP.length;
+  const quantityDA = allLpDAPlanilha.length;
 
   const quantity_EX_LTP_RAC_REF = planilha_EX_LTP_IH_RAC_REF_LP.length;
 
@@ -441,6 +446,14 @@ const HomePage = () => {
         <div className="divider"></div>
       </SubMenuSection>
       <Dashboard>
+      <BlockLTP
+          state={visibleComponents[31]}
+          onClick={() => toggleVisibility(31)}
+        >
+          <h1>quantidade de casos DA</h1>
+          <div className="divider"></div>
+          <h2>{quantityDA}</h2>
+        </BlockLTP>
         <BlockLTP
           state={visibleComponents[6]}
           onClick={() => toggleVisibility(6)}
