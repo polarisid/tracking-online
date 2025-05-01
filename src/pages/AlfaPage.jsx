@@ -59,6 +59,9 @@ const HomePage = () => {
     12: false,
     13: false,
     14: false,
+    20:false,
+    21:false,
+
   });
 
   const toggleVisibility = (id) => {
@@ -213,8 +216,14 @@ const HomePage = () => {
   const planilha_LTP_IH_VD_LP = sortData(
     data.slice(1).filter(filters.filter_VD_LTP_LP)
   );
+  const planilha_EX_LTP_IH_VD_LP = sortData(
+    data.slice(1).filter(filters.filter_VD_EX_LTP_LP)
+  );
   const planilha_LTP_IH_RAC_REF_LP = sortData(
     data.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
+  );
+  const planilha_EX_LTP_IH_RAC_REF_LP = sortData(
+    data.slice(1).filter(filters.filter_REF_RAC_EX_LTP_LP)
   );
   const planilha_LTP_IH_WSM_LP = sortData(
     data.slice(1).filter(filters.filter_WSM_LP_LTP)
@@ -259,6 +268,9 @@ const HomePage = () => {
   const quantity_DA_noParts = filteredAndSortedData4.length;
   const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
   const quantity_LTP_RAC_REF = planilha_LTP_IH_RAC_REF_LP.length;
+
+  const quantity_EX_LTP_RAC_REF = planilha_EX_LTP_IH_RAC_REF_LP.length;
+
   const quantity_LTP_WSM = planilha_LTP_IH_WSM_LP.length;
   const quantity_LTP_VD_CI = filteredAndSortedData9.length;
   const quantity_LTP_MX_CI = filteredAndSortedData10.length;
@@ -343,6 +355,14 @@ const HomePage = () => {
           <h2>{quantity_LTP_VD}</h2>
         </BlockLTP>
         <BlockLTP
+          state={visibleComponents[21]}
+          onClick={() => toggleVisibility(21)}
+        >
+          <h1>Casos EX LTP VD IH</h1>
+          <div className="divider"></div>
+          <h2>{quantity_EX_LTP_VD}</h2>
+        </BlockLTP>
+        <BlockLTP
           state={visibleComponents[2]}
           onClick={() => toggleVisibility(2)}
         >
@@ -350,6 +370,15 @@ const HomePage = () => {
           <div className="divider"></div>
 
           <h2>{quantity_LTP_RAC_REF}</h2>
+        </BlockLTP>
+        <BlockLTP
+          state={visibleComponents[20]}
+          onClick={() => toggleVisibility(2)}
+        >
+          <h1>EX-LTP REF/RAC </h1>
+          <div className="divider"></div>
+
+          <h2>{quantity_EX_LTP_RAC_REF}</h2>
         </BlockLTP>
         <BlockLTP
           state={visibleComponents[3]}
@@ -519,6 +548,27 @@ const HomePage = () => {
               </tbody>
             </table>
           </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[21]}>
+            <h2>EM EX LTP DTV </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
           <ToggleableComponent isVisible={visibleComponents[2]}>
             <h2> EM LTP RAC/REF</h2>
             <table>
@@ -531,6 +581,28 @@ const HomePage = () => {
               </thead>
               <tbody>
                 {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+
+          <ToggleableComponent isVisible={visibleComponents[20]}>
+            <h2> EM EX-LTP RAC/REF</h2>
+            <table>
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>

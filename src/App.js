@@ -16,8 +16,8 @@ const App = () => {
           {/* <HomePage /> */}
           <PagesRoutes />
           <Footer>
-            <p>2024 - Desenvolvido por Daniel Carvalho</p>
-            <p>Versão 2.0</p>
+            <p>2025 - Desenvolvido por Daniel Carvalho</p>
+            <p>Versão 2.1</p>
           </Footer>
         </div>
       </HomeProvider>
