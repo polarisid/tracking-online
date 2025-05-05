@@ -157,6 +157,7 @@ const filters = {
       "PJT01",
       "TFT01",
       "TFT02",
+      "PJT01",
     ].includes(row[58]);
     const isLTP = row[15] > 2;
     return isCol37Valid && isCol58Valid && isLTP && isCI;
@@ -192,6 +193,7 @@ const filters = {
       "PJT01",
       "TFT01",
       "TFT02",
+      "PJT01",
     ].includes(row[58]);
     const isLTP = row[15] > 6;
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
@@ -209,6 +211,8 @@ const filters = {
       "PJT01",
       "TFT01",
       "TFT02",
+      "PJT01",
+      "PJT02",
     ].includes(row[58]);
     const isLTP = row[15] > 13;
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
@@ -245,6 +249,8 @@ const filters = {
       "PJT01",
       "TFT01",
       "TFT02",
+      "PJT01",
+      "PJT02",
     ].includes(row[58]);
     return isCol37Valid && isCol58Valid && isInHome;
   },
