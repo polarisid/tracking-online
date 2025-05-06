@@ -63,6 +63,8 @@ const HomePage = () => {
     21:false,
     31:false,
     32:false,
+    33: false,
+    34:false,
 
   });
 

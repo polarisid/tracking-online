@@ -281,7 +281,7 @@ const HomePage = () => {
 
   const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61];
 
-  const columnsToShow_RC = [0, 1, 2, 9, 14, 15, 24, 61,130,131];
+  const columnsToShow_RC = [0,3, 1, 2, 9, 14, 15, 16, 61,130,131,132];
 
 
   const columnsToShow_intoogle = [0, 1, 2, 9, 14, 15, 37, 22, 24, 61];
@@ -613,6 +613,35 @@ const HomePage = () => {
             <h2>{quantity_complete_CI_LP}</h2>
           </BlockLTP>
 
+
+          <BlockLTP
+           type={"CI"}
+
+            state={visibleComponents[33]}
+            onClick={() => toggleVisibility(33)}
+          >
+            <div className="divider">
+              <h1> CI R. Completo OW - X09 </h1>
+            </div>
+
+            <h2>{quantity_complete_CI_OW_X09}</h2>
+          </BlockLTP>
+
+
+          
+          <BlockLTP
+           type={"CI"}
+
+            state={visibleComponents[34]}
+            onClick={() => toggleVisibility(34)}
+          >
+            <div className="divider">
+              <h1> CI R. Completo OW </h1>
+            </div>
+
+            <h2>{quantity_complete_CI_OW_NOT_X09}</h2>
+          </BlockLTP>
+
           <BlockLTP
             state={visibleComponents[7]}
             onClick={() => toggleVisibility(7)}
@@ -734,6 +763,52 @@ const HomePage = () => {
               </thead>
               <tbody>
                 {planilha_CI_Complete_LP.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_RC.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+
+
+          <ToggleableComponent isVisible={visibleComponents[33]}>
+            <h2>Todos OW EM REPARO COMPLETO X09 </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow_RC.map((colIndex) => (
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planilha_CI_Complete_OW_X09.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_RC.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+
+
+          <ToggleableComponent isVisible={visibleComponents[34]}>
+            <h2>Todos OW EM REPARO COMPLETO </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow_RC.map((colIndex) => (
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planilha_CI_Complete_OW_NOT_X09.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {columnsToShow_RC.map((colIndex) => (
                       <td key={colIndex}>{row[colIndex]}</td>
