@@ -17,7 +17,7 @@ const App = () => {
           <PagesRoutes />
           <Footer>
             <p>2025 - Desenvolvido por Daniel Carvalho</p>
-            <p>Versão 2.1</p>
+            <p>Versão 2.1.1</p>
           </Footer>
         </div>
       </HomeProvider>

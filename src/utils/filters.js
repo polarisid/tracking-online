@@ -163,6 +163,33 @@ const filters = {
     return isCol37Valid && isCol58Valid && isLTP && isCI;
   },
 
+  filter_CI_COMPLETE_LP: (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isCI = row[34] === "CI";
+    const isRepairComplete = row[11] === "ST035";
+
+    return isCol37Valid  && isRepairComplete && isCI;
+  },
+
+  
+  filter_CI_COMPLETE_OW_X09: (row) => {
+    const isCol37Valid = row[37] === "OW";
+    const isCI = row[34] === "CI";
+    const isRepairComplete = row[11] === "ST035";
+    const isCol53Valid = row[53] === "X09";
+
+    return isCol37Valid  && isCol53Valid && isRepairComplete && isCI;
+  },
+
+  filter_CI_COMPLETE_OW_NOT_X09: (row) => {
+    const isCol37Valid = row[37] === "OW";
+    const isCI = row[34] === "CI";
+    const isRepairComplete = row[11] === "ST035";
+    const isCol53INValid = row[53] !== "X09";
+
+    return isCol37Valid  && isCol53INValid && isRepairComplete && isCI;
+  },
+
   // filter_VD_LTP_LP: (row) => {
   //   const isCol37Valid = row[37] === "LP";
   //   const isInHome = row[34] === "IH";

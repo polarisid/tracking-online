@@ -62,6 +62,7 @@ const HomePage = () => {
     20:false,
     21:false,
     31:false,
+    32:false,
 
   });
 
@@ -101,7 +102,7 @@ const HomePage = () => {
       };
 
       // Colunas que sabemos que devem conter datas
-      const dateColumns = [16, 22, 24, 27];
+      const dateColumns = [16, 22, 24, 27,130,150, 151];
 
       // Formatar as datas corretamente apenas nas colunas especificadas
       const formattedData = sheetData.map((row) =>
@@ -266,6 +267,19 @@ const HomePage = () => {
     data.slice(1).filter(filters.filter_agenda_tomorrow)
   );
 
+  const planilha_CI_Complete_LP = sortData(
+    data.slice(1).filter(filters.filter_CI_COMPLETE_LP)
+  );
+
+  const planilha_CI_Complete_OW_X09= sortData(
+    data.slice(1).filter(filters.filter_CI_COMPLETE_OW_X09)
+  );
+
+  const planilha_CI_Complete_OW_NOT_X09= sortData(
+    data.slice(1).filter(filters.filter_CI_COMPLETE_OW_NOT_X09)
+  );
+
+
   const allLpDAPlanilha = sortData( data.slice(1).filter(filters.all_lp_DA));
 
 
@@ -284,6 +298,11 @@ const HomePage = () => {
   const quantity_POTENTIAL_first_visit = filteredAndSortedData15.length;
   const quantity_agenda_today = filteredAndSortedData16.length;
   const quantity_agenda_tomorrow = filteredAndSortedData17.length;
+
+  const quantity_complete_CI_LP= planilha_CI_Complete_LP.length;
+  const quantity_complete_CI_OW_X09= planilha_CI_Complete_OW_X09.length;
+  const quantity_complete_CI_OW_NOT_X09= planilha_CI_Complete_OW_NOT_X09.length;
+
 
   const filteredAndSortedData7 = sortData(
     data.slice(1).filter(filters.all_lp_vd)

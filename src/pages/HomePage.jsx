@@ -86,11 +86,13 @@ const HomePage = () => {
         76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
         94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
         109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
-        123, 124,
+        123, 124,126,133,135,142,144,150,151,152
       ];
       const columnsTo_Download = [
-        1,2,9,12,14,15,16,22,24,25,27,30,34,37,43,44,45,46,50,53,55,58,59,61,63,70,72,79,81,88,90,97,99,106,108,115,117,124,126,133,135,142,144,150,151,152
+        1,2,9,12,14,15,16,22,24,25,27,30,34,37,43,44,45,46,50,53,54,55,58,59,61,63,70,72,79,81,88,90,97,99,106,108,115,117,124,126,133,135,142,144,150,151,152
       ];
+
+      
       const data1SelectedCols = selectSpecificColumns(
         data1,
         columnsToShow_complete_repair
@@ -101,13 +103,22 @@ const HomePage = () => {
       );
 
       const headers = [
-        data1[0][1], // Número da Ordem de Serviço
+        data1[0][1],
+        data1[0][2],  // Número da Ordem de Serviço
         "Nome do Cliente",
         "Cidade do Cliente",
-        ...columnsToShow_complete_repair
-          .slice(1)
+        ...columnsTo_Download
+          .slice(2)
           .map((index) => data1[0][index]),
       ];
+
+      const headers_to_show =[        
+        data1[0][1], // Número da Ordem de Serviço
+      "Nome do Cliente",
+      "Cidade do Cliente",
+      ...columnsToShow_complete_repair
+        .slice(1)
+        .map((index) => data1[0][index]),]
 
       const dataMapping = data2.slice(1).reduce((acc, row) => {
         acc[row[1]] = { nome: row[11], cidade: row[12] }; // Mapeando pelo número da ordem de serviço
@@ -129,9 +140,10 @@ const HomePage = () => {
         const additionalData = dataMapping[orderId] || { nome: "", cidade: "" };
         return [
           row[0], // Número da Ordem de Serviço
+          row[1],
           additionalData.nome,
           additionalData.cidade,
-          ...row.slice(1), // Outras colunas selecionadas
+          ...row.slice(2), // Outras colunas selecionadas
         ];
       });
       if (combinedData.length > 0) {
@@ -201,6 +213,7 @@ const HomePage = () => {
           .map((row) => {
             const dateStr = row[24]; // Usando o índice da coluna para a data (Y)
             const date = moment(dateStr, "DD/MM/YYYY").toDate(); // Converter para data usando moment
+
             const isValidDate = !isNaN(date);
             const startDate = isValidDate
               ? date
@@ -225,7 +238,7 @@ const HomePage = () => {
         setEvents(formattedEvents);
       }
       setCombinedData_download([headers, ...combined_d]);
-      setCombinedData([headers, ...combined]);
+      setCombinedData([headers_to_show, ...combined]);
     }
   }, [data1, data2, cityData, events]);
 
@@ -267,6 +280,9 @@ const HomePage = () => {
   };
 
   const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61];
+
+  const columnsToShow_RC = [0, 1, 2, 9, 14, 15, 24, 61,130,131];
+
 
   const columnsToShow_intoogle = [0, 1, 2, 9, 14, 15, 37, 22, 24, 61];
   const columnsToShow_complete_repair = [
@@ -343,6 +359,20 @@ const HomePage = () => {
     combinedData.slice(1).filter(filters.all_lp_DA)
   );
 
+  const planilha_CI_Complete_LP = sortData(
+    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_LP)
+  );
+
+  const planilha_CI_Complete_OW_X09= sortData(
+    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_X09)
+  );
+
+  const planilha_CI_Complete_OW_NOT_X09= sortData(
+    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_NOT_X09)
+  );
+
+
+
   const quantity_DA_noParts = filteredAndSortedData4.length;
   const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
   const quantity_EX_LTP_VD = planilha_EX_LTP_IH_VD_LP.length;
@@ -369,6 +399,10 @@ const HomePage = () => {
   const matches2 = filteredAndSortedData8.length;
   const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
   const average2 = matches2 > 0 ? sum2 / matches2 : 0;
+
+  const quantity_complete_CI_LP= planilha_CI_Complete_LP.length;
+  const quantity_complete_CI_OW_X09= planilha_CI_Complete_OW_X09.length;
+  const quantity_complete_CI_OW_NOT_X09= planilha_CI_Complete_OW_NOT_X09.length;
 
   return (
     <MainContainer>
@@ -565,6 +599,20 @@ const HomePage = () => {
 
             <h2>{quantity_Oudated_Repair_complete_IH}</h2>
           </BlockLTP>
+
+          <BlockLTP
+           type={"CI"}
+
+            state={visibleComponents[32]}
+            onClick={() => toggleVisibility(32)}
+          >
+            <div className="divider">
+              <h1> CI R. Completo LP </h1>
+            </div>
+
+            <h2>{quantity_complete_CI_LP}</h2>
+          </BlockLTP>
+
           <BlockLTP
             state={visibleComponents[7]}
             onClick={() => toggleVisibility(7)}
@@ -673,6 +721,29 @@ const HomePage = () => {
               </tbody>
             </table>
           </ToggleableComponent>
+
+          <ToggleableComponent isVisible={visibleComponents[32]}>
+            <h2>Todos LP EM REPARO COMPLETO </h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow_RC.map((colIndex) => (
+                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planilha_CI_Complete_LP.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {columnsToShow_RC.map((colIndex) => (
+                      <td key={colIndex}>{row[colIndex]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+
           <ToggleableComponent isVisible={visibleComponents[21]}>
             <h2>EM EX LTP DTV </h2>
             <table className="toggleDiv">

@@ -29,7 +29,7 @@ function handleFileUpload(
     };
 
     // Colunas que sabemos que devem conter datas
-    const dateColumns = [16, 22, 24, 27];
+    const dateColumns = [16, 22, 24, 27,150];
     const isValidDate = (d) => {
       return d instanceof Date && !isNaN(d);
     };
