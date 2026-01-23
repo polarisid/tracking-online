@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
 import WarningIcon from "@mui/icons-material/Warning";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Button from "@mui/material/Button";
 import filters from "../utils/filters";
 import { Calendar, momentLocalizer } from "react-big-calendar";
@@ -22,6 +23,27 @@ import DownloadIcon from "@mui/icons-material/Download";
 import UploadBoxMenu from "../components/UploadBox";
 
 const localizer = momentLocalizer(moment);
+
+const CustomEvent = ({ event }) => {
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(event.os);
+    alert(`OS ${event.os} copiada com sucesso!`);
+  };
+
+  return (
+    <div className="flex items-center justify-between text-xs overflow-hidden">
+      <span className="truncate pr-1 font-semibold">{event.title}</span>
+      <div
+        onClick={handleCopy}
+        className="cursor-pointer flex items-center p-0.5 rounded hover:bg-white/30 text-white/90 hover:text-white transition-colors"
+        title="Copiar OS"
+      >
+        <ContentCopyIcon sx={{ fontSize: 13 }} />
+      </div>
+    </div>
+  );
+};
 
 const HomePage = () => {
   const { file1, setFile1 } = useHomeContext();
@@ -82,17 +104,17 @@ const HomePage = () => {
         1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
         22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
         40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-        58, 59, 60, 61, 62, 63, 64, 65, 66,67, 68, 69, 70, 71, 72, 73, 74, 75,
+        58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75,
         76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
         94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108,
         109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122,
-        123, 124,126,133,135,142,144,150,151,152
+        123, 124, 126, 133, 135, 142, 144, 150, 151, 152
       ];
       const columnsTo_Download = [
-        1,2,9,12,14,15,16,22,24,25,27,30,34,37,43,44,45,46,50,53,54,55,58,59,61,63,70,72,79,81,88,90,97,99,106,108,115,117,124,126,133,135,142,144,150,151,152
+        1, 2, 9, 12, 14, 15, 16, 22, 24, 25, 27, 30, 34, 37, 43, 44, 45, 46, 50, 53, 54, 55, 58, 59, 61, 63, 70, 72, 79, 81, 88, 90, 97, 99, 106, 108, 115, 117, 124, 126, 133, 135, 142, 144, 150, 151, 152
       ];
 
-      
+
       const data1SelectedCols = selectSpecificColumns(
         data1,
         columnsToShow_complete_repair
@@ -112,13 +134,13 @@ const HomePage = () => {
           .map((index) => data1[0][index]),
       ];
 
-      const headers_to_show =[        
+      const headers_to_show = [
         data1[0][1], // Número da Ordem de Serviço
-      "Nome do Cliente",
-      "Cidade do Cliente",
-      ...columnsToShow_complete_repair
-        .slice(1)
-        .map((index) => data1[0][index]),]
+        "Nome do Cliente",
+        "Cidade do Cliente",
+        ...columnsToShow_complete_repair
+          .slice(1)
+          .map((index) => data1[0][index]),]
 
       const dataMapping = data2.slice(1).reduce((acc, row) => {
         acc[row[1]] = { nome: row[11], cidade: row[12] }; // Mapeando pelo número da ordem de serviço
@@ -182,10 +204,12 @@ const HomePage = () => {
             };
 
             return {
-              title: `${row[0]} - ${row[2]} - ${row[14]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+              title: `${row[0]} - ${row[2]} - ${row[14]} - ${row[37]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              os: row[0],
+              allDay: true,
             };
           });
 
@@ -227,12 +251,13 @@ const HomePage = () => {
             };
 
             return {
-              title: `${row[1]}  ${cityInfo.city ? ` - ${cityInfo.city}` : ""}${
-                cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
-              }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
+              title: `${row[1]}  ${cityInfo.city ? ` - ${cityInfo.city}` : ""}${cityInfo.additionalInfo ? ` - ${cityInfo.additionalInfo}` : ""
+                }`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              os: row[1],
+              allDay: true,
             };
           });
         setEvents(formattedEvents);
@@ -279,9 +304,9 @@ const HomePage = () => {
     return { className };
   };
 
-  const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61];
+  const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61, 37];
 
-  const columnsToShow_RC = [0,3, 1, 2, 9, 14, 15, 16, 61,130,131,132];
+  const columnsToShow_RC = [0, 3, 1, 2, 9, 14, 15, 16, 61, 130, 131, 132];
 
 
   const columnsToShow_intoogle = [0, 1, 2, 9, 14, 15, 37, 22, 24, 61];
@@ -363,16 +388,20 @@ const HomePage = () => {
     combinedData.slice(1).filter(filters.filter_CI_COMPLETE_LP)
   );
 
-  const planilha_CI_Complete_OW_X09= sortData(
+  const planilha_CI_Complete_OW_X09 = sortData(
     combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_X09)
   );
 
-  const planilha_CI_Complete_OW_NOT_X09= sortData(
+  const planilha_CI_Complete_OW_NOT_X09 = sortData(
     combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_NOT_X09)
   );
 
+  const planilha_ALL_DA_OW = sortData(
+    combinedData.slice(1).filter(filters.all_DA_OW)
+  );
 
 
+  const quantity_ALL_DA_OW = planilha_ALL_DA_OW.length;
   const quantity_DA_noParts = filteredAndSortedData4.length;
   const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
   const quantity_EX_LTP_VD = planilha_EX_LTP_IH_VD_LP.length;
@@ -400,9 +429,53 @@ const HomePage = () => {
   const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
   const average2 = matches2 > 0 ? sum2 / matches2 : 0;
 
-  const quantity_complete_CI_LP= planilha_CI_Complete_LP.length;
-  const quantity_complete_CI_OW_X09= planilha_CI_Complete_OW_X09.length;
-  const quantity_complete_CI_OW_NOT_X09= planilha_CI_Complete_OW_NOT_X09.length;
+  const quantity_complete_CI_LP = planilha_CI_Complete_LP.length;
+  const quantity_complete_CI_OW_X09 = planilha_CI_Complete_OW_X09.length;
+  const quantity_complete_CI_OW_NOT_X09 = planilha_CI_Complete_OW_NOT_X09.length;
+
+  const eventCounts = React.useMemo(() => {
+    const counts = {};
+    events.forEach((event) => {
+      const dateKey = moment(event.start).format("YYYY-MM-DD");
+      counts[dateKey] = (counts[dateKey] || 0) + 1;
+    });
+    return counts;
+  }, [events]);
+
+  const components = React.useMemo(
+    () => ({
+      event: CustomEvent,
+      month: {
+        dateHeader: ({ date, label, onDrillDown }) => {
+          const dateKey = moment(date).format("YYYY-MM-DD");
+          const count = eventCounts[dateKey] || 0;
+          return (
+            <div className="flex items-center justify-between mx-2 mt-1 pb-1">
+              {count > 0 ? (
+                <div
+                  className="flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md shadow-sm"
+                  title="Quantidade de eventos"
+                >
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-blue-400">Qtd:</span>
+                  <span className="text-xs font-bold">{count}</span>
+                </div>
+              ) : (
+                <span></span>
+              )}
+              <button
+                onClick={onDrillDown}
+                className="text-sm font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 px-2 py-0.5 rounded transition-all"
+                title="Ver dia"
+              >
+                {label}
+              </button>
+            </div>
+          );
+        },
+      },
+    }),
+    [eventCounts]
+  );
 
   return (
     <MainContainer>
@@ -457,7 +530,31 @@ const HomePage = () => {
           </MenuItem>
         </Menu>
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
+
+        <IndicatorsWrapper>
+          <BlockIndexSmall type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")}>
+            <div className="header-small">
+              <span>RTAT VD</span>
+              {average.toFixed(2) > 3.8 ? <WarningIcon className="icon-warning-small" /> : null}
+              {average.toFixed(2) <= 3.8 && average.toFixed(2) > 3 ? <WarningIcon className="icon-warning-small" /> : null}
+            </div>
+            <h2>{average.toFixed(2)}</h2>
+          </BlockIndexSmall>
+
+          <BlockIndexSmall type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")}>
+            <div className="header-small">
+              <span>RTAT DA</span>
+              {average2.toFixed(2) > 4.5 ? <WarningIcon className="icon-warning-small" /> : null}
+              {average2.toFixed(2) <= 4.5 && average2.toFixed(2) > 3.8 ? <WarningIcon className="icon-warning-small" /> : null}
+            </div>
+            <h2>{average2.toFixed(2)}</h2>
+          </BlockIndexSmall>
+        </IndicatorsWrapper>
       </UploadBox>
+
+
+
+
 
       <BasicTabs>
         <Dashboard>
@@ -484,7 +581,7 @@ const HomePage = () => {
             onClick={() => toggleVisibility(2)}
           >
             <div className="divider">
-              <h1>LTP REF/RAC </h1>
+              <h1>LTP REF/RAC IH </h1>
             </div>
 
             <h2>{quantity_LTP_RAC_REF}</h2>
@@ -504,7 +601,7 @@ const HomePage = () => {
             onClick={() => toggleVisibility(3)}
           >
             <div className="divider">
-              <h1>LTP WSM</h1>
+              <h1>LTP WSM/HKE</h1>
             </div>
             <h2>{quantity_LTP_WSM}</h2>
           </BlockLTP>
@@ -530,34 +627,7 @@ const HomePage = () => {
 
             <h2>{quantity_LTP_MX_CI}</h2>
           </BlockLTP>
-          <BlockLTP>
-            {average.toFixed(2) > 3.8 ? <WarningIconX></WarningIconX> : <></>}
-            {average.toFixed(2) < 3.8 && average.toFixed(2) > 3 ? (
-              <WarningIconX type={"mid"}></WarningIconX>
-            ) : (
-              <></>
-            )}
 
-            <div className="divider">
-              <h1>RTAT VD</h1>
-            </div>
-
-            <h2>{average.toFixed(2)}</h2>
-          </BlockLTP>
-          <BlockLTP>
-            {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
-            {average2.toFixed(2) < 4.5 && average2.toFixed(2) > 3.8 ? (
-              <WarningIconX type={"mid"}></WarningIconX>
-            ) : (
-              <></>
-            )}
-
-            <div className="divider">
-              <h1>RTAT DA</h1>
-            </div>
-
-            <h2>{average2.toFixed(2)}</h2>
-          </BlockLTP>
         </Dashboard>
         <Dashboard>
           <BlockLTP
@@ -565,9 +635,19 @@ const HomePage = () => {
             onClick={() => toggleVisibility(31)}
           >
             <div className="divider">
-              <h1> TODOS DA LP</h1>
+              <h1> TODOS DA LP </h1>
             </div>
             <h2>{quantityDa}</h2>
+          </BlockLTP>
+
+          <BlockLTP
+            state={visibleComponents[51]}
+            onClick={() => toggleVisibility(51)}
+          >
+            <div className="divider">
+              <h1> TODOS DA OW</h1>
+            </div>
+            <h2>{quantity_ALL_DA_OW}</h2>
           </BlockLTP>
 
           <BlockLTP
@@ -601,7 +681,7 @@ const HomePage = () => {
           </BlockLTP>
 
           <BlockLTP
-           type={"CI"}
+            type={"CI"}
 
             state={visibleComponents[32]}
             onClick={() => toggleVisibility(32)}
@@ -615,7 +695,7 @@ const HomePage = () => {
 
 
           <BlockLTP
-           type={"CI"}
+            type={"CI"}
 
             state={visibleComponents[33]}
             onClick={() => toggleVisibility(33)}
@@ -628,9 +708,9 @@ const HomePage = () => {
           </BlockLTP>
 
 
-          
+
           <BlockLTP
-           type={"CI"}
+            type={"CI"}
 
             state={visibleComponents[34]}
             onClick={() => toggleVisibility(34)}
@@ -696,483 +776,520 @@ const HomePage = () => {
             events={events}
             startAccessor="start"
             endAccessor="end"
-            style={{ height: 500 }}
+            style={{ height: 650 }}
             eventPropGetter={eventPropGetter}
+            components={components}
+            popup
           />
         </CalendarContainer>
       </BasicTabs>
 
-      {combinedData.length > 0 && (
-        <>
-          <SubMenuSection>
-            <h1>Planilhas</h1>
-            <div className="divider"></div>
-          </SubMenuSection>
-          <ToggleableComponent isVisible={visibleComponents[1]}>
-            <h2>EM LTP DTV </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_LTP_IH_VD_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+      {
+        combinedData.length > 0 && (
+          <>
+            <SubMenuSection>
+              <h1>Planilhas</h1>
+              <div className="divider"></div>
+            </SubMenuSection>
+            <ToggleableComponent isVisible={visibleComponents[1]}>
+              <h2>EM LTP DTV </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[31]}>
-            <h2>Todos DA LP </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_LTP_IH_VD_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData8.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[31]}>
+              <h2>Todos DA LP </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData8.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
 
-          <ToggleableComponent isVisible={visibleComponents[32]}>
-            <h2>Todos LP EM REPARO COMPLETO </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow_RC.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+            <ToggleableComponent isVisible={visibleComponents[51]}>
+              <h2>Todos DA OW</h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow.map((colIndex) => (
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {planilha_ALL_DA_OW.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_CI_Complete_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+            <ToggleableComponent isVisible={visibleComponents[32]}>
+              <h2>Todos LP EM REPARO COMPLETO </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow_RC.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-
-
-          <ToggleableComponent isVisible={visibleComponents[33]}>
-            <h2>Todos OW EM REPARO COMPLETO X09 </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow_RC.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_CI_Complete_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_RC.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_CI_Complete_OW_X09.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+
+            <ToggleableComponent isVisible={visibleComponents[33]}>
+              <h2>Todos OW EM REPARO COMPLETO X09 </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow_RC.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-
-
-          <ToggleableComponent isVisible={visibleComponents[34]}>
-            <h2>Todos OW EM REPARO COMPLETO </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow_RC.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_CI_Complete_OW_X09.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_RC.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_CI_Complete_OW_NOT_X09.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+
+            <ToggleableComponent isVisible={visibleComponents[34]}>
+              <h2>Todos OW EM REPARO COMPLETO </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow_RC.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
+                </thead>
+                <tbody>
+                  {planilha_CI_Complete_OW_NOT_X09.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_RC.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
 
-          <ToggleableComponent isVisible={visibleComponents[21]}>
-            <h2>EM EX LTP DTV </h2>
-            <table className="toggleDiv">
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+            <ToggleableComponent isVisible={visibleComponents[21]}>
+              <h2>EM EX LTP DTV </h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[2]}>
-            <h2> EM LTP RAC/REF</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+            <ToggleableComponent isVisible={visibleComponents[2]}>
+              <h2> EM LTP RAC/REF</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[20]}>
-            <h2> EM EX-LTP RAC/REF</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[20]}>
+              <h2> EM EX-LTP RAC/REF</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[3]}>
-            <h2>EM LTP WSM</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[3]}>
+              <h2>EM LTP WSM</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[4]}>
-            <h2>EM LTP DTV CI</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData9.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[4]}>
+              <h2>EM LTP DTV CI</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[5]}>
-            <h2>EM LTP MX CI</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData9.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData10.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[5]}>
+              <h2>EM LTP MX CI</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[6]}>
-            <h2>DA OW e LP sem peças</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData10.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData4.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[6]}>
+              <h2>DA OW e LP sem peças</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[7]}>
-            <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData4.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_intoogle.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData5.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[7]}>
+              <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[8]}>
-            <h2>Consumidor fora do prazo de todos os serviços</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_type_service.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData5.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_intoogle.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData11.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[8]}>
+              <h2>Consumidor fora do prazo de todos os serviços</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_type_service.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[9]}>
-            <h2>Reparo completo fora do prazo de todos os serviços</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData11.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_type_service.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData12.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[9]}>
+              <h2>Reparo completo fora do prazo de todos os serviços</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[11]}>
-            <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData12.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_complete_repair.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData15.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[11]}>
+              <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[10]}>
-            <h2>Effect Appointment</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData15.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_complete_repair.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData6.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[10]}>
+              <h2>Effect Appointment</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <h2>Effect Appointment - Corrija estas datas para bater</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData6.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_intoogle.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData13.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+              <h2>Effect Appointment - Corrija estas datas para bater</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <h2>Effect Appointment - Corrija estas datas para bater</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_intoogle.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData13.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_intoogle.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData14.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+              <h2>Effect Appointment - Corrija estas datas para bater</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[12]}>
-            <h2>Agenda do Dia</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData14.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_intoogle.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData16.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[12]}>
+              <h2>Agenda do Dia</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-          <ToggleableComponent isVisible={visibleComponents[13]}>
-            <h2>Agenda de amanhã</h2>
-            <table>
-              <thead>
-                <tr>
-                  {columnsToShow_complete_repair.map((colIndex) => (
-                    <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData16.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_complete_repair.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAndSortedData17.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[13]}>
+              <h2>Agenda de amanhã</h2>
+              <table>
+                <thead>
+                  <tr>
                     {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </ToggleableComponent>
-        </>
-      )}
-    </MainContainer>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData17.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {columnsToShow_complete_repair.map((colIndex) => (
+                        <td key={colIndex}>{row[colIndex]}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
+          </>
+        )
+      }
+    </MainContainer >
   );
 };
 
 const CalendarContainer = styled.div`
-  padding: 10px 0px;
-  width: 60%;
+  padding: 24px;
+  width: 95%;
+  max-width: 1600px;
+  margin: 20px auto;
   background-color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  margin-left: auto;
-  margin-right: auto;
+  border-radius: 16px;
+  /* box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); */
 `;
 const UploadBox = styled.div`
   display: flex;
-  margin: 10px;
+  margin: 10px 20px;
   align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 40px);
   p {
     margin-left: 5px;
   }
+`;
+
+const IndicatorsWrapper = styled.div`
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 15px;
+  margin-left: auto;
+  align-items: center;
 `;
 const WarningIconX = styled(WarningIcon)`
   position: absolute;
@@ -1191,7 +1308,7 @@ const BlockLTP = styled.div`
   width: 230px;
   height: 135px;
   /* padding: 10px; */
-  margin: 10px;
+  /* margin: 10px; */
   display: flex;
   flex-direction: column;
   text-align: center;
@@ -1212,7 +1329,7 @@ const BlockLTP = styled.div`
     margin-bottom: 10px;
     /* background-color: #23323d; */
     background-color: ${(props) =>
-      props.type === "CI" ? "#000264" : "#23323d"};
+    props.type === "CI" ? "#000264" : "#23323d"};
     /* width: 100%; */
     padding: 10px;
     border-radius: 10px;
@@ -1232,6 +1349,86 @@ const BlockLTP = styled.div`
     props.state === true ? "#6fb0ff" : "#000000e1"};
 `;
 
+const BlockIndex = styled.div`
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  width: 200px;
+  height: 110px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .header {
+    background-color: ${(props) =>
+    props.type === "high" ? "#ef4444" :
+      props.type === "mid" ? "#eab308" :
+        "#23323d"};
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+  }
+  
+  .icon-warning {
+    color: white;
+  }
+
+  h1 {
+    font-size: 16px;
+    margin: 0;
+  }
+  
+  h2 {
+    font-size: 42px;
+    font-weight: 900;
+    text-align: center;
+    margin-top: 10px;
+    color: #374151;
+  }
+`;
+
+const BlockIndexSmall = styled.div`
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 140px;
+  height: 65px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .header-small {
+    background-color: ${(props) =>
+    props.type === "high" ? "#ef4444" :
+      props.type === "mid" ? "#eab308" :
+        "#23323d"};
+    color: white;
+    padding: 4px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 11px;
+  }
+  
+  .icon-warning-small {
+    font-size: 14px !important;
+    color: white;
+  }
+
+  h2 {
+    font-size: 24px;
+    font-weight: 800;
+    text-align: center;
+    margin-top: 2px;
+    color: #374151;
+  }
+`;
+
+
 const SubMenuSection = styled.div`
   margin-top: 10px;
   display: flex;
@@ -1250,10 +1447,13 @@ const SubMenuSection = styled.div`
 const Dashboard = styled.div`
   /* width: 100vh; */
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-start;
   /* justify-content: space-around; */
   margin: 10px;
   padding: 10px;
+  gap: 20px;
   /* border: 2px; */
   /* border-style: solid; */
 `;

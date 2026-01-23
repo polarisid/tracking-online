@@ -7,58 +7,33 @@ const today = new Date();
 const today_Form = formatDateToDDMMYYYY(today);
 const tomorrow_Form = formatDateToDDMMYYYY_tomorrow(today);
 
+const SWM_CODES = ["SWM01", "SWM02", "SWM03", "SWM99", "SWD01", "SWD02", "SWD03", "SWD99"];
+const HKE_CODE = ["GCT01", "SEO01", "SHD01", "ZHA09"];
+const AV_CODES = ["CTV99", "DTV02", "LED01", "LED02", "LED03", "LED85", "LTV01", "LTV02", "LTV99", "PDP01", "AUD01", "AUD04",
+  "AUD05", "AUD06", "AUD99", "BDP01", "BTV01", "CTV01", "CTV02", "CTV97", "CTV98", "CTV99", "DLB01", "DPT01", "DTV01", "DTV02", "DVD01",
+  "DVD02", "DVD04", "DVD05", "DVD06", "HTS01", "HTS02", "HTS03", "HTS99", "HTV01", "HTV02", "LDI01", "LDI02", "LED01", "LED02", "LED03",
+  "LED85", "LPF07", "LPF08", "LPF10", "LTV01", "LTV02", "LTV99", "MON01", "MOT01", "MST01", "PDM01", "PDP01", "PDP02", "PJM01", "PJM99",
+  "PJT01", "TFT01", "TFT02", "WTV01", "PDP02", "WTV01", "LED01", "LED02", "LED03", "LFD01", "LFD02", "HTS01", "PJT01", "TFT01",
+  "TFT02", "PJT01"];
+const RAC_CODES = ["FJM01", "CAC01", "CAC06", "RAC01", "RAC02", "RAC03", "RAM01", "RAO01", "RAS01", "RAW01", "SAC01", "SAC02", "SAC04", "RAO02", "RAO01"];
+const REF_CODES = ["REF01", "REF99", "SBS01", "SWC01"];
+const MX_CODES = ["NPC01", "NPC02", "NPC03", "THB01", "THB02", "THB03", "THB05", "THB42", "THB43", "THB96", "THB01", "THB02", "THB03",
+  "THB04", "THB05", "THB42", "THB43", "THB44", "THB96", "THB98", "THB99", "THBZ1", "THBZ2", "THBZ5", "NPC01", "NPC02", "NPC03", "NPC99",
+  "SDT02"];
+
 const filters = {
-  // filter_REF_RAC_LTP_LP: (row) => {
-  //   const isCol37Valid = row[37] === "LP";
-  //   const isInHome = row[34] === "IH";
-  //   const isCol58Valid = [
-  //     "FJM01",
-  //     "RAO01",
-  //     "RAO02",
-  //     "RAC01",
-  //     "RAC02",
-  //     "RAC03",
-  //     "RAS01",
-  //     "SBS01",
-  //     "REF01",
-  //     "REF02",
-  //   ].includes(row[58]);
-  //   const isLTP = row[15] > 4;
-  //   return isCol37Valid && isCol58Valid && isLTP && isInHome;
-  // },
+
   filter_REF_RAC_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP"; //37 ->39
     const isInHome = row[34] === "IH"; // 34->36
-    const isCol58Valid = [
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]); // 58 -> 60
+    const isCol58Valid = [...RAC_CODES, ...REF_CODES].includes(row[58]); // 58 -> 60
     const isLTP = row[15] > 4; //15>17
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   },
   filter_REF_RAC_EX_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP"; //37 ->39
     const isInHome = row[34] === "IH"; // 34->36
-    const isCol58Valid = [
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]); // 58 -> 60
+    const isCol58Valid = [...RAC_CODES, ...REF_CODES].includes(row[58]); // 58 -> 60
     const isLTP = row[15] > 9; //15>17
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   },
@@ -75,26 +50,13 @@ const filters = {
   filter_WSM_LP_LTP: (row) => {
     const isInHome = row[34] === "IH";
     const isCol37Valid = row[37] === "LP";
-    const isCol58Valid = ["SWM01", "SWM03"].includes(row[58]);
+    const isCol58Valid = [...SWM_CODES, ...HKE_CODE].includes(row[58]);
     const isLTP = row[15] > 6;
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   },
   filter_DA_noParts: (row) => {
     const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "SWM01",
-      "SWM03",
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]);
+    const isCol58Valid = [...SWM_CODES, ...RAC_CODES, ...REF_CODES, ...HKE_CODE].includes(row[58]);
     const notParts = row[61] == null;
     return isCol58Valid && notParts && isInHome;
   },
@@ -147,18 +109,7 @@ const filters = {
   filter_CI_VD_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isCI = row[34] === "CI";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-      "PJT01",
-    ].includes(row[58]);
+    const isCol58Valid = [...AV_CODES].includes(row[58]);
     const isLTP = row[15] > 2;
     return isCol37Valid && isCol58Valid && isLTP && isCI;
   },
@@ -168,17 +119,16 @@ const filters = {
     const isCI = row[34] === "CI";
     const isRepairComplete = row[11] === "ST035";
 
-    return isCol37Valid  && isRepairComplete && isCI;
+    return isCol37Valid && isRepairComplete && isCI;
   },
 
-  
   filter_CI_COMPLETE_OW_X09: (row) => {
     const isCol37Valid = row[37] === "OW";
     const isCI = row[34] === "CI";
     const isRepairComplete = row[11] === "ST035";
     const isCol53Valid = row[53] === "X09";
 
-    return isCol37Valid  && isCol53Valid && isRepairComplete && isCI;
+    return isCol37Valid && isCol53Valid && isRepairComplete && isCI;
   },
 
   filter_CI_COMPLETE_OW_NOT_X09: (row) => {
@@ -187,78 +137,27 @@ const filters = {
     const isRepairComplete = row[11] === "ST035";
     const isCol53INValid = row[53] !== "X09";
 
-    return isCol37Valid  && isCol53INValid && isRepairComplete && isCI;
+    return isCol37Valid && isCol53INValid && isRepairComplete && isCI;
   },
 
-  // filter_VD_LTP_LP: (row) => {
-  //   const isCol37Valid = row[37] === "LP";
-  //   const isInHome = row[34] === "IH";
-  //   const isCol58Valid = [
-  //     "LED01",
-  //     "LED02",
-  //     "LED03",
-  //     "LFD01",
-  //     "LFD02",
-  //     "HTS01",
-  //     "PJT01",
-  //     "TFT01",
-  //     "TFT02",
-  //   ].includes(row[58]);
-  //   const isLTP = row[15] > 6;
-  //   return isCol37Valid && isCol58Valid && isLTP && isInHome;
-  // },
   filter_VD_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-      "PJT01",
-    ].includes(row[58]);
+    const isCol58Valid = [...AV_CODES].includes(row[58]);
     const isLTP = row[15] > 6;
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   },
   filter_VD_EX_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-      "PJT01",
-      "PJT02",
-    ].includes(row[58]);
+    const isCol58Valid = [...AV_CODES].includes(row[58]);
     const isLTP = row[15] > 13;
     return isCol37Valid && isCol58Valid && isLTP && isInHome;
   },
   filter_CI_MX_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isCI = row[34] === "CI";
-    const isCol58Valid = [
-      "NPC01",
-      "NPC02",
-      "NPC03",
-      "THB01",
-      "THB02",
-      "THB03",
-      "THB05",
-      "THB42",
-      "THB43",
-      "THB96",
-    ].includes(row[58]);
+    const isCol58Valid = [...MX_CODES].includes(row[58]);
     const isLTP = row[15] > 2;
     return isCol37Valid && isCol58Valid && isLTP && isCI;
   },
@@ -266,39 +165,28 @@ const filters = {
   all_lp_vd: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isInHome = row[34] === "IH" || row[34] === "CI";
-    const isCol58Valid = [
-      "LED01",
-      "LED02",
-      "LED03",
-      "LFD01",
-      "LFD02",
-      "HTS01",
-      "PJT01",
-      "TFT01",
-      "TFT02",
-      "PJT01",
-      "PJT02",
-    ].includes(row[58]);
+    const isCol58Valid = [...AV_CODES].includes(row[58]);
     return isCol37Valid && isCol58Valid && isInHome;
   },
 
   all_lp_DA: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isInHome = row[34] === "IH";
-    const isCol58Valid = [
-      "SWM01",
-      "SWM03",
-      "FJM01",
-      "RAO01",
-      "RAO02",
-      "RAC01",
-      "RAC02",
-      "RAC03",
-      "RAS01",
-      "SBS01",
-      "REF01",
-      "REF02",
-    ].includes(row[58]);
+    const isCol58Valid = [...HKE_CODE, ...RAC_CODES, ...REF_CODES, ...SWM_CODES].includes(row[58]);
+    return isCol37Valid && isCol58Valid && isInHome;
+  },
+
+  all_lp_AV: (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isInHome = row[34] === "IH";
+    const isCol58Valid = [...AV_CODES].includes(row[58]);
+    return isCol37Valid && isCol58Valid && isInHome;
+  },
+
+  all_DA_OW: (row) => {
+    const isCol37Valid = row[37] === "OW";
+    const isInHome = row[34] === "IH";
+    const isCol58Valid = [...HKE_CODE, ...RAC_CODES, ...REF_CODES, ...SWM_CODES].includes(row[58]);
     return isCol37Valid && isCol58Valid && isInHome;
   },
 };

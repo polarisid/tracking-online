@@ -1,17 +1,157 @@
+/* Event Styles - Modern Callout Look */
 .ii-event {
-  background-color: #ff0000; /* Vermelho para "II" */
-  border-color: #ff0000;
-  color: white;
+  background-color: #fee2e2 !important;
+  /* Pastel Red Bg */
+  border-left: 4px solid #ef4444 !important;
+  /* Strong Red Border */
+  color: #991b1b !important;
+  /* Dark Red Text */
+  border-radius: 4px !important;
+  font-weight: 600;
+  font-size: 11px;
 }
 
 .ih-event {
-  background-color: #ca0000; /* Verde para "IH" */
-  border-color: #00ff00;
-  color: white;
+  background-color: #dcfce7 !important;
+  /* Pastel Green Bg */
+  border-left: 4px solid #22c55e !important;
+  /* Strong Green Border */
+  color: #166534 !important;
+  /* Dark Green Text */
+  border-radius: 4px !important;
+  font-weight: 600;
+  font-size: 11px;
 }
 
 .sh-event {
-  background-color: #0000ff; /* Azul para "SH" */
-  border-color: #0000ff;
-  color: white;
+  background-color: #dbeafe !important;
+  /* Pastel Blue Bg */
+  border-left: 4px solid #3b82f6 !important;
+  /* Strong Blue Border */
+  color: #1e40af !important;
+  /* Dark Blue Text */
+  border-radius: 4px !important;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+/* Calendar Container Overrides */
+.rbc-calendar {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica', sans-serif;
+  color: #4b5563;
+  /* Slate 600 */
+}
+
+/* Header Cells */
+.rbc-header {
+  padding: 12px 0 !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem;
+  color: #374151;
+  /* Slate 700 */
+  border-bottom: 2px solid #e5e7eb !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Month View Grid */
+.rbc-month-view {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.rbc-day-bg {
+  border-left: 1px solid #f3f4f6 !important;
+}
+
+.rbc-off-range-bg {
+  background-color: #f9fafb !important;
+  /* Very light gray for off-range */
+}
+
+.rbc-today {
+  background-color: #f0f9ff !important;
+  /* Light Sky Blue for today */
+}
+
+/* Toolbar Buttons */
+.rbc-toolbar {
+  margin-bottom: 20px !important;
+  padding: 0 10px;
+}
+
+.rbc-toolbar button {
+  border: 1px solid #d1d5db !important;
+  color: #374151 !important;
+  border-radius: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 0.9rem;
+  font-weight: 500 !important;
+  background-color: white;
+  transition: all 0.2s ease;
+  margin-right: 4px;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #f3f4f6 !important;
+  border-color: #9ca3af !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #23323d !important;
+  /* Primary Brand Color */
+  color: white !important;
+  border-color: #23323d !important;
+  box-shadow: 0 2px 4px rgba(35, 50, 61, 0.3);
+}
+
+.rbc-toolbar-label {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* General Event styling within calendar */
+.rbc-event {
+  background-color: transparent !important;
+  /* We set bg in specific classes */
+  border: none !important;
+  padding: 1px !important;
+  outline: none !important;
+}
+
+.rbc-event-content {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- HIDE TIME GRID --- */
+/* This hides the time slots (12am-11pm) in Week/Day views */
+.rbc-time-view .rbc-time-content {
+  display: none !important;
+}
+
+/* This hides the header gutter (empty space above time labels) */
+.rbc-time-view .rbc-time-header-gutter {
+  display: none !important;
+}
+
+/* Ensure the all-day row takes reasonable space if needed, though react-big-calendar handles it well */
+.rbc-time-view .rbc-allday-cell {
+  /* No specific overriding needed, it usually expands */
+  height: auto !important;
+  max-height: 500px;
+  /* Optional cap */
+  display: inherit;
+  /* Ensure it's not hidden if somehow targeted */
+}
+
+/* Hide the 'all day' label if it exists, since everything is all day */
+.rbc-time-header>.rbc-row:first-child .rbc-label {
+  display: none !important;
 }
