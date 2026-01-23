@@ -69,20 +69,20 @@ const filters = {
   },
   filter_isEffect_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
-    const isEffect = row[22] == row[24];
+    const isEffect = row[22] === row[24];
     const isInHome = row[34] === "IH";
     return isCol37Valid && isEffect && isInHome;
   },
   filter_agenda_today: (row) => {
     const isEffect = row[24] === today_Form;
-    const isNOTCI = row[34] != "CI";
+    const isNOTCI = row[34] !== "CI";
     const isFTF = row[11] === "ST025";
     return isNOTCI && isFTF && isEffect;
     // return isEffect && isFTF && isNOTCI;
   },
   filter_agenda_tomorrow: (row) => {
     const isEffect = row[24] === tomorrow_Form;
-    const isNOTCI = row[34] != "CI";
+    const isNOTCI = row[34] !== "CI";
     const isFTF = row[11] === "ST025";
     return isEffect && isFTF && isNOTCI;
   },
@@ -102,7 +102,7 @@ const filters = {
   filter_next_isEffect_LP: (row) => {
     const isCol37Valid = row[37] === "LP";
     const isEffect = row[22] < row[24];
-    const isOutadate = row[22] > today_Form;
+    // const isOutadate = row[22] > today_Form;
     const isInHome = row[34] === "IH";
     return isCol37Valid && isEffect && isInHome;
   },

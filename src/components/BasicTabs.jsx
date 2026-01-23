@@ -8,11 +8,11 @@ import useHomeContext from "../hooks/UseHomeContext";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
-import styled from "styled-components";
+
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
-  const { visibleComponents, setVisibleComponents } = useHomeContext();
+  // const { visibleComponents, setVisibleComponents } = useHomeContext();
 
   return (
     <div
@@ -46,9 +46,9 @@ export default function BasicTabs({ children, child }) {
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
-  const handleChangeIndex = (index) => {
-    setValue(index);
-  };
+  // const handleChangeIndex = (index) => {
+  //   setValue(index);
+  // };
   const childrenArray = React.Children.toArray(children);
 
   return (
@@ -58,7 +58,7 @@ export default function BasicTabs({ children, child }) {
           value={value}
           onChange={handleChange}
           aria-label="basic tabs example"
-          //   variant="fullWidth"
+        //   variant="fullWidth"
         >
           <Tab
             label={`Indicadores `}

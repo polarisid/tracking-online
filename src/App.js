@@ -2,7 +2,7 @@ import React from "react";
 import "./App.css";
 import PagesRoutes from "./Router";
 import styled from "styled-components";
-import HeaderComponent from "./components/HeaderComponent";
+
 import LoadingScreen from "./components/LoadingScreen";
 import { HomeProvider } from "./Contexts/HomeContext";
 const App = () => {
@@ -11,9 +11,6 @@ const App = () => {
       <HomeProvider>
         <div className="App">
           <LoadingScreen />
-
-          {/* <HeaderComponent /> */}
-          {/* <HomePage /> */}
           <PagesRoutes />
           <Footer>
             <p>2026 - Desenvolvido por Daniel Carvalho</p>

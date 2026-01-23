@@ -14,13 +14,13 @@ import handleFileUpload from "../utils/fileUploader";
 import { UploadButton } from "../components/UploadButton";
 import useHomeContext from "../hooks/UseHomeContext";
 import BasicTabs from "../components/BasicTabs";
-import styles from "./styles.css";
+
 import * as React from "react";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
-import UploadBoxMenu from "../components/UploadBox";
+
 
 const localizer = momentLocalizer(moment);
 
@@ -46,8 +46,8 @@ const CustomEvent = ({ event }) => {
 };
 
 const HomePage = () => {
-  const { file1, setFile1 } = useHomeContext();
-  const { file2, setFile2 } = useHomeContext();
+  const { setFile1 } = useHomeContext();
+  const { setFile2 } = useHomeContext();
   const { data1, setData1 } = useHomeContext();
   const { data2, setData2 } = useHomeContext();
   const { combinedData, setCombinedData } = useHomeContext();
@@ -56,7 +56,7 @@ const HomePage = () => {
   const [combinedData_download, setCombinedData_download] = useState([]);
 
   const [events, setEvents] = useState([]);
-  const [cityData, setCityData] = useState({});
+  const [cityData] = useState({});
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -73,7 +73,7 @@ const HomePage = () => {
   ///////////////////////////////
   const downloadExcel = (combinedData, fileName = "planilha.xlsx") => {
     // Cria uma nova planilha
-    if (data2.length == 0) {
+    if (data2.length === 0) {
       alert("Não possui planilha Service Light na base!");
       return;
     }
@@ -198,10 +198,7 @@ const HomePage = () => {
             const orderId = row[2]; // Índice da coluna B
 
             // Adicionar os valores das colunas L e M da segunda planilha se disponível
-            const cityInfo = cityData[orderId] || {
-              city: "",
-              additionalInfo: "",
-            };
+
 
             return {
               title: `${row[0]} - ${row[2]} - ${row[14]} - ${row[37]}`, // Usando o índice da coluna para o título (B) e adicionando as colunas L e M
@@ -265,6 +262,7 @@ const HomePage = () => {
       setCombinedData_download([headers, ...combined_d]);
       setCombinedData([headers_to_show, ...combined]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data1, data2, cityData, events]);
 
   /////////////////////////////////
@@ -1291,12 +1289,7 @@ const IndicatorsWrapper = styled.div`
   margin-left: auto;
   align-items: center;
 `;
-const WarningIconX = styled(WarningIcon)`
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: ${(props) => (props.type === "mid" ? "#818300" : "#ff0000e0")};
-`;
+
 const BlockLTP = styled.div`
   /* box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
   -webkit-box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
@@ -1349,46 +1342,7 @@ const BlockLTP = styled.div`
     props.state === true ? "#6fb0ff" : "#000000e1"};
 `;
 
-const BlockIndex = styled.div`
-  border-radius: 10px;
-  background: white;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  width: 200px;
-  height: 110px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 
-  .header {
-    background-color: ${(props) =>
-    props.type === "high" ? "#ef4444" :
-      props.type === "mid" ? "#eab308" :
-        "#23323d"};
-    color: white;
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-  }
-  
-  .icon-warning {
-    color: white;
-  }
-
-  h1 {
-    font-size: 16px;
-    margin: 0;
-  }
-  
-  h2 {
-    font-size: 42px;
-    font-weight: 900;
-    text-align: center;
-    margin-top: 10px;
-    color: #374151;
-  }
-`;
 
 const BlockIndexSmall = styled.div`
   border-radius: 8px;
