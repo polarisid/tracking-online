@@ -136,6 +136,15 @@
   display: none !important;
 }
 
+/* Enable scrolling for the view since the all-day row can get very large */
+.rbc-time-view {
+  overflow-y: auto !important;
+  max-height: 70vh !important;
+  /* Cap height to viewport */
+  display: block !important;
+  /* Force block to respect overflow */
+}
+
 /* This hides the header gutter (empty space above time labels) */
 .rbc-time-view .rbc-time-header-gutter {
   display: none !important;

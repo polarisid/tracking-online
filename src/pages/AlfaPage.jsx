@@ -65,8 +65,28 @@ const HomePage = () => {
     32:false,
     33: false,
     34:false,
+    16: false,
+    17: false,
+    40: false,
 
   });
+
+  const [activeOrderIdsSet, setActiveOrderIdsSet] = useState(new Set());
+  const [activeRoutes, setActiveRoutes] = useState([]);
+  const [inRouteOrders, setInRouteOrders] = useState([]);
+
+  useEffect(() => {
+    const fetchActiveRoutes = async () => {
+      try {
+        const response = await fetch("https://smartos-olive.vercel.app/api/service-orders");
+        const json = await response.json();
+        setActiveRoutes(json);
+      } catch (error) {
+        console.error("Error fetching active routes:", error);
+      }
+    };
+    fetchActiveRoutes();
+  }, []);
 
   const toggleVisibility = (id) => {
     setVisibleComponents((prevState) => ({
@@ -198,7 +218,28 @@ const HomePage = () => {
 
       setEvents(formattedEvents);
     }
-  }, [data, cityData]);
+    
+    // Process active routes mapping
+    const activeOrderIds = new Set();
+    activeRoutes.forEach(route => {
+      route.stops?.forEach(stop => {
+        if (stop.serviceOrder) activeOrderIds.add(String(stop.serviceOrder).trim());
+        if (stop.ascJobNumber) activeOrderIds.add(String(stop.ascJobNumber).trim());
+      });
+      route.serviceOrders?.forEach(order => {
+        if (order.serviceOrderNumber) activeOrderIds.add(String(order.serviceOrderNumber).trim());
+      });
+    });
+
+    const inRoute = data.slice(1).filter((row) => {
+      const orderId1 = String(row[1] || "").trim();
+      const orderId2 = String(row[2] || "").trim();
+      return activeOrderIds.has(orderId1) || activeOrderIds.has(orderId2);
+    });
+    setInRouteOrders(inRoute);
+    setActiveOrderIdsSet(activeOrderIds);
+    
+  }, [data, cityData, activeRoutes]);
 
   // Índices das colunas que queremos exibir (baseado em zero)
   const columnsToShow = [1, 9, 14, 15, 24, 61];
@@ -389,6 +430,14 @@ const HomePage = () => {
           <h2>{quantity_EX_LTP_VD}</h2>
         </BlockLTP>
         <BlockLTP
+          state={visibleComponents[40]}
+          onClick={() => toggleVisibility(40)}
+        >
+          <h1>Ordens Em Rota</h1>
+          <div className="divider"></div>
+          <h2>{inRouteOrders.length > 0 ? inRouteOrders.length + ' (' + inRouteOrders.length + ')' : 0} </h2>
+        </BlockLTP>
+        <BlockLTP
           state={visibleComponents[2]}
           onClick={() => toggleVisibility(2)}
         >
@@ -572,13 +621,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {planilha_LTP_IH_VD_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {planilha_LTP_IH_VD_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -593,13 +636,22 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
+              </tbody>
+            </table>
+          </ToggleableComponent>
+          <ToggleableComponent isVisible={visibleComponents[40]}>
+            <h2>ORDENS EM ROTA</h2>
+            <table className="toggleDiv">
+              <thead>
+                <tr>
+                  {columnsToShow.map((colIndex) => (
+                    <th key={colIndex}>{data[0][colIndex]}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {inRouteOrders.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -614,13 +666,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -636,13 +682,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -657,13 +697,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -678,13 +712,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData9.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData9.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -699,13 +727,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData10.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData10.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -720,13 +742,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData4.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData4.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -741,13 +757,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData5.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData5.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -762,13 +772,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData11.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_type_service.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData11.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_type_service))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -783,13 +787,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData12.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData12.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -804,13 +802,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData15.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData15.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -825,13 +817,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData6.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData6.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
               </tbody>
             </table>
             <h2>Effect Appointment - Corrija estas datas para bater</h2>
@@ -844,13 +830,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData13.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData13.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
               </tbody>
             </table>
             <h2>Effect Appointment - Corrija estas datas para bater</h2>
@@ -863,13 +843,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData14.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData14.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -884,13 +858,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData16.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData16.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
               </tbody>
             </table>
           </ToggleableComponent>
@@ -905,13 +873,7 @@ const HomePage = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredAndSortedData17.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <td key={colIndex}>{row[colIndex]}</td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredAndSortedData17.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
               </tbody>
             </table>
           </ToggleableComponent>
