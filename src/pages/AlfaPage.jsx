@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import DashboardCharts from "../components/DashboardCharts";
+import StatCard from "../components/StatCard";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
@@ -413,102 +415,16 @@ const HomePage = () => {
         <div className="divider"></div>
       </SubMenuSection>
       <Dashboard>
-        <BlockLTP
-          state={visibleComponents[1]}
-          onClick={() => toggleVisibility(1)}
-        >
-          <h1>Casos LTP VD IH</h1>
-          <div className="divider"></div>
-          <h2>{quantity_LTP_VD}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[21]}
-          onClick={() => toggleVisibility(21)}
-        >
-          <h1>Casos EX LTP VD IH</h1>
-          <div className="divider"></div>
-          <h2>{quantity_EX_LTP_VD}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[40]}
-          onClick={() => toggleVisibility(40)}
-        >
-          <h1>Ordens Em Rota</h1>
-          <div className="divider"></div>
-          <h2>{inRouteOrders.length > 0 ? inRouteOrders.length + ' (' + inRouteOrders.length + ')' : 0} </h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[2]}
-          onClick={() => toggleVisibility(2)}
-        >
-          <h1>LTP REF/RAC </h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_LTP_RAC_REF}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[20]}
-          onClick={() => toggleVisibility(2)}
-        >
-          <h1>EX-LTP REF/RAC </h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_EX_LTP_RAC_REF}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[3]}
-          onClick={() => toggleVisibility(3)}
-        >
-          <h1>LTP WSM</h1>
-          <div className="divider"></div>
-          <h2>{quantity_LTP_WSM}</h2>
-        </BlockLTP>
-        <BlockLTP
-          type={"CI"}
-          state={visibleComponents[4]}
-          onClick={() => toggleVisibility(4)}
-        >
-          <h1>LTP VD CI</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_LTP_VD_CI}</h2>
-        </BlockLTP>
-        <BlockLTP
-          type={"CI"}
-          state={visibleComponents[5]}
-          onClick={() => toggleVisibility(5)}
-        >
-          <h1>LTP MX CI</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_LTP_MX_CI}</h2>
-        </BlockLTP>
-        <BlockLTP>
-          {average.toFixed(2) > 3.8 ? <WarningIconX></WarningIconX> : <></>}
-          {average.toFixed(2) < 3.8 && average.toFixed(2) > 3 ? (
-            <WarningIconX type={"mid"}></WarningIconX>
-          ) : (
-            <></>
-          )}
-
-          <h1>RTAT VD</h1>
-          <div className="divider"></div>
-
-          <h2>{average.toFixed(2)}</h2>
-        </BlockLTP>
-        <BlockLTP>
-          {average2.toFixed(2) > 4.5 ? <WarningIconX></WarningIconX> : <></>}
-          {average2.toFixed(2) < 4.5 && average2.toFixed(2) > 3.8 ? (
-            <WarningIconX type={"mid"}></WarningIconX>
-          ) : (
-            <></>
-          )}
-
-          <h1>RTAT DA</h1>
-          <div className="divider"></div>
-
-          <h2>{average2.toFixed(2)}</h2>
-        </BlockLTP>
+        <StatCard title="Casos LTP VD IH" value={quantity_LTP_VD} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" />
+        <StatCard title="Casos EX LTP VD IH" value={quantity_EX_LTP_VD} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" />
+        <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" />
+        <StatCard title="LTP REF/RAC" value={quantity_LTP_RAC_REF} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" />
+        <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" />
+        <StatCard title="LTP WSM" value={quantity_LTP_WSM} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" />
+        <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" />
+        <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" />
+        <StatCard type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
+        <StatCard type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
       </Dashboard>
 
       <SubMenuSection>
@@ -516,81 +432,40 @@ const HomePage = () => {
         <div className="divider"></div>
       </SubMenuSection>
       <Dashboard>
-      <BlockLTP
-          state={visibleComponents[31]}
-          onClick={() => toggleVisibility(31)}
-        >
-          <h1>quantidade de casos DA</h1>
-          <div className="divider"></div>
-          <h2>{quantityDA}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[6]}
-          onClick={() => toggleVisibility(6)}
-        >
-          <h1>DA sem peça (OW/LP)</h1>
-          <div className="divider"></div>
-          <h2>{quantity_DA_noParts}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[8]}
-          onClick={() => toggleVisibility(8)}
-        >
-          <h1>Consumidor fora do prazo</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_Oudated_IH}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[9]}
-          onClick={() => toggleVisibility(9)}
-        >
-          <h1>R. completo fora do prazo</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_Oudated_Repair_complete_IH}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[7]}
-          onClick={() => toggleVisibility(7)}
-        >
-          <h1>LTP IH</h1>
-          <h1> Em até 4 dias</h1>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[10]}
-          onClick={() => toggleVisibility(10)}
-        >
-          <h1>Effect Appointment</h1>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[11]}
-          onClick={() => toggleVisibility(11)}
-        >
-          <h1>First Visit - Aguardando</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_POTENTIAL_first_visit}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[12]}
-          onClick={() => toggleVisibility(12)}
-        >
-          <h1>Agenda do dia</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_agenda_today}</h2>
-        </BlockLTP>
-        <BlockLTP
-          state={visibleComponents[13]}
-          onClick={() => toggleVisibility(13)}
-        >
-          <h1>Agenda de amanhã</h1>
-          <div className="divider"></div>
-
-          <h2>{quantity_agenda_tomorrow}</h2>
-        </BlockLTP>
+      <StatCard title="quantidade de casos DA" value={quantityDA} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} />
+        <StatCard title="DA sem peça (OW/LP)" value={quantity_DA_noParts} onClick={() => toggleVisibility(6)} isActive={visibleComponents[6]} />
+        <StatCard title="Consumidor fora do prazo" value={quantity_Oudated_IH} onClick={() => toggleVisibility(8)} isActive={visibleComponents[8]} />
+        <StatCard title="R. completo fora do prazo" value={quantity_Oudated_Repair_complete_IH} onClick={() => toggleVisibility(9)} isActive={visibleComponents[9]} iconName="CheckCircle" />
+        <StatCard title="LTP IH</h1> <h1> Em até 4 dias</h1> </BlockLTP> <BlockLTP state={visibleComponents[10]} onClick={() => toggleVisibility(10)} > <h1>Effect Appointment</h1> </BlockLTP> <BlockLTP state={visibleComponents[11]} onClick={() => toggleVisibility(11)} > <h1>First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(7)} isActive={visibleComponents[7]} iconName="Activity" />
+        <StatCard title="Agenda do dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" />
+        <StatCard title="Agenda de amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" />
       </Dashboard>
+      
+      <SubMenuSection>
+        <h1>Gráficos Visuais</h1>
+        <div className="divider"></div>
+      </SubMenuSection>
+      <DashboardCharts
+        dataLtpVd={quantity_LTP_VD || 0}
+        dataExLtpVd={quantity_EX_LTP_VD || 0}
+        dataLtpRacRef={quantity_LTP_RAC_REF || 0}
+        dataExLtpRacRef={quantity_EX_LTP_RAC_REF || 0}
+        dataLtpWsm={quantity_LTP_WSM || 0}
+        dataDaOudated={quantity_Oudated_IH || 0}
+        dataDaCompleteOudated={quantity_Oudated_Repair_complete_IH || 0}
+        dataAgendaToday={quantity_agenda_today || 0}
+        dataAgendaTomorrow={quantity_agenda_tomorrow || 0}
+        rtatVd={average?.toFixed(2) || 0}
+        rtatDa={average2?.toFixed(2) || 0}
+        totalDa={quantityDA || 0}
+        daNoParts={quantity_DA_noParts || 0}
+        inRoute={inRouteOrders?.length || 0}
+        firstVisitWait={quantity_POTENTIAL_first_visit || 0}
+      />
+      <SubMenuSection>
+        <h1>Calendário</h1>
+        <div className="divider"></div>
+      </SubMenuSection>
       <CalendarContainer>
         <ToggleableComponent isVisible={visibleComponents[14]}>
           <Calendar

@@ -8,6 +8,7 @@ import useHomeContext from "../hooks/UseHomeContext";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
+import PieChartIcon from "@mui/icons-material/PieChart";
 
 
 function CustomTabPanel(props) {
@@ -73,8 +74,14 @@ export default function BasicTabs({ children, child }) {
             {...a11yProps(1)}
           />
           <Tab
-            label="Calendário"
+            label="Gráficos"
+            icon={<PieChartIcon />}
+            iconPosition="end"
             {...a11yProps(2)}
+          />
+          <Tab
+            label="Calendário"
+            {...a11yProps(3)}
             icon={<CalendarMonthIcon />}
             iconPosition="end"
           />
@@ -93,6 +100,9 @@ export default function BasicTabs({ children, child }) {
       </CustomTabPanel>
       <CustomTabPanel value={value} index={2}>
         {childrenArray[2]}
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={3}>
+        {childrenArray[3]}
       </CustomTabPanel>
       {/* </SwipeableViews> */}
     </Box>

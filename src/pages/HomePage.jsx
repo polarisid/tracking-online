@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import DashboardCharts from "../components/DashboardCharts";
+import StatCard from "../components/StatCard";
 import HeaderComponent from "../components/HeaderComponent";
 import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
@@ -512,16 +514,36 @@ const HomePage = () => {
     [eventCounts]
   );
 
+  const renderBadge = (cellValue) => {
+    if (typeof cellValue !== 'string') return cellValue;
+    const val = cellValue.trim().toUpperCase();
+    
+    const badges = {
+      'VD': 'bg-blue-100 text-blue-800',
+      'LP': 'bg-fuchsia-100 text-fuchsia-800',
+      'OW': 'bg-orange-100 text-orange-800',
+      'LTP': 'bg-slate-800 text-white',
+      'EX LTP': 'bg-yellow-100 text-yellow-800',
+      'DA': 'bg-red-100 text-red-800',
+      'CI': 'bg-indigo-100 text-indigo-800'
+    };
+    
+    if (badges[val]) {
+      return <span className={"px-2.5 py-1 rounded-full text-xs font-bold tracking-wide " + badges[val]}>{val}</span>;
+    }
+    return cellValue;
+  };
+
   const renderRow = (row, rowIndex, columns) => {
     const os1 = String(row[0] || "").trim();
     const os2 = String(row[1] || "").trim();
     const os3 = String(row[2] || "").trim();
-    const isEmRota = activeOrderIdsSet.has(os1) || activeOrderIdsSet.has(os2) || activeOrderIdsSet.has(os3);
+    const isEmRota = activeOrderIdsSet?.has(os1) || activeOrderIdsSet?.has(os2) || activeOrderIdsSet?.has(os3);
     
     return (
-      <tr key={rowIndex} style={isEmRota ? { backgroundColor: '#d4edda' } : {}}>
+      <tr key={rowIndex} className={isEmRota ? 'bg-green-100 hover:bg-green-200 transition-colors border-l-4 border-green-500' : ''}>
         {columns.map((colIndex) => (
-          <td key={colIndex}>{row[colIndex]}</td>
+          <td key={colIndex}>{renderBadge(row[colIndex])}</td>
         ))}
       </tr>
     );
@@ -582,23 +604,9 @@ const HomePage = () => {
         {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
 
         <IndicatorsWrapper>
-          <BlockIndexSmall type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")}>
-            <div className="header-small">
-              <span>RTAT VD</span>
-              {average.toFixed(2) > 3.8 ? <WarningIcon className="icon-warning-small" /> : null}
-              {average.toFixed(2) <= 3.8 && average.toFixed(2) > 3 ? <WarningIcon className="icon-warning-small" /> : null}
-            </div>
-            <h2>{average.toFixed(2)}</h2>
-          </BlockIndexSmall>
+          <StatCard type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
 
-          <BlockIndexSmall type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")}>
-            <div className="header-small">
-              <span>RTAT DA</span>
-              {average2.toFixed(2) > 4.5 ? <WarningIcon className="icon-warning-small" /> : null}
-              {average2.toFixed(2) <= 4.5 && average2.toFixed(2) > 3.8 ? <WarningIcon className="icon-warning-small" /> : null}
-            </div>
-            <h2>{average2.toFixed(2)}</h2>
-          </BlockIndexSmall>
+          <StatCard type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
         </IndicatorsWrapper>
       </UploadBox>
 
@@ -608,228 +616,59 @@ const HomePage = () => {
 
       <BasicTabs>
         <Dashboard>
-          <BlockLTP
-            state={visibleComponents[1]}
-            onClick={() => toggleVisibility(1)}
-          >
-            <div className="divider">
-              <h1>LTP VD IH</h1>
-            </div>
-            <h2>{quantity_LTP_VD}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[21]}
-            onClick={() => toggleVisibility(21)}
-          >
-            <div className="divider">
-              <h1>EX LTP VD IH</h1>
-            </div>
-            <h2>{quantity_EX_LTP_VD}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[40]}
-            onClick={() => toggleVisibility(40)}
-          >
-            <div className="divider">
-              <h1>Ordens Em Rota</h1>
-            </div>
-            <h2>{inRouteOrders.length > 0 ? inRouteOrders.length + ' (' + inRouteOrders.length + ')' : 0} </h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[2]}
-            onClick={() => toggleVisibility(2)}
-          >
-            <div className="divider">
-              <h1>LTP REF/RAC IH </h1>
-            </div>
-
-            <h2>{quantity_LTP_RAC_REF}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[20]}
-            onClick={() => toggleVisibility(20)}
-          >
-            <div className="divider">
-              <h1>EX-LTP REF/RAC </h1>
-            </div>
-
-            <h2>{quantity_EX_LTP_RAC_REF}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[3]}
-            onClick={() => toggleVisibility(3)}
-          >
-            <div className="divider">
-              <h1>LTP WSM/HKE</h1>
-            </div>
-            <h2>{quantity_LTP_WSM}</h2>
-          </BlockLTP>
-          <BlockLTP
-            type={"CI"}
-            state={visibleComponents[4]}
-            onClick={() => toggleVisibility(4)}
-          >
-            <div className="divider">
-              <h1>LTP VD CI</h1>
-            </div>
-
-            <h2>{quantity_LTP_VD_CI}</h2>
-          </BlockLTP>
-          <BlockLTP
-            type={"CI"}
-            state={visibleComponents[5]}
-            onClick={() => toggleVisibility(5)}
-          >
-            <div className="divider">
-              <h1>LTP MX CI</h1>
-            </div>
-
-            <h2>{quantity_LTP_MX_CI}</h2>
-          </BlockLTP>
+          <StatCard title="LTP VD IH" value={quantity_LTP_VD} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" />
+          <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" />
+          <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" />
+          <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" />
+          <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" />
+          <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" />
+          <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" />
+          <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" />
 
         </Dashboard>
         <Dashboard>
-          <BlockLTP
-            state={visibleComponents[31]}
-            onClick={() => toggleVisibility(31)}
-          >
-            <div className="divider">
-              <h1> TODOS DA LP </h1>
-            </div>
-            <h2>{quantityDa}</h2>
-          </BlockLTP>
+          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} />
 
-          <BlockLTP
-            state={visibleComponents[51]}
-            onClick={() => toggleVisibility(51)}
-          >
-            <div className="divider">
-              <h1> TODOS DA OW</h1>
-            </div>
-            <h2>{quantity_ALL_DA_OW}</h2>
-          </BlockLTP>
+          <StatCard title="TODOS DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} />
 
-          <BlockLTP
-            state={visibleComponents[6]}
-            onClick={() => toggleVisibility(6)}
-          >
-            <div className="divider">
-              <h1>DA Sem Peça (OW/LP)</h1>
-            </div>
-            <h2>{quantity_DA_noParts}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[8]}
-            onClick={() => toggleVisibility(8)}
-          >
-            <div className="divider">
-              <h1>Consumidor Fora do Prazo</h1>
-            </div>
+          <StatCard title="DA Sem Peça (OW/LP)" value={quantity_DA_noParts} onClick={() => toggleVisibility(6)} isActive={visibleComponents[6]} />
+          <StatCard title="Consumidor Fora do Prazo" value={quantity_Oudated_IH} onClick={() => toggleVisibility(8)} isActive={visibleComponents[8]} />
+          <StatCard title="R. Completo Fora do Prazo" value={quantity_Oudated_Repair_complete_IH} onClick={() => toggleVisibility(9)} isActive={visibleComponents[9]} iconName="CheckCircle" />
 
-            <h2>{quantity_Oudated_IH}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[9]}
-            onClick={() => toggleVisibility(9)}
-          >
-            <div className="divider">
-              <h1>R. Completo Fora do Prazo</h1>
-            </div>
-
-            <h2>{quantity_Oudated_Repair_complete_IH}</h2>
-          </BlockLTP>
-
-          <BlockLTP
-            type={"CI"}
-
-            state={visibleComponents[32]}
-            onClick={() => toggleVisibility(32)}
-          >
-            <div className="divider">
-              <h1> CI R. Completo LP </h1>
-            </div>
-
-            <h2>{quantity_complete_CI_LP}</h2>
-          </BlockLTP>
+          <StatCard title="CI R. Completo LP" value={quantity_complete_CI_LP} onClick={() => toggleVisibility(32)} isActive={visibleComponents[32]} type="CI" iconName="CheckCircle" />
 
 
-          <BlockLTP
-            type={"CI"}
-
-            state={visibleComponents[33]}
-            onClick={() => toggleVisibility(33)}
-          >
-            <div className="divider">
-              <h1> CI R. Completo OW - X09 </h1>
-            </div>
-
-            <h2>{quantity_complete_CI_OW_X09}</h2>
-          </BlockLTP>
+          <StatCard title="CI R. Completo OW - X09" value={quantity_complete_CI_OW_X09} onClick={() => toggleVisibility(33)} isActive={visibleComponents[33]} type="CI" iconName="CheckCircle" />
 
 
 
-          <BlockLTP
-            type={"CI"}
+          <StatCard title="CI R. Completo OW" value={quantity_complete_CI_OW_NOT_X09} onClick={() => toggleVisibility(34)} isActive={visibleComponents[34]} type="CI" iconName="CheckCircle" />
 
-            state={visibleComponents[34]}
-            onClick={() => toggleVisibility(34)}
-          >
-            <div className="divider">
-              <h1> CI R. Completo OW </h1>
-            </div>
-
-            <h2>{quantity_complete_CI_OW_NOT_X09}</h2>
-          </BlockLTP>
-
-          <BlockLTP
-            state={visibleComponents[7]}
-            onClick={() => toggleVisibility(7)}
-          >
-            <div className="divider"></div>
-            <h1>LTP IH</h1>
-            <h1> Em até 4 dias</h1>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[10]}
-            onClick={() => toggleVisibility(10)}
-          >
-            <div className="divider"></div>
-
-            <h1>Effect Appointment</h1>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[11]}
-            onClick={() => toggleVisibility(11)}
-          >
-            <div className="divider">
-              {" "}
-              <h1>First Visit - Aguardando</h1>
-            </div>
-
-            <h2>{quantity_POTENTIAL_first_visit}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[12]}
-            onClick={() => toggleVisibility(12)}
-          >
-            <div className="divider">
-              <h1>Agenda do Dia</h1>
-            </div>
-
-            <h2>{quantity_agenda_today}</h2>
-          </BlockLTP>
-          <BlockLTP
-            state={visibleComponents[13]}
-            onClick={() => toggleVisibility(13)}
-          >
-            <div className="divider">
-              <h1>Agenda de Amanhã</h1>
-            </div>
-
-            <h2>{quantity_agenda_tomorrow}</h2>
-          </BlockLTP>
+          <StatCard title="LTP IH Em até 4 dias" value={0} onClick={() => toggleVisibility(7)} isActive={visibleComponents[7]} type="normal" />
+          <StatCard title="Effect Appointment" value={0} onClick={() => toggleVisibility(10)} isActive={visibleComponents[10]} type="normal" />
+          <StatCard title="First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(11)} isActive={visibleComponents[11]} type="normal" />
+          <StatCard title="Agenda do Dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" />
+          <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" />
         </Dashboard>
-        <CalendarContainer>
+        
+      <DashboardCharts
+        dataLtpVd={quantity_LTP_VD || 0}
+        dataExLtpVd={quantity_EX_LTP_VD || 0}
+        dataLtpRacRef={quantity_LTP_RAC_REF || 0}
+        dataExLtpRacRef={quantity_EX_LTP_RAC_REF || 0}
+        dataLtpWsm={quantity_LTP_WSM || 0}
+        dataDaOudated={quantity_Oudated_IH || 0}
+        dataDaCompleteOudated={quantity_Oudated_Repair_complete_IH || 0}
+        dataAgendaToday={quantity_agenda_today || 0}
+        dataAgendaTomorrow={quantity_agenda_tomorrow || 0}
+        rtatVd={average?.toFixed(2) || 0}
+        rtatDa={average2?.toFixed(2) || 0}
+        totalDa={0 /* HomePage doesnt track Total DA */}
+        daNoParts={quantity_DA_noParts || 0}
+        inRoute={inRouteOrders?.length || 0}
+        firstVisitWait={quantity_POTENTIAL_first_visit || 0}
+      />
+      <CalendarContainer>
           <Calendar
             localizer={localizer}
             events={events}
