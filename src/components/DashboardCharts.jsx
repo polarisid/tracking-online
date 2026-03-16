@@ -8,6 +8,30 @@ import {
 const COLORS_DIST = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1'];
 const COLORS_BACKLOG = ['#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
 
+// Progress bar gauge component for percentage visualization
+const PercentGauge = ({ label, value, total, color, bgColor = '#f1f5f9' }) => {
+  const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+  const width = total > 0 ? Math.min((value / total) * 100, 100) : 0;
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <div className="flex justify-between items-center">
+        <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-400">{value} / {total}</span>
+          <span className="text-sm font-extrabold" style={{ color }}>{pct}%</span>
+        </div>
+      </div>
+      <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: bgColor }}>
+        <div
+          className="h-full rounded-full transition-all duration-700 ease-out"
+          style={{ width: `${width}%`, backgroundColor: color }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const DashboardCharts = ({
   dataLtpVd = 0,
   dataExLtpVd = 0,
@@ -19,13 +43,17 @@ const DashboardCharts = ({
   dataAgendaToday = 0,
   dataAgendaTomorrow = 0,
   
-  // New Analytics metrics
+  // Analytics metrics
   rtatVd = 0,
   rtatDa = 0,
   totalDa = 0,
   daNoParts = 0,
   inRoute = 0,
-  firstVisitWait = 0
+  firstVisitWait = 0,
+
+  // Percentage chart totals
+  totalAllDaLp = 0,
+  totalAllVdLp = 0
 }) => {
 
   const pieData = [
@@ -57,9 +85,12 @@ const DashboardCharts = ({
     { name: 'First Visit', value: firstVisitWait }
   ].filter(item => item.value > 0);
 
+  // Combined LTP + EX-LTP total for VD
+  const totalLtpVd = dataLtpVd + dataExLtpVd;
+
   return (
     <div className="flex flex-col gap-6 my-8 w-full max-w-screen-2xl mx-auto px-4">
-      {/* Top Row: Distribution and Scheduling */}
+      {/* Row 1: Distribution and Scheduling */}
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         {/* Pie Chart Card */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
@@ -114,7 +145,7 @@ const DashboardCharts = ({
         </div>
       </div>
 
-      {/* Bottom Row: RTAT and Backlog */}
+      {/* Row 2: RTAT and Backlog */}
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         {/* RTAT Bar Chart */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
@@ -172,8 +203,35 @@ const DashboardCharts = ({
           </div>
         </div>
       </div>
+
+      {/* Row 3: Percentage Penetration Gauges */}
+      <div className="flex flex-col lg:flex-row gap-6 w-full">
+        {/* VD Category Percentages */}
+        <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
+          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Penetração LTP — Categoria VD</h3>
+          <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllVdLp} ordens VD LP no sistema</p>
+          <div className="flex flex-col gap-5 py-2">
+            <PercentGauge label="LTP VD" value={dataLtpVd} total={totalAllVdLp} color="#3b82f6" />
+            <PercentGauge label="EX LTP VD" value={dataExLtpVd} total={totalAllVdLp} color="#10b981" />
+            <PercentGauge label="Total (LTP + EX LTP) VD" value={totalLtpVd} total={totalAllVdLp} color="#6366f1" />
+          </div>
+        </div>
+
+        {/* DA Category Percentages */}
+        <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
+          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Penetração LTP — Categoria DA</h3>
+          <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllDaLp} ordens DA LP no sistema</p>
+          <div className="flex flex-col gap-5 py-2">
+            <PercentGauge label="LTP RAC/REF" value={dataLtpRacRef} total={totalAllDaLp} color="#f59e0b" />
+            <PercentGauge label="EX LTP RAC/REF" value={dataExLtpRacRef} total={totalAllDaLp} color="#ef4444" />
+            <PercentGauge label="LTP WSM/HKE" value={dataLtpWsm} total={totalAllDaLp} color="#8b5cf6" />
+            <PercentGauge label="DA Sem Peça" value={daNoParts} total={totalAllDaLp} color="#ec4899" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default DashboardCharts;
+

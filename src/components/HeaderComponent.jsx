@@ -1,57 +1,74 @@
-import styled from "styled-components";
+import React, { useState, useEffect } from 'react';
+import { Monitor, MonitorOff, Clock, Database } from 'lucide-react';
 
-const HeaderComponent = () => {
+const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = false }) => {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDate = time.toLocaleDateString('pt-BR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  const formattedTime = time.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
-    <TopBar>
-      <Header>
-        <Title>Tracking Online</Title>
-      </Header>
-    </TopBar>
+    <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
+      <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex items-center justify-between">
+        {/* Left: Page Title + Date */}
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-slate-800 font-bold text-base leading-tight tracking-tight">
+              Dashboard
+            </h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Clock size={11} className="text-slate-400" />
+              <span className="text-slate-400 text-[11px] font-medium capitalize">{formattedDate} • {formattedTime}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Status + Actions */}
+        <div className="flex items-center gap-3">
+          {/* Data Status Badge */}
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+            dataLoaded
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+              : 'bg-slate-100 text-slate-400 border border-slate-200'
+          }`}>
+            <Database size={12} />
+            {dataLoaded ? 'Dados Carregados' : 'Sem Dados'}
+          </div>
+
+          {/* Presentation Mode Toggle */}
+          {onTogglePresentation && (
+            <button
+              onClick={onTogglePresentation}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+                presentationMode
+                  ? 'bg-red-50 text-red-500 hover:bg-red-100 border border-red-200'
+                  : 'bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-200'
+              }`}
+            >
+              {presentationMode ? (
+                <><MonitorOff size={13} /> Sair</>
+              ) : (
+                <><Monitor size={13} /> Apresentar</>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </header>
   );
 };
-const Title = styled.h1`
-  font-weight: 600;
-  font-size: 24px;
-  color: white;
-  /* background-color: #0093e9;
-  background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%); */
-  border-radius: 0px 0px 5px 5px;
-  padding: 10px;
-  /* h1 {
-    position: relative;
-  } */
-`;
 
-const TopBar = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-`;
-
-const Header = styled.div`
-  display: flex;
-
-  /* flex-direction: column; */
-  width: 100%;
-  /* height: 15px; */
-  align-items: center;
-  /* justify-content: center; */
-  /* padding: 20px; */
-  /* background-color: #007bff; */
-  -webkit-box-shadow: 0px 9px 17px -7px rgba(0, 0, 0, 0.33);
-  -moz-box-shadow: 0px 9px 17px -7px rgba(0, 0, 0, 0.33);
-  box-shadow: 0px 9px 17px -7px rgba(0, 0, 0, 0.33);
-
-  font-family: "Rubik", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: 800;
-  font-style: normal;
-
-  /* background-color: #0093e9; */
-  background-color: #23323d;
-  /* background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%); */
-  h2 {
-    margin-right: 10px;
-  }
-`;
 export default HeaderComponent;

@@ -1,29 +1,81 @@
 import * as React from "react";
 import PropTypes from "prop-types";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import useHomeContext from "../hooks/UseHomeContext";
-// import SwipeableViews from "react-swipeable-views";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+
+// Icons
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TroubleshootIcon from "@mui/icons-material/Troubleshoot";
 import PieChartIcon from "@mui/icons-material/PieChart";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
+const tabConfig = [
+  { label: "Indicadores", icon: <TrendingUpIcon sx={{ fontSize: 18 }} /> },
+  { label: "Análise", icon: <TroubleshootIcon sx={{ fontSize: 18 }} /> },
+  { label: "Gráficos", icon: <PieChartIcon sx={{ fontSize: 18 }} /> },
+  { label: "Calendário", icon: <CalendarMonthIcon sx={{ fontSize: 18 }} /> },
+];
 
-function CustomTabPanel(props) {
-  const { children, value, index, ...other } = props;
-  // const { visibleComponents, setVisibleComponents } = useHomeContext();
-
+function CustomTabPanel({ children, value, index }) {
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
+      id={`tab-panel-${index}`}
+      aria-labelledby={`tab-${index}`}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
+    </div>
+  );
+}
+
+export default function BasicTabs({ children }) {
+  const [value, setValue] = React.useState(0);
+  const childrenArray = React.Children.toArray(children);
+
+  return (
+    <div className="w-full">
+      {/* Tab Bar */}
+      <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-screen-2xl mx-auto px-4">
+          <nav className="flex gap-1" aria-label="Tabs">
+            {tabConfig.map((tab, index) => {
+              const isActive = value === index;
+              return (
+                <button
+                  key={index}
+                  onClick={() => setValue(index)}
+                  id={`tab-${index}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`tab-panel-${index}`}
+                  className={`
+                    relative flex items-center gap-2 px-4 py-3
+                    text-sm font-semibold tracking-wide
+                    transition-all duration-300 ease-out
+                    border-b-2 -mb-px
+                    ${isActive
+                      ? 'text-blue-600 border-blue-500'
+                      : 'text-slate-400 border-transparent hover:text-slate-600 hover:border-slate-300'
+                    }
+                  `}
+                >
+                  <span className={`transition-colors duration-300 ${isActive ? 'text-blue-500' : 'text-slate-400'}`}>
+                    {tab.icon}
+                  </span>
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Panels */}
+      {childrenArray.map((child, index) => (
+        <CustomTabPanel key={index} value={value} index={index}>
+          {child}
+        </CustomTabPanel>
+      ))}
     </div>
   );
 }
@@ -33,78 +85,3 @@ CustomTabPanel.propTypes = {
   index: PropTypes.number.isRequired,
   value: PropTypes.number.isRequired,
 };
-
-function a11yProps(index) {
-  return {
-    id: `simple-tab-${index}`,
-    "aria-controls": `simple-tabpanel-${index}`,
-  };
-}
-
-export default function BasicTabs({ children, child }) {
-  const [value, setValue] = React.useState(0);
-
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
-  };
-  // const handleChangeIndex = (index) => {
-  //   setValue(index);
-  // };
-  const childrenArray = React.Children.toArray(children);
-
-  return (
-    <Box sx={{ width: "100%" }}>
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-        <Tabs
-          value={value}
-          onChange={handleChange}
-          aria-label="basic tabs example"
-        //   variant="fullWidth"
-        >
-          <Tab
-            label={`Indicadores `}
-            icon={<TrendingUpIcon />}
-            iconPosition="end"
-            {...a11yProps(0)}
-          />
-          <Tab
-            label="Análise"
-            icon={<TroubleshootIcon />}
-            iconPosition="end"
-            {...a11yProps(1)}
-          />
-          <Tab
-            label="Gráficos"
-            icon={<PieChartIcon />}
-            iconPosition="end"
-            {...a11yProps(2)}
-          />
-          <Tab
-            label="Calendário"
-            {...a11yProps(3)}
-            icon={<CalendarMonthIcon />}
-            iconPosition="end"
-          />
-        </Tabs>
-      </Box>
-      {/* <SwipeableViews
-        // axis={theme.direction === "rtl" ? "x-reverse" : "x"}
-        index={value}
-        onChangeIndex={handleChangeIndex}
-      > */}
-      <CustomTabPanel value={value} index={0}>
-        {childrenArray[0]}
-      </CustomTabPanel>
-      <CustomTabPanel value={value} index={1}>
-        {childrenArray[1]}
-      </CustomTabPanel>
-      <CustomTabPanel value={value} index={2}>
-        {childrenArray[2]}
-      </CustomTabPanel>
-      <CustomTabPanel value={value} index={3}>
-        {childrenArray[3]}
-      </CustomTabPanel>
-      {/* </SwipeableViews> */}
-    </Box>
-  );
-}

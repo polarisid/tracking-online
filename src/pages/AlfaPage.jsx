@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import DashboardCharts from "../components/DashboardCharts";
 import StatCard from "../components/StatCard";
 import HeaderComponent from "../components/HeaderComponent";
+import PresentationMode from "../components/PresentationMode";
 import * as XLSX from "xlsx";
 import styled, { keyframes } from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
@@ -76,6 +77,7 @@ const HomePage = () => {
   const [activeOrderIdsSet, setActiveOrderIdsSet] = useState(new Set());
   const [activeRoutes, setActiveRoutes] = useState([]);
   const [inRouteOrders, setInRouteOrders] = useState([]);
+  const [presentationMode, setPresentationMode] = useState(false);
 
   useEffect(() => {
     const fetchActiveRoutes = async () => {
@@ -369,7 +371,36 @@ const HomePage = () => {
 
   return (
     <MainContainer>
-      <HeaderComponent />
+      {presentationMode && (
+        <PresentationMode
+          onExit={() => setPresentationMode(false)}
+          metrics={{
+            quantity_LTP_VD,
+            quantity_EX_LTP_VD,
+            quantity_LTP_RAC_REF,
+            quantity_EX_LTP_RAC_REF,
+            quantity_LTP_WSM,
+            quantity_LTP_VD_CI,
+            quantity_LTP_MX_CI,
+            inRouteCount: inRouteOrders?.length || 0,
+            rtatVd: average?.toFixed(2) || 0,
+            rtatDa: average2?.toFixed(2) || 0,
+            totalAllDaLp: quantityDA || 0,
+            totalAllVdLp: matches || 0,
+            quantity_DA_noParts,
+            quantity_Oudated_IH,
+            quantity_Oudated_Repair_complete_IH,
+            quantity_agenda_today,
+            quantity_agenda_tomorrow,
+            quantity_POTENTIAL_first_visit,
+            totalDa: quantityDA || 0,
+          }}
+        />
+      )}
+      <HeaderComponent
+        presentationMode={presentationMode}
+        onTogglePresentation={() => setPresentationMode(!presentationMode)}
+      />
 
       <UploadBox>
         <CalendarBox>
@@ -461,6 +492,8 @@ const HomePage = () => {
         daNoParts={quantity_DA_noParts || 0}
         inRoute={inRouteOrders?.length || 0}
         firstVisitWait={quantity_POTENTIAL_first_visit || 0}
+        totalAllDaLp={quantityDA || 0}
+        totalAllVdLp={matches || 0}
       />
       <SubMenuSection>
         <h1>Calendário</h1>

@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import DashboardCharts from "../components/DashboardCharts";
 import StatCard from "../components/StatCard";
 import HeaderComponent from "../components/HeaderComponent";
-import * as XLSX from "xlsx";
-import styled, { keyframes } from "styled-components";
+import PresentationMode from "../components/PresentationMode";
+import ExecutiveSummary from "../components/ExecutiveSummary";
+import styled from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
-import WarningIcon from "@mui/icons-material/Warning";
+import * as XLSX from "xlsx";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Button from "@mui/material/Button";
 import filters from "../utils/filters";
@@ -55,6 +56,7 @@ const HomePage = () => {
   const { combinedData, setCombinedData } = useHomeContext();
   const { visibleComponents, setVisibleComponents } = useHomeContext();
 
+  const [presentationMode, setPresentationMode] = useState(false);
   const [combinedData_download, setCombinedData_download] = useState([]);
 
   const [events, setEvents] = useState([]);
@@ -214,7 +216,6 @@ const HomePage = () => {
             const startDate = isValidDate
               ? date
               : moment.utc(dateStr, "YYYY-MM-DD").toDate();
-            const orderId = row[2]; // Índice da coluna B
 
             // Adicionar os valores das colunas L e M da segunda planilha se disponível
 
@@ -258,10 +259,9 @@ const HomePage = () => {
             const startDate = isValidDate
               ? date
               : moment.utc(dateStr, "YYYY-MM-DD").toDate();
-            const orderId = row[2]; // Índice da coluna B
 
             // Adicionar os valores das colunas L e M da segunda planilha se disponível
-            const cityInfo = cityData[orderId] || {
+            const cityInfo = cityData[row[2]] || {
               city: "",
               additionalInfo: "",
             };
@@ -551,7 +551,56 @@ const HomePage = () => {
 
   return (
     <MainContainer>
-      <HeaderComponent />
+      {presentationMode && (
+        <PresentationMode
+          onExit={() => setPresentationMode(false)}
+          metrics={{
+            quantity_LTP_VD,
+            quantity_EX_LTP_VD,
+            quantity_LTP_RAC_REF,
+            quantity_EX_LTP_RAC_REF,
+            quantity_LTP_WSM,
+            quantity_LTP_VD_CI,
+            quantity_LTP_MX_CI,
+            inRouteCount: inRouteOrders?.length || 0,
+            rtatVd: average?.toFixed(2) || 0,
+            rtatDa: average2?.toFixed(2) || 0,
+            totalAllDaLp: quantityDa || 0,
+            totalAllVdLp: matches || 0,
+            quantity_DA_noParts,
+            quantity_Oudated_IH,
+            quantity_Oudated_Repair_complete_IH,
+            quantity_agenda_today,
+            quantity_agenda_tomorrow,
+            quantity_POTENTIAL_first_visit,
+            totalDa: quantityDa || 0,
+          }}
+        />
+      )}
+      <HeaderComponent
+        presentationMode={presentationMode}
+        onTogglePresentation={() => setPresentationMode(!presentationMode)}
+        dataLoaded={combinedData.length > 1}
+      />
+
+      {/* Executive Summary */}
+      {combinedData.length > 1 && (
+        <div className="max-w-screen-2xl mx-auto px-4 pb-4">
+          <ExecutiveSummary
+            metrics={{
+              totalLtpAll: (quantity_LTP_VD || 0) + (quantity_EX_LTP_VD || 0) + (quantity_LTP_RAC_REF || 0) + (quantity_EX_LTP_RAC_REF || 0) + (quantity_LTP_WSM || 0),
+              totalBase: (matches || 0) + (quantityDa || 0),
+              pctPenetration: ((matches || 0) + (quantityDa || 0)) > 0 ? (((quantity_LTP_VD || 0) + (quantity_EX_LTP_VD || 0) + (quantity_LTP_RAC_REF || 0) + (quantity_EX_LTP_RAC_REF || 0) + (quantity_LTP_WSM || 0)) / ((matches || 0) + (quantityDa || 0)) * 100).toFixed(1) : '0.0',
+              inRouteCount: inRouteOrders?.length || 0,
+              rtatVd: average?.toFixed(2) || 0,
+              rtatDa: average2?.toFixed(2) || 0,
+              overdueCount: quantity_Oudated_IH || 0,
+              daNoParts: quantity_DA_noParts || 0,
+              agendaToday: quantity_agenda_today || 0,
+            }}
+          />
+        </div>
+      )}
       {/* <UploadBoxMenu
         handleFileUpload_beta={handleFileUpload_beta}
         downloadExcel={downloadExcel}
@@ -1073,97 +1122,11 @@ const IndicatorsWrapper = styled.div`
   align-items: center;
 `;
 
-const BlockLTP = styled.div`
-  /* box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
-  -webkit-box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75);
-  -moz-box-shadow: 1px 6px 19px -12px rgba(0, 0, 0, 0.75); */
-  border-radius: 47px;
-  background: #e0e0e0;
-  box-shadow: -5px 5px 6px #dcdcdc, 5px -5px 6px #e4e4e4;
-  position: relative;
-  width: 230px;
-  height: 135px;
-  /* padding: 10px; */
-  /* margin: 10px; */
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  h1 {
-    font-size: 18px;
-    /* margin-bottom: 10px; */
-  }
-  h2 {
-    font-size: 50px;
-  }
-  /* justify-content: center; */
-  /* align-items: center; */
-  justify-content: flex-start;
-
-  border-radius: 10px;
-  font-weight: 900;
-  .divider {
-    margin-bottom: 10px;
-    /* background-color: #23323d; */
-    background-color: ${(props) =>
-    props.type === "CI" ? "#000264" : "#23323d"};
-    /* width: 100%; */
-    padding: 10px;
-    border-radius: 10px;
-    color: white;
-    /* height: 2px; */
-  }
-
-  /* ${(state) =>
-    state &&
-    `  background-color: #80e200;
-`} */
-
-  animation: ${(props) => (props.state ? colorChange : colorChangeout)} 500ms
-    forwards;
-
-  background-color: ${(props) =>
-    props.state === true ? "#6fb0ff" : "#000000e1"};
-`;
 
 
 
-const BlockIndexSmall = styled.div`
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  width: 140px;
-  height: 65px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 
-  .header-small {
-    background-color: ${(props) =>
-    props.type === "high" ? "#ef4444" :
-      props.type === "mid" ? "#eab308" :
-        "#23323d"};
-    color: white;
-    padding: 4px 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 700;
-    font-size: 11px;
-  }
-  
-  .icon-warning-small {
-    font-size: 14px !important;
-    color: white;
-  }
 
-  h2 {
-    font-size: 24px;
-    font-weight: 800;
-    text-align: center;
-    margin-top: 2px;
-    color: #374151;
-  }
-`;
 
 
 const SubMenuSection = styled.div`
@@ -1202,21 +1165,6 @@ const MainContainer = styled.div`
     font-weight: 900;
   }
 `;
-const colorChange = keyframes`
-  from {
-    background-color: #ececece2;
-  }
-  to {
-    background-color: #878E8D;
-  }
-`;
-const colorChangeout = keyframes`
-  from {
-    background-color: #878E8D;
-  }
-  to {
-    background-color: #ececece2;
-  }
-`;
+
 
 export default HomePage;

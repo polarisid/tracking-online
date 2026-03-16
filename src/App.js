@@ -1,35 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import "./App.css";
 import PagesRoutes from "./Router";
-import styled from "styled-components";
-
+import Sidebar from "./components/Sidebar";
 import LoadingScreen from "./components/LoadingScreen";
 import { HomeProvider } from "./Contexts/HomeContext";
+
 const App = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
-    <>
-      <HomeProvider>
-        <div className="App">
-          <LoadingScreen />
-          <PagesRoutes />
-          <Footer>
-            <p>2026 - Desenvolvido por Daniel Carvalho</p>
-            <p>Versão 2.2.0</p>
-          </Footer>
+    <HomeProvider>
+      <div className="App flex min-h-screen">
+        <LoadingScreen />
+        
+        {/* Sidebar */}
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        {/* Main Content Area */}
+        <div
+          className="flex-1 flex flex-col min-h-screen transition-all duration-300"
+          style={{ marginLeft: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+        >
+          <main className="flex-1">
+            <PagesRoutes />
+          </main>
+
+          {/* Footer */}
+          <footer className="w-full py-4 px-6 text-center bg-slate-900 border-t border-slate-800">
+            <p className="text-slate-500 text-xs font-medium">
+              2026 — Desenvolvido por Daniel Carvalho
+            </p>
+            <p className="text-slate-600 text-[10px] mt-0.5">Versão 3.0.0 — System Design Edition</p>
+          </footer>
         </div>
-      </HomeProvider>
-    </>
+      </div>
+    </HomeProvider>
   );
 };
 
-const Footer = styled.footer`
-  /* background-color: #007bff; */
-  width: 100%;
-  padding: 1rem;
-  text-align: center;
-  color: white;
-
-  background-color: #23323d;
-  /* background-image: linear-gradient(160deg, #0093e9 0%, #80d0c7 100%); */
-`;
 export default App;

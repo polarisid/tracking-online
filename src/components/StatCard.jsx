@@ -1,56 +1,65 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
 
-const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal' }) => {
-  // Dynamically resolve the lucide icon
+const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', size = 'default' }) => {
   const Icon = iconName && LucideIcons[iconName] ? LucideIcons[iconName] : null;
 
-  // Aesthetic colors depending on type / state
+  const isLg = size === 'lg';
+
   const getThemeClasses = () => {
-    if (isActive) return 'bg-slate-800 text-white border-transparent shadow-md ring-2 ring-slate-800 ring-offset-2';
-    if (type === 'high') return 'bg-red-50 hover:bg-red-100 border-red-200 text-red-900';
-    if (type === 'mid') return 'bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-900';
-    if (type === 'CI') return 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-900';
-    return 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800';
+    if (isActive) return 'bg-slate-800 text-white border-transparent shadow-lg ring-2 ring-slate-700 ring-offset-2';
+    if (type === 'high') return 'bg-gradient-to-br from-red-50 to-red-100/50 hover:from-red-100 hover:to-red-100 border-red-200/80 text-red-900';
+    if (type === 'mid') return 'bg-gradient-to-br from-orange-50 to-amber-50/50 hover:from-orange-100 hover:to-amber-100 border-orange-200/80 text-orange-900';
+    if (type === 'CI') return 'bg-gradient-to-br from-indigo-50 to-violet-50/50 hover:from-indigo-100 hover:to-violet-100 border-indigo-200/80 text-indigo-900';
+    return 'bg-gradient-to-br from-white to-slate-50/50 hover:from-slate-50 hover:to-white border-slate-200/80 text-slate-800';
   };
 
   const getHeaderColor = () => {
     if (isActive) return 'text-slate-300';
-    if (type === 'high') return 'text-red-700';
-    if (type === 'mid') return 'text-orange-700';
-    if (type === 'CI') return 'text-indigo-700';
+    if (type === 'high') return 'text-red-600';
+    if (type === 'mid') return 'text-orange-600';
+    if (type === 'CI') return 'text-indigo-600';
     return 'text-slate-500';
+  };
+
+  const getAccentColor = () => {
+    if (isActive) return 'bg-white/40';
+    if (type === 'high') return 'bg-red-400 group-hover:bg-red-500';
+    if (type === 'mid') return 'bg-orange-400 group-hover:bg-orange-500';
+    if (type === 'CI') return 'bg-indigo-400 group-hover:bg-indigo-500';
+    return 'bg-slate-300 group-hover:bg-blue-400';
   };
 
   return (
     <div
       onClick={onClick}
       className={`
-        relative flex flex-col justify-between p-4 rounded-xl border
+        relative flex flex-col justify-between rounded-xl border
         transition-all duration-300 ease-in-out cursor-pointer group
         ${getThemeClasses()}
-        hover:-translate-y-1 hover:shadow-md
-        min-w-[140px] h-[110px] flex-1
+        hover:-translate-y-1 hover:shadow-lg
+        ${isLg ? 'p-6 min-w-[180px] h-[140px]' : 'p-4 min-w-[140px] h-[110px]'}
+        flex-1
       `}
     >
+      {/* Header Row */}
       <div className="flex justify-between items-start w-full gap-2">
-        <span className={`text-[11px] md:text-xs font-bold leading-snug tracking-wider uppercase ${getHeaderColor()}`}>
+        <span className={`${isLg ? 'text-xs md:text-sm' : 'text-[11px] md:text-xs'} font-bold leading-snug tracking-wider uppercase ${getHeaderColor()}`}>
           {title}
         </span>
         {Icon && (
-          <div className={`p-1.5 rounded-lg shrink-0 ${isActive ? 'bg-white/20' : 'bg-black/5'} transition-colors`}>
-            <Icon size={16} strokeWidth={2.5} className={isActive ? 'text-white' : getHeaderColor()} />
+          <div className={`${isLg ? 'p-2' : 'p-1.5'} rounded-lg shrink-0 ${isActive ? 'bg-white/20' : 'bg-black/5'} transition-colors`}>
+            <Icon size={isLg ? 20 : 16} strokeWidth={2.5} className={isActive ? 'text-white' : getHeaderColor()} />
           </div>
         )}
       </div>
 
+      {/* Value + Accent */}
       <div className="flex flex-col items-start justify-end w-full mt-auto gap-1.5">
-        <h2 className={`text-2xl md:text-3xl font-bold tracking-tight leading-none ${isActive ? 'text-white' : 'text-slate-900'}`}>
+        <h2 className={`${isLg ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'} font-bold tracking-tight leading-none ${isActive ? 'text-white' : 'text-slate-900'}`}>
           {value}
         </h2>
-        
-        {/* Decorative subtle accent line replacing the old .divider */}
-        <div className={`h-1 w-8 rounded-full ${isActive ? 'bg-white/40' : 'bg-slate-300 group-hover:bg-blue-400'} transition-colors opacity-80`} />
+        <div className={`h-1 ${isLg ? 'w-12' : 'w-8'} rounded-full ${getAccentColor()} transition-colors duration-300 opacity-80`} />
       </div>
     </div>
   );
