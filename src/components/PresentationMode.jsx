@@ -73,7 +73,7 @@ const PresentationMode = ({ metrics, onExit }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <SummaryBand label="Total LTP" value={totalLtp} sub={`de ${totalBase} ordens LP`} color="blue" />
           <SummaryBand label="Total EX-LTP" value={totalExLtp} sub={`de ${totalBase} ordens LP`} color="emerald" />
-          <SummaryBand label="% Penetração Geral" value={`${pctPenetration}%`} sub={`${totalLtpAll} / ${totalBase}`} color="violet" />
+          <SummaryBand label="% Impacto Geral" value={`${pctPenetration}%`} sub={`${totalLtpAll} / ${totalBase}`} color="violet" />
         </div>
 
         {/* RTAT Productivity */}

@@ -48,7 +48,7 @@ const CustomEvent = ({ event }) => {
   );
 };
 
-const HomePage = () => {
+const HomePage = ({ activeTab, onTabChange }) => {
   const { setFile1 } = useHomeContext();
   const { setFile2 } = useHomeContext();
   const { data1, setData1 } = useHomeContext();
@@ -342,6 +342,7 @@ const HomePage = () => {
   };
 
   const columnsToShow = [0, 1, 2, 9, 14, 15, 24, 61, 37];
+  const columnsToShow_FTF = [0, 1, 2, 9, 14, 15, 24, 34, 61, 37];
 
   const columnsToShow_RC = [0, 3, 1, 2, 9, 14, 15, 16, 61, 130, 131, 132];
 
@@ -437,8 +438,22 @@ const HomePage = () => {
     combinedData.slice(1).filter(filters.all_DA_OW)
   );
 
+  const planilha_FTF = sortData(
+    combinedData.slice(1).filter(filters.filter_FTF)
+  );
+
+  const planilha_FTF_Backlog_IH = combinedData.slice(1).filter(filters.filter_FTF_Backlog_IH);
+  const ftfBacklogReasonCounts = planilha_FTF_Backlog_IH.reduce((acc, row) => {
+    const reason = row[14] || "N/A";
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {});
+  const ftfBacklogReasonEntries = Object.entries(ftfBacklogReasonCounts).sort((a, b) => b[1] - a[1]);
+  const ftfBacklogMax = ftfBacklogReasonEntries.length > 0 ? ftfBacklogReasonEntries[0][1] : 1;
+
 
   const quantity_ALL_DA_OW = planilha_ALL_DA_OW.length;
+  const quantity_FTF = planilha_FTF.length;
   const quantity_DA_noParts = filteredAndSortedData4.length;
   const quantity_LTP_VD = planilha_LTP_IH_VD_LP.length;
   const quantity_EX_LTP_VD = planilha_EX_LTP_IH_VD_LP.length;
@@ -465,6 +480,15 @@ const HomePage = () => {
   const matches2 = filteredAndSortedData8.length;
   const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
   const average2 = matches2 > 0 ? sum2 / matches2 : 0;
+
+  // Base totals for percentage calculations (IH + LP only)
+  const baseVD = combinedData.slice(1).filter(filters.all_lp_AV).length;
+  const baseDA = matches2; // all_lp_DA already computed
+  const pctLtpVd = baseVD > 0 ? ((quantity_LTP_VD / baseVD) * 100).toFixed(1) : null;
+  const pctExLtpVd = baseVD > 0 ? ((quantity_EX_LTP_VD / baseVD) * 100).toFixed(1) : null;
+  const pctLtpRacRef = baseDA > 0 ? ((quantity_LTP_RAC_REF / baseDA) * 100).toFixed(1) : null;
+  const pctExLtpRacRef = baseDA > 0 ? ((quantity_EX_LTP_RAC_REF / baseDA) * 100).toFixed(1) : null;
+  const pctLtpWsm = baseDA > 0 ? ((quantity_LTP_WSM / baseDA) * 100).toFixed(1) : null;
 
   const quantity_complete_CI_LP = planilha_CI_Complete_LP.length;
   const quantity_complete_CI_OW_X09 = planilha_CI_Complete_OW_X09.length;
@@ -601,78 +625,26 @@ const HomePage = () => {
           />
         </div>
       )}
-      {/* <UploadBoxMenu
-        handleFileUpload_beta={handleFileUpload_beta}
-        downloadExcel={downloadExcel}
-      /> */}
-      {/* <UploadBoxMenu
-        handleFileUpload_beta={handleFileUpload_beta}
-        downloadExcel={downloadExcel}
-        setFile1={setFile1}
-        setData1={setData1}
-        setFile2={setFile2}
-        setData2={setData2}
-        loading={loading}
-        message={message}
-      /> */}
-      <UploadBox>
-        <Button
-          id="basic-button"
-          aria-controls={open ? "basic-menu" : undefined}
-          aria-haspopup="true"
-          aria-expanded={open ? "true" : undefined}
-          onClick={handleClick}
-        >
-          upload e Download
-        </Button>
-        <Menu
-          id="basic-menu"
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          MenuListProps={{
-            "aria-labelledby": "basic-button",
-          }}
-        >
-          <MenuItem>
-            <UploadButton
-              onChange={(e) => handleFileUpload_beta(e, setFile1, setData1)}
-              text={"Carregar A. Pending"}
-            />
-          </MenuItem>
-          <MenuItem>
-            <UploadButton
-              onChange={(e) => handleFileUpload_beta(e, setFile2, setData2)}
-              text={"Carregar Cidades "}
-            />
-          </MenuItem>
-          <MenuItem onClick={(e) => downloadExcel(combinedData_download)}>
-            <Button startIcon={<DownloadIcon />}>Download</Button>
-          </MenuItem>
-        </Menu>
-        {loading && <p>Carregando...</p>} {message && <p>{message}</p>}
-
-        <IndicatorsWrapper>
-          <StatCard type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
-
-          <StatCard type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
-        </IndicatorsWrapper>
-      </UploadBox>
+      {/* <UploadBoxMenu ... /> */}
+      <IndicatorsWrapper>
+        <StatCard type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
+        <StatCard type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
+        {loading && <p className="text-xs text-slate-400">Carregando...</p>}
+        {message && <p className="text-xs text-slate-400">{message}</p>}
+      </IndicatorsWrapper>
 
 
-
-
-
-      <BasicTabs>
+      <BasicTabs activeTab={activeTab} onTabChange={onTabChange}>
         <Dashboard>
-          <StatCard title="LTP VD IH" value={quantity_LTP_VD} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" />
-          <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" />
+          <StatCard title="LTP VD IH" value={quantity_LTP_VD} percentage={pctLtpVd} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" />
+          <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} percentage={pctExLtpVd} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" />
           <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" />
-          <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" />
-          <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" />
-          <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" />
+          <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} percentage={pctLtpRacRef} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" />
+          <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} percentage={pctExLtpRacRef} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" />
+          <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} percentage={pctLtpWsm} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" />
           <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" />
           <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" />
+          <StatCard title="FTF (ST025)" value={quantity_FTF} onClick={() => toggleVisibility(60)} isActive={visibleComponents[60]} iconName="CheckCircle" />
 
         </Dashboard>
         <Dashboard>
@@ -712,10 +684,15 @@ const HomePage = () => {
         dataAgendaTomorrow={quantity_agenda_tomorrow || 0}
         rtatVd={average?.toFixed(2) || 0}
         rtatDa={average2?.toFixed(2) || 0}
-        totalDa={0 /* HomePage doesnt track Total DA */}
+        totalDa={quantityDa || 0}
         daNoParts={quantity_DA_noParts || 0}
         inRoute={inRouteOrders?.length || 0}
         firstVisitWait={quantity_POTENTIAL_first_visit || 0}
+        totalAllDaLp={quantityDa || 0}
+        totalAllVdLp={matches || 0}
+        backlogReasonData={ftfBacklogReasonEntries}
+        backlogRawData={planilha_FTF_Backlog_IH}
+        backlogHeaders={combinedData[0] || []}
       />
       <CalendarContainer>
           <Calendar
@@ -1084,6 +1061,22 @@ const HomePage = () => {
                 </thead>
                 <tbody>
                   {filteredAndSortedData17.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
+            <ToggleableComponent isVisible={visibleComponents[60]}>
+              <h2>FTF — Status Code ST025</h2>
+
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow_FTF.map((colIndex) => (
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {planilha_FTF.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_FTF))}
                 </tbody>
               </table>
             </ToggleableComponent>

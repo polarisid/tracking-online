@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
-  Table2, ChevronLeft, ChevronRight, Presentation
+  Table2, ChevronLeft, ChevronRight, Presentation,
+  Upload, Download, FileSpreadsheet
 } from 'lucide-react';
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', tab: 0 },
   { id: 'analysis', label: 'Análise', icon: Search, path: '/', tab: 1 },
   { id: 'charts', label: 'Gráficos', icon: BarChart3, path: '/', tab: 2 },
   { id: 'calendar', label: 'Calendário', icon: CalendarDays, path: '/', tab: 3 },
   { id: 'tables', label: 'Tabelas', icon: Table2, path: '/beta' },
 ];
 
-const Sidebar = ({ collapsed, onToggle, onTabChange, onPresentationMode }) => {
+const Sidebar = ({ collapsed, onToggle, onTabChange, onPresentationMode, onUploadPending, onUploadCities, onDownload }) => {
   const [activeId, setActiveId] = React.useState('dashboard');
+  const pendingInputRef = useRef(null);
+  const citiesInputRef = useRef(null);
 
   return (
     <aside
@@ -75,8 +78,73 @@ const Sidebar = ({ collapsed, onToggle, onTabChange, onPresentationMode }) => {
         })}
       </nav>
 
+      {/* Upload / Download Section */}
+      <div className="px-2 pb-2 space-y-1 border-t border-slate-800/50 pt-3">
+        {!collapsed && (
+          <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Dados</p>
+        )}
+
+        {/* Hidden file inputs */}
+        <input
+          ref={pendingInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(e) => { onUploadPending && onUploadPending(e); e.target.value = ''; }}
+        />
+        <input
+          ref={citiesInputRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          className="hidden"
+          onChange={(e) => { onUploadCities && onUploadCities(e); e.target.value = ''; }}
+        />
+
+        <button
+          onClick={() => pendingInputRef.current?.click()}
+          className={`
+            w-full flex items-center gap-3 rounded-lg 
+            transition-all duration-200 group
+            text-slate-400 hover:text-amber-400 hover:bg-amber-500/10
+            ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+          `}
+          title="Carregar A. Pending"
+        >
+          <Upload size={16} className="shrink-0" />
+          {!collapsed && <span className="text-xs font-medium">A. Pending</span>}
+        </button>
+
+        <button
+          onClick={() => citiesInputRef.current?.click()}
+          className={`
+            w-full flex items-center gap-3 rounded-lg 
+            transition-all duration-200 group
+            text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10
+            ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+          `}
+          title="Carregar Cidades"
+        >
+          <FileSpreadsheet size={16} className="shrink-0" />
+          {!collapsed && <span className="text-xs font-medium">Cidades</span>}
+        </button>
+
+        <button
+          onClick={() => onDownload && onDownload()}
+          className={`
+            w-full flex items-center gap-3 rounded-lg 
+            transition-all duration-200 group
+            text-slate-400 hover:text-green-400 hover:bg-green-500/10
+            ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+          `}
+          title="Download Planilha"
+        >
+          <Download size={16} className="shrink-0" />
+          {!collapsed && <span className="text-xs font-medium">Download</span>}
+        </button>
+      </div>
+
       {/* Bottom Actions */}
-      <div className="px-2 pb-4 space-y-1 border-t border-slate-800/50 pt-4">
+      <div className="px-2 pb-4 space-y-1 border-t border-slate-800/50 pt-3">
         {onPresentationMode && (
           <button
             onClick={onPresentationMode}

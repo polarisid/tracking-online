@@ -64,7 +64,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100">
-        <MiniKpi icon={TrendingUp} label="% Penetração" value={`${pctPenetration}%`} sub={`${totalLtpAll}/${totalBase}`} color="blue" />
+        <MiniKpi icon={TrendingUp} label="% Impacto" value={`${pctPenetration}%`} sub={`${totalLtpAll}/${totalBase}`} color="blue" />
         <MiniKpi icon={Truck} label="Em Rota" value={inRouteCount} sub="ordens ativas" color="cyan" />
         <MiniKpi icon={Clock} label="RTAT VD" value={`${rtatVd} dias`} sub={parseFloat(rtatVd) > 4 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatVd) > 4 ? 'red' : 'emerald'} />
         <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />

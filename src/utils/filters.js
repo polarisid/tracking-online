@@ -189,6 +189,19 @@ const filters = {
     const isCol58Valid = [...HKE_CODE, ...RAC_CODES, ...REF_CODES, ...SWM_CODES].includes(row[58]);
     return isCol37Valid && isCol58Valid && isInHome;
   },
+
+  filter_FTF: (row) => {
+    const isFTF = row[11] === "ST025";
+    const validServiceTypes = ["II", "IH", "RH", "SH"];
+    const isValidServiceType = validServiceTypes.includes(row[34]);
+    return isFTF && isValidServiceType;
+  },
+
+  filter_FTF_Backlog_IH: (row) => {
+    const isIH = row[34] === "IH";
+    const isBacklog = row[15] > 7;
+    return isIH && isBacklog;
+  },
 };
 
 export default filters;

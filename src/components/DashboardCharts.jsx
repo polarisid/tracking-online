@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as PieTooltip, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip
@@ -53,8 +53,14 @@ const DashboardCharts = ({
 
   // Percentage chart totals
   totalAllDaLp = 0,
-  totalAllVdLp = 0
+  totalAllVdLp = 0,
+
+  // Backlog Reason data (IH, LTP > 7) — array of [reason, count]
+  backlogReasonData = [],
+  backlogRawData = [],
+  backlogHeaders = []
 }) => {
+  const [selectedReason, setSelectedReason] = useState(null);
 
   const pieData = [
     { name: 'LTP VD', value: dataLtpVd },
@@ -77,13 +83,23 @@ const DashboardCharts = ({
     { name: 'RTAT DA', media: parseFloat(rtatDa) || 0, fill: '#ef4444' }
   ];
 
-  // Total Backlog Overview
-  const backlogData = [
-    { name: 'Total DA', value: totalDa },
-    { name: 'DA Sem Peça', value: daNoParts },
-    { name: 'Em Rota', value: inRoute },
-    { name: 'First Visit', value: firstVisitWait }
-  ].filter(item => item.value > 0);
+  // Backlog by Reason (IH, LTP > 7)
+  const backlogByReasonData = backlogReasonData.map(([reason, count]) => ({
+    name: reason,
+    total: count,
+  }));
+
+  // Columns to show in the backlog detail table
+  const backlogDetailCols = [0, 1, 2, 9, 14, 15, 34, 11];
+  const filteredBacklogOrders = selectedReason
+    ? backlogRawData.filter(row => (row[14] || 'N/A') === selectedReason)
+    : [];
+
+  const handleBarClick = (data) => {
+    if (data && data.name) {
+      setSelectedReason(prev => prev === data.name ? null : data.name);
+    }
+  };
 
   // Combined LTP + EX-LTP total for VD
   const totalLtpVd = dataLtpVd + dataExLtpVd;
@@ -175,32 +191,79 @@ const DashboardCharts = ({
           </div>
         </div>
 
-        {/* Backlog Pie Chart */}
+        {/* Backlog by Reason Chart (IH, LTP > 7) */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
-          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">Composição do Backlog Principal</h3>
-          <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={backlogData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={0}
-                  outerRadius={100}
-                  dataKey="value"
-                  labelLine={true}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+          <h3 className="text-sm font-bold text-slate-500 mb-2 text-center uppercase tracking-wider">Backlog por Reason (IH, LTP &gt; 7 dias)</h3>
+          <p className="text-xs text-slate-400 text-center mb-4">Total: {backlogByReasonData.reduce((sum, d) => sum + d.total, 0)} ordens</p>
+          <div className="w-full" style={{ height: Math.max(300, backlogByReasonData.length * 44) }}>
+            {backlogByReasonData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={backlogByReasonData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 40, left: 20, bottom: 5 }}
                 >
-                  {backlogData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS_BACKLOG[index % COLORS_BACKLOG.length]} />
-                  ))}
-                </Pie>
-                <PieTooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                  <XAxis type="number" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" tick={{fill: '#475569', fontSize: 10, fontWeight: 600}} axisLine={false} tickLine={false} width={160} interval={0} />
+                  <BarTooltip
+                    cursor={{fill: '#f1f5f9'}}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    formatter={(value) => [`${value} ordens`, 'Quantidade']}
+                  />
+                  <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20} cursor="pointer" onClick={handleBarClick}>
+                    {backlogByReasonData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS_BACKLOG[index % COLORS_BACKLOG.length]}
+                        stroke={selectedReason === entry.name ? '#1e293b' : 'none'}
+                        strokeWidth={selectedReason === entry.name ? 2 : 0}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-400 text-sm">Nenhuma ordem em backlog</div>
+            )}
           </div>
+          {selectedReason && filteredBacklogOrders.length > 0 && (
+            <div style={{ marginTop: '16px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-slate-700">
+                  Ordens — {selectedReason} ({filteredBacklogOrders.length})
+                </h4>
+                <button
+                  onClick={() => setSelectedReason(null)}
+                  className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors"
+                >
+                  ✕ Fechar
+                </button>
+              </div>
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                <table className="toggleDiv" style={{ width: '100%', fontSize: '12px' }}>
+                  <thead>
+                    <tr>
+                      {backlogDetailCols.map(col => (
+                        <th key={col} style={{ padding: '6px 8px', background: '#f1f5f9', fontWeight: 700, fontSize: '11px', color: '#475569', textAlign: 'left', position: 'sticky', top: 0 }}>
+                          {backlogHeaders[col] || `Col ${col}`}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredBacklogOrders.map((row, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        {backlogDetailCols.map(col => (
+                          <td key={col} style={{ padding: '5px 8px', color: '#334155' }}>{row[col]}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -208,7 +271,7 @@ const DashboardCharts = ({
       <div className="flex flex-col lg:flex-row gap-6 w-full">
         {/* VD Category Percentages */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
-          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Penetração LTP — Categoria VD</h3>
+          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Impacto LTP — Categoria VD</h3>
           <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllVdLp} ordens VD LP no sistema</p>
           <div className="flex flex-col gap-5 py-2">
             <PercentGauge label="LTP VD" value={dataLtpVd} total={totalAllVdLp} color="#3b82f6" />
@@ -219,7 +282,7 @@ const DashboardCharts = ({
 
         {/* DA Category Percentages */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
-          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Penetração LTP — Categoria DA</h3>
+          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Impacto LTP — Categoria DA</h3>
           <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllDaLp} ordens DA LP no sistema</p>
           <div className="flex flex-col gap-5 py-2">
             <PercentGauge label="LTP RAC/REF" value={dataLtpRacRef} total={totalAllDaLp} color="#f59e0b" />

@@ -1,7 +1,7 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
 
-const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', size = 'default' }) => {
+const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', size = 'default', percentage }) => {
   const Icon = iconName && LucideIcons[iconName] ? LucideIcons[iconName] : null;
 
   const isLg = size === 'lg';
@@ -54,11 +54,18 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
         )}
       </div>
 
-      {/* Value + Accent */}
+      {/* Value + Percentage + Accent */}
       <div className="flex flex-col items-start justify-end w-full mt-auto gap-1.5">
-        <h2 className={`${isLg ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'} font-bold tracking-tight leading-none ${isActive ? 'text-white' : 'text-slate-900'}`}>
-          {value}
-        </h2>
+        <div className="flex items-end gap-2">
+          <h2 className={`${isLg ? 'text-4xl md:text-5xl' : 'text-2xl md:text-3xl'} font-bold tracking-tight leading-none ${isActive ? 'text-white' : 'text-slate-900'}`}>
+            {value}
+          </h2>
+          {percentage != null && (
+            <span className={`text-[11px] font-semibold leading-none mb-0.5 ${isActive ? 'text-blue-300' : 'text-blue-500'}`}>
+              {percentage}%
+            </span>
+          )}
+        </div>
         <div className={`h-1 ${isLg ? 'w-12' : 'w-8'} rounded-full ${getAccentColor()} transition-colors duration-300 opacity-80`} />
       </div>
     </div>
