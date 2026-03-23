@@ -55,9 +55,9 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const { data2, setData2 } = useHomeContext();
   const { combinedData, setCombinedData } = useHomeContext();
   const { visibleComponents, setVisibleComponents } = useHomeContext();
+  const { combinedData_download, setCombinedData_download } = useHomeContext();
 
   const [presentationMode, setPresentationMode] = useState(false);
-  const [combinedData_download, setCombinedData_download] = useState([]);
 
   const [events, setEvents] = useState([]);
   const [cityData] = useState({});
@@ -132,7 +132,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
         123, 124, 126, 133, 135, 142, 144, 150, 151, 152
       ];
       const columnsTo_Download = [
-        1, 2, 9, 12, 14, 15, 16, 22, 24, 25, 27, 30, 34, 37, 43, 44, 45, 46, 50, 53, 54, 55, 58, 59, 61, 63, 70, 72, 79, 81, 88, 90, 97, 99, 106, 108, 115, 117, 124, 126, 133, 135, 142, 144, 150, 151, 152
+        1,2,9,12,14,15,16,24,25,34,37,44,45,46,55,59,61,63,66,70,72,75,79,81,84,88,90,93,97,99,102,106,108,111,115,117,120,124,126,133,135,142,144,150,151,152
       ];
 
 

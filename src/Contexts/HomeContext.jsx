@@ -8,6 +8,7 @@ export function HomeProvider({ children }) {
   const [data1, setData1] = useState([]);
   const [data2, setData2] = useState([]);
   const [combinedData, setCombinedData] = useState([]);
+  const [combinedData_download, setCombinedData_download] = useState([]);
   const [visibleComponents, setVisibleComponents] = useState({
     1: false,
     2: false,
@@ -48,6 +49,8 @@ export function HomeProvider({ children }) {
         file2,
         combinedData,
         setCombinedData,
+        combinedData_download,
+        setCombinedData_download,
         visibleComponents,
         setVisibleComponents,
       }}

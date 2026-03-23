@@ -15,7 +15,7 @@ const AppContent = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const { setFile1, setData1, setFile2, setData2, data2, combinedData } = useHomeContext();
+  const { setFile1, setData1, setFile2, setData2, data2, combinedData, combinedData_download } = useHomeContext();
 
   const handleUpload = (e, setFileFunction, setDataFunction) => {
     handleFileUpload(e, setFileFunction, setDataFunction, setLoading, setMessage);
@@ -26,8 +26,9 @@ const AppContent = () => {
       alert("Não possui planilha Service Light na base!");
       return;
     }
-    if (combinedData.length === 0) return;
-    const worksheet = XLSX.utils.aoa_to_sheet(combinedData);
+    const dataToExport = combinedData_download && combinedData_download.length > 0 ? combinedData_download : combinedData;
+    if (dataToExport.length === 0) return;
+    const worksheet = XLSX.utils.aoa_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
