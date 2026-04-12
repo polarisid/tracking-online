@@ -68,6 +68,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const [activeOrderIdsSet, setActiveOrderIdsSet] = useState(new Set());
   const [activeRoutes, setActiveRoutes] = useState([]);
   const [inRouteOrders, setInRouteOrders] = useState([]);
+  const [inRouteByStatus, setInRouteByStatus] = useState({ finalizadas: [], pendentes: [], a_fazer: [] });
 
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
@@ -295,10 +296,43 @@ const HomePage = ({ activeTab, onTabChange }) => {
       const inRoute = data1.slice(1).filter((row) => {
         const orderId1 = String(row[1] || "").trim();
         const orderId2 = String(row[2] || "").trim();
-        return activeOrderIds.has(orderId1) || activeOrderIds.has(orderId2);
+        const isNotComplete = row[11] !== "ST035";
+        return (activeOrderIds.has(orderId1) || activeOrderIds.has(orderId2)) && isNotComplete;
       });
       setInRouteOrders(inRoute);
       setActiveOrderIdsSet(activeOrderIds);
+
+      // Montar mapa de IDs por status a partir da API
+      const finalIds = new Set();
+      const pendIds = new Set();
+      const aFazerIds = new Set();
+
+      activeRoutes.forEach(route => {
+        route.finalizadas?.forEach(o => {
+          if (o.serviceOrderNumber) finalIds.add(String(o.serviceOrderNumber).trim());
+        });
+        route.pendentes?.forEach(o => {
+          if (o.serviceOrderNumber) pendIds.add(String(o.serviceOrderNumber).trim());
+        });
+        route.a_fazer?.forEach(o => {
+          if (o.serviceOrderNumber) aFazerIds.add(String(o.serviceOrderNumber).trim());
+        });
+      });
+
+      const classify = (row) => {
+        const id = String(row[1] || row[2] || '').trim();
+        if (finalIds.has(id)) return 'finalizadas';
+        if (pendIds.has(id))  return 'pendentes';
+        if (aFazerIds.has(id)) return 'a_fazer';
+        return 'a_fazer'; // fallback: ordem em rota sem classificação = ainda a fazer
+      };
+
+      const statusGroups = { finalizadas: [], pendentes: [], a_fazer: [] };
+      inRoute.forEach(row => {
+        const group = classify(row);
+        statusGroups[group].push(row);
+      });
+      setInRouteByStatus(statusGroups);
 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -442,6 +476,16 @@ const HomePage = ({ activeTab, onTabChange }) => {
     combinedData.slice(1).filter(filters.filter_FTF)
   );
 
+  const planilha_LP_up_to_3_days = sortData(
+    combinedData.slice(1).filter(filters.filter_LP_up_to_3_days)
+  );
+  const quantity_LP_up_to_3_days = planilha_LP_up_to_3_days.length;
+
+  const planilha_all_outdated_orders = sortData(
+    combinedData.slice(1).filter(filters.filter_all_outdated_orders)
+  );
+  const quantity_all_outdated_orders = planilha_all_outdated_orders.length;
+
   const planilha_FTF_Backlog_IH = combinedData.slice(1).filter(filters.filter_FTF_Backlog_IH);
   const ftfBacklogReasonCounts = planilha_FTF_Backlog_IH.reduce((acc, row) => {
     const reason = row[14] || "N/A";
@@ -562,16 +606,35 @@ const HomePage = ({ activeTab, onTabChange }) => {
     const os1 = String(row[0] || "").trim();
     const os2 = String(row[1] || "").trim();
     const os3 = String(row[2] || "").trim();
-    const isEmRota = activeOrderIdsSet?.has(os1) || activeOrderIdsSet?.has(os2) || activeOrderIdsSet?.has(os3);
-    
+
+    const inSet = (set) => set.some(r => {
+      const id = String(r[1] || r[2] || '').trim();
+      return id === os1 || id === os2 || id === os3;
+    });
+
+    let rowStyle = {};
+    let borderClass = '';
+
+    if (inSet(inRouteByStatus.finalizadas)) {
+      rowStyle = { background: '#bbf7d0' };
+      borderClass = 'border-l-4 border-green-600';
+    } else if (inSet(inRouteByStatus.pendentes)) {
+      rowStyle = { background: '#fecaca' };
+      borderClass = 'border-l-4 border-red-600';
+    } else if (inSet(inRouteByStatus.a_fazer)) {
+      rowStyle = { background: '#bfdbfe' };
+      borderClass = 'border-l-4 border-blue-600';
+    }
+
     return (
-      <tr key={rowIndex} className={isEmRota ? 'bg-green-100 hover:bg-green-200 transition-colors border-l-4 border-green-500' : ''}>
+      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
         {columns.map((colIndex) => (
           <td key={colIndex}>{renderBadge(row[colIndex])}</td>
         ))}
       </tr>
     );
   };
+
 
   return (
     <MainContainer>
@@ -627,10 +690,14 @@ const HomePage = ({ activeTab, onTabChange }) => {
       )}
       {/* <UploadBoxMenu ... /> */}
       <IndicatorsWrapper>
-        <StatCard type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
-        <StatCard type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
-        {loading && <p className="text-xs text-slate-400">Carregando...</p>}
-        {message && <p className="text-xs text-slate-400">{message}</p>}
+        <div style={{ width: '130px' }}>
+          <StatCard size="sm" type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
+        </div>
+        <div style={{ width: '130px' }}>
+          <StatCard size="sm" type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
+        </div>
+        {loading && <p className="text-xs text-slate-400 mt-2">Carregando...</p>}
+        {message && <p className="text-xs text-slate-400 mt-2">{message}</p>}
       </IndicatorsWrapper>
 
 
@@ -649,6 +716,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
         </Dashboard>
         <Dashboard>
           <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} />
+          <StatCard title="D+3" value={quantity_LP_up_to_3_days} onClick={() => toggleVisibility(80)} isActive={visibleComponents[80]} type="CI" />
+          <StatCard title="Ordens Desatualizadas" value={quantity_all_outdated_orders} onClick={() => toggleVisibility(81)} isActive={visibleComponents[81]} type="high" iconName="AlertTriangle" />
 
           <StatCard title="TODOS DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} />
 
@@ -732,18 +801,94 @@ const HomePage = ({ activeTab, onTabChange }) => {
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[40]}>
               <h2>ORDENS EM ROTA</h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{data1[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {inRouteOrders.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+
+              {/* A FAZER — azul */}
+              {inRouteByStatus.a_fazer.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 6px' }}>
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
+                    <strong style={{ color: '#1d4ed8', fontSize: 13 }}>A FAZER ({inRouteByStatus.a_fazer.length})</strong>
+                  </div>
+                  <table className="toggleDiv">
+                    <thead>
+                      <tr>
+                        {columnsToShow.map((colIndex) => (
+                          <th key={colIndex}>{data1[0][colIndex]}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inRouteByStatus.a_fazer.map((row, rowIndex) => (
+                        <tr key={rowIndex} style={{ background: '#eff6ff' }}>
+                          {columnsToShow.map((colIndex) => (
+                            <td key={colIndex}>{row[colIndex]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              {/* PENDENTES — vermelho */}
+              {inRouteByStatus.pendentes.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                    <strong style={{ color: '#b91c1c', fontSize: 13 }}>PENDENTES ({inRouteByStatus.pendentes.length})</strong>
+                  </div>
+                  <table className="toggleDiv">
+                    <thead>
+                      <tr>
+                        {columnsToShow.map((colIndex) => (
+                          <th key={colIndex}>{data1[0][colIndex]}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inRouteByStatus.pendentes.map((row, rowIndex) => (
+                        <tr key={rowIndex} style={{ background: '#fef2f2' }}>
+                          {columnsToShow.map((colIndex) => (
+                            <td key={colIndex}>{row[colIndex]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              {/* FINALIZADAS — verde */}
+              {inRouteByStatus.finalizadas.length > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
+                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                    <strong style={{ color: '#15803d', fontSize: 13 }}>FINALIZADAS ({inRouteByStatus.finalizadas.length})</strong>
+                  </div>
+                  <table className="toggleDiv">
+                    <thead>
+                      <tr>
+                        {columnsToShow.map((colIndex) => (
+                          <th key={colIndex}>{data1[0][colIndex]}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {inRouteByStatus.finalizadas.map((row, rowIndex) => (
+                        <tr key={rowIndex} style={{ background: '#f0fdf4' }}>
+                          {columnsToShow.map((colIndex) => (
+                            <td key={colIndex}>{row[colIndex]}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              {inRouteOrders.length === 0 && (
+                <p style={{ color: '#94a3b8', fontSize: 13, padding: '12px 0' }}>Nenhuma ordem em rota no momento.</p>
+              )}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[31]}>
               <h2>Todos DA LP </h2>
@@ -1080,6 +1225,38 @@ const HomePage = ({ activeTab, onTabChange }) => {
                 </tbody>
               </table>
             </ToggleableComponent>
+
+            <ToggleableComponent isVisible={visibleComponents[80]}>
+              <h2>D+3 — Todos os casos LP com até 3 dias</h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow.map((colIndex) => (
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {planilha_LP_up_to_3_days.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+            <ToggleableComponent isVisible={visibleComponents[81]}>
+              <h2>Ordens Desatualizadas — Todas as ordens com data passada</h2>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow.map((colIndex) => (
+                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {planilha_all_outdated_orders.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
           </>
         )
       }
@@ -1108,10 +1285,11 @@ const UploadBox = styled.div`
 `;
 
 const IndicatorsWrapper = styled.div`
-  display: flex !important;
-  flex-direction: row !important;
-  gap: 15px;
-  margin-left: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin: 1rem 2rem 0 auto;
+  width: fit-content;
   align-items: center;
 `;
 
@@ -1123,32 +1301,31 @@ const IndicatorsWrapper = styled.div`
 
 
 const SubMenuSection = styled.div`
-  margin-top: 10px;
+  margin: 2rem 1rem 1rem;
   display: flex;
   flex-direction: column;
-  align-items: start;
+  align-items: flex-start;
+  
+  h1 {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+  }
+  
   .divider {
-    height: 2px;
+    height: 1px;
     width: 100%;
-    background-color: #5a5a5a;
+    background: linear-gradient(to right, #cbd5e1, transparent);
     margin: 5px 0px;
   }
-  margin: 0px 10px;
-  font-weight: 500;
-  font-size: 20px;
 `;
 const Dashboard = styled.div`
-  /* width: 100vh; */
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-start;
-  /* justify-content: space-around; */
-  margin: 10px;
-  padding: 10px;
-  gap: 20px;
-  /* border: 2px; */
-  /* border-style: solid; */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 1rem;
+  padding: 0.5rem;
 `;
 const MainContainer = styled.div`
   display: flex;

@@ -17,8 +17,8 @@ const AppContent = () => {
 
   const { setFile1, setData1, setFile2, setData2, data2, combinedData, combinedData_download } = useHomeContext();
 
-  const handleUpload = (e, setFileFunction, setDataFunction) => {
-    handleFileUpload(e, setFileFunction, setDataFunction, setLoading, setMessage);
+  const handleUpload = (e, setFileFunction, setDataFunction, isAppend = false) => {
+    handleFileUpload(e, setFileFunction, setDataFunction, setLoading, setMessage, isAppend);
   };
 
   const downloadExcel = () => {
@@ -46,7 +46,7 @@ const AppContent = () => {
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         onTabChange={setActiveTab}
         onUploadPending={(e) => handleUpload(e, setFile1, setData1)}
-        onUploadCities={(e) => handleUpload(e, setFile2, setData2)}
+        onUploadCities={(e) => handleUpload(e, setFile2, setData2, true)}
         onDownload={downloadExcel}
       />
 

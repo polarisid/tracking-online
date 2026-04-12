@@ -5,7 +5,8 @@ function handleFileUpload(
   setFileFunction,
   setDataFunction,
   setLoading,
-  setMessage
+  setMessage,
+  isAppend = false
 ) {
   const uploadedFile = e.target.files[0];
   setFileFunction(uploadedFile);
@@ -44,8 +45,6 @@ function handleFileUpload(
             const month = String(date.getUTCMonth() + 1).padStart(2, "0");
             const year = date.getUTCFullYear();
 
-            // console.log(`${month}/${day}/${year}`);
-            // return `${day}/${month}/${year}`;
             return `${month}/${day}/${year}`;
           }
         }
@@ -53,8 +52,14 @@ function handleFileUpload(
       })
     );
 
-    // setDataFunction(sheetData);
-    setDataFunction(formattedData);
+    if (isAppend) {
+      setDataFunction(prevData => {
+        if (!prevData || prevData.length === 0) return formattedData;
+        return [...prevData, ...formattedData.slice(1)];
+      });
+    } else {
+      setDataFunction(formattedData);
+    }
     setLoading(false);
     setMessage(<DoneOutlineIcon />);
   };

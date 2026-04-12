@@ -21,7 +21,35 @@ const MX_CODES = ["NPC01", "NPC02", "NPC03", "THB01", "THB02", "THB03", "THB05",
   "THB04", "THB05", "THB42", "THB43", "THB44", "THB96", "THB98", "THB99", "THBZ1", "THBZ2", "THBZ5", "NPC01", "NPC02", "NPC03", "NPC99",
   "SDT02"];
 
+const isPastDate = (dateStr) => {
+  if (!dateStr) return false;
+  const parts = dateStr.split("/");
+  if (parts.length !== 3) return false;
+  // A string original do sistema é DD/MM/YYYY
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const year = parseInt(parts[2], 10);
+
+  const d = new Date(year, month, day);
+  d.setHours(0, 0, 0, 0);
+  
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  
+  return d < t;
+};
+
 const filters = {
+  filter_all_outdated_orders: (row) => {
+    // Verifica estritamente o ASC Last Appointment Date (row 24)
+    const passed24 = isPastDate(row[24]);
+    
+    // Filtra apenas atendimento em casa "IH" e exclui ST035
+    const isIH = row[34] === "IH";
+    const isNotComplete = row[11] !== "ST035";
+    
+    return passed24 && isIH && isNotComplete;
+  },
 
   filter_REF_RAC_LTP_LP: (row) => {
     const isCol37Valid = row[37] === "LP"; //37 ->39
@@ -174,6 +202,15 @@ const filters = {
     const isInHome = row[34] === "IH";
     const isCol58Valid = [...HKE_CODE, ...RAC_CODES, ...REF_CODES, ...SWM_CODES].includes(row[58]);
     return isCol37Valid && isCol58Valid && isInHome;
+  },
+
+  filter_LP_up_to_3_days: (row) => {
+    const isCol37Valid = row[37] === "LP";
+    const isUpTo3Days = row[15] <= 3;
+    const isNotComplete = row[11] !== "ST035";
+    const isIH = row[34] === "IH";
+    
+    return isCol37Valid && isUpTo3Days && isNotComplete && isIH;
   },
 
   all_lp_AV: (row) => {
