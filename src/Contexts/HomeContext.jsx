@@ -32,11 +32,17 @@ export function HomeProvider({ children }) {
   });
 
   const [tablesList, setTablesList] = useState(() => {
+    const defaults = ['asc_0003198122', 'asc_0005286953'];
     try {
       const stored = localStorage.getItem('tracking_tables_list');
-      return stored ? JSON.parse(stored) : ['asc_0003198122'];
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const merged = Array.from(new Set([...defaults, ...parsed]));
+        return merged;
+      }
+      return defaults;
     } catch (e) {
-      return ['asc_0003198122'];
+      return defaults;
     }
   });
 
