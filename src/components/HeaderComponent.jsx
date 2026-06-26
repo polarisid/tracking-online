@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Monitor, MonitorOff, Clock, Database } from 'lucide-react';
 
-const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = false }) => {
+const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = false, dataSource, lastUpdated }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -38,6 +38,20 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
 
         {/* Right: Status + Actions */}
         <div className="flex items-center gap-3">
+          {/* Informações da Origem e Atualização */}
+          {dataLoaded && dataSource && (
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50/80 text-blue-600 border border-blue-100/70 text-[10px] font-bold uppercase tracking-wider">
+              <Database size={11} className="shrink-0" />
+              <span>Base: {dataSource}</span>
+            </div>
+          )}
+          {dataLoaded && lastUpdated && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold uppercase tracking-wider">
+              <Clock size={11} className="shrink-0" />
+              <span>Sinc: {lastUpdated}</span>
+            </div>
+          )}
+
           {/* Data Status Badge */}
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
             dataLoaded

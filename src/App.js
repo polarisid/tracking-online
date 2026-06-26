@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import PagesRoutes from "./Router";
 import Sidebar from "./components/Sidebar";
 import LoadingScreen from "./components/LoadingScreen";
+import LoginPage from "./components/LoginPage";
 import { HomeProvider } from "./Contexts/HomeContext";
 import useHomeContext from "./hooks/UseHomeContext";
 import handleFileUpload from "./utils/fileUploader";
+import useSupabaseData from "./hooks/useSupabaseData";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -14,10 +16,61 @@ const AppContent = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [manualDataLoaded, setManualDataLoaded] = useState(false);
 
-  const { setFile1, setData1, setFile2, setData2, data2, combinedData, combinedData_download } = useHomeContext();
+  const {
+    setFile1,
+    setData1,
+    setFile2,
+    setData2,
+    data2,
+    combinedData,
+    combinedData_download,
+    setDataSource,
+    setLastUpdated,
+    selectedTable,
+    setSelectedTable,
+    tablesList,
+    setTablesList,
+    user,
+    isLocalMode
+  } = useHomeContext();
+
+  // Carregamento automático da nuvem (Supabase)
+  const { data: cloudData, loading: cloudLoading, error: cloudError, refetch: cloudRefetch } = useSupabaseData(user ? selectedTable : null);
+
+  // Limpar dados ao deslogar
+  useEffect(() => {
+    if (!user) {
+      setData1([]);
+      setDataSource("Sem dados");
+      setLastUpdated(null);
+      setManualDataLoaded(false);
+    }
+  }, [user, setData1, setDataSource, setLastUpdated]);
+
+  // Alimenta data1 com os dados da nuvem, desde que o usuário não tenha feito upload manual
+  useEffect(() => {
+    if (user && !manualDataLoaded && cloudData && cloudData.length > 0) {
+      setData1(cloudData);
+      setDataSource(`Supabase (${selectedTable})`);
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('pt-BR');
+      setLastUpdated(`${dateStr} ${timeStr}`);
+    }
+  }, [cloudData, manualDataLoaded, setData1, setDataSource, setLastUpdated, selectedTable, user]);
 
   const handleUpload = (e, setFileFunction, setDataFunction, isAppend = false) => {
+    if (setDataFunction === setData1) {
+      setManualDataLoaded(true); // prioriza upload manual
+      const fileName = e.target.files[0]?.name || "Planilha Local";
+      setDataSource(`Planilha Local (${fileName})`);
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = now.toLocaleDateString('pt-BR');
+      setLastUpdated(`${dateStr} ${timeStr}`);
+    }
     handleFileUpload(e, setFileFunction, setDataFunction, setLoading, setMessage, isAppend);
   };
 
@@ -36,6 +89,10 @@ const AppContent = () => {
     saveAs(blob, "planilha.xlsx");
   };
 
+  if (!user && !isLocalMode) {
+    return <LoginPage />;
+  }
+
   return (
     <div className="App flex min-h-screen">
       <LoadingScreen />
@@ -48,6 +105,13 @@ const AppContent = () => {
         onUploadPending={(e) => handleUpload(e, setFile1, setData1)}
         onUploadCities={(e) => handleUpload(e, setFile2, setData2, true)}
         onDownload={downloadExcel}
+        cloudLoading={cloudLoading}
+        cloudError={cloudError}
+        onCloudRefetch={() => { setManualDataLoaded(false); cloudRefetch(); }}
+        selectedTable={selectedTable}
+        setSelectedTable={setSelectedTable}
+        tablesList={tablesList}
+        setTablesList={setTablesList}
       />
 
       {/* Main Content Area */}

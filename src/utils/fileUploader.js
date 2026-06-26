@@ -52,6 +52,58 @@ function handleFileUpload(
       })
     );
 
+    // Mapeamentos para tradução de status e reason
+    const STATUS_MAP = {
+      'ST015': 'Acknowledge(ASC)',
+      'ST025': 'Engineer Assigned',
+      'ST030': 'Pending',
+      'ST035': 'Repair Completed'
+    };
+
+    const INVERSE_STATUS_MAP = {
+      'Acknowledge(ASC)': 'ST015',
+      'Engineer Assigned': 'ST025',
+      'Pending': 'ST030',
+      'Repair Completed': 'ST035'
+    };
+
+    const REASON_MAP = {
+      'HE004': 'Appointment Date is set',
+      'HE005': 'Repair in progress',
+      'HP030': 'Waiting for Confirmation from customer',
+      'HEZ03': 'FTF(Ready to go)'
+    };
+
+    const INVERSE_REASON_MAP = {
+      'Appointment Date is set': 'HE004',
+      'Repair in progress': 'HE005',
+      'Waiting for Confirmation from customer': 'HP030',
+      'FTF(Ready to go)': 'HEZ03'
+    };
+
+    // Aplicar traduções nas linhas (ignorando o cabeçalho)
+    for (let i = 1; i < formattedData.length; i++) {
+      const row = formattedData[i];
+      if (!row) continue;
+
+      const statusCode = row[11];
+      const statusVal = row[8];
+      const reasonCode = row[13];
+      const reasonVal = row[14];
+
+      if (statusCode && STATUS_MAP[statusCode]) {
+        row[8] = STATUS_MAP[statusCode];
+      } else if (statusVal && INVERSE_STATUS_MAP[statusVal]) {
+        row[11] = INVERSE_STATUS_MAP[statusVal];
+      }
+
+      if (reasonCode && REASON_MAP[reasonCode]) {
+        row[14] = REASON_MAP[reasonCode];
+      } else if (reasonVal && INVERSE_REASON_MAP[reasonVal]) {
+        row[13] = INVERSE_REASON_MAP[reasonVal];
+      }
+    }
+
     if (isAppend) {
       setDataFunction(prevData => {
         if (!prevData || prevData.length === 0) return formattedData;

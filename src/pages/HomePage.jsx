@@ -17,6 +17,7 @@ import handleFileUpload from "../utils/fileUploader";
 import { UploadButton } from "../components/UploadButton";
 import useHomeContext from "../hooks/UseHomeContext";
 import BasicTabs from "../components/BasicTabs";
+import { supabase } from '../lib/supabaseClient';
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -49,13 +50,26 @@ const CustomEvent = ({ event }) => {
 };
 
 const HomePage = ({ activeTab, onTabChange }) => {
-  const { setFile1 } = useHomeContext();
-  const { setFile2 } = useHomeContext();
-  const { data1, setData1 } = useHomeContext();
-  const { data2, setData2 } = useHomeContext();
-  const { combinedData, setCombinedData } = useHomeContext();
-  const { visibleComponents, setVisibleComponents } = useHomeContext();
-  const { combinedData_download, setCombinedData_download } = useHomeContext();
+  const {
+    setFile1,
+    setFile2,
+    data1,
+    setData1,
+    data2,
+    setData2,
+    combinedData,
+    setCombinedData,
+    visibleComponents,
+    setVisibleComponents,
+    combinedData_download,
+    setCombinedData_download,
+    dataSource,
+    lastUpdated,
+    comparisonMode,
+    setComparisonMode,
+    history,
+    setHistory
+  } = useHomeContext();
 
   const [presentationMode, setPresentationMode] = useState(false);
 
@@ -82,9 +96,12 @@ const HomePage = ({ activeTab, onTabChange }) => {
   useEffect(() => {
     const fetchActiveRoutes = async () => {
       try {
-        const response = await fetch("https://smartos-olive.vercel.app/api/service-orders");
-        const data = await response.json();
-        setActiveRoutes(data);
+        const [resOlive, resSlz] = await Promise.all([
+          fetch("https://smartos-olive.vercel.app/api/service-orders").then(r => r.ok ? r.json() : []),
+          fetch("https://smartos-slz.vercel.app/api/service-orders").then(r => r.ok ? r.json() : [])
+        ]);
+        const combined = [...resOlive, ...resSlz];
+        setActiveRoutes(combined);
       } catch (error) {
         console.error("Error fetching active routes:", error);
       }
@@ -171,22 +188,26 @@ const HomePage = ({ activeTab, onTabChange }) => {
 
       const combined = data1SelectedCols.slice(1).map((row, rowIndex) => {
         const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
-        const additionalData = dataMapping[orderId] || { nome: "", cidade: "" };
+        const additionalData = dataMapping[orderId] || {};
+        const finalNome = additionalData.nome || data1[rowIndex + 1][3] || "";
+        const finalCidade = additionalData.cidade || data1[rowIndex + 1][4] || "";
         return [
           row[0], // Número da Ordem de Serviço
-          additionalData.nome,
-          additionalData.cidade,
+          finalNome,
+          finalCidade,
           ...row.slice(1), // Outras colunas selecionadas
         ];
       });
       const combined_d = data1SelectedCols_d.slice(1).map((row, rowIndex) => {
         const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
-        const additionalData = dataMapping[orderId] || { nome: "", cidade: "" };
+        const additionalData = dataMapping[orderId] || {};
+        const finalNome = additionalData.nome || data1[rowIndex + 1][3] || "";
+        const finalCidade = additionalData.cidade || data1[rowIndex + 1][4] || "";
         return [
           row[0], // Número da Ordem de Serviço
           row[1],
-          additionalData.nome,
-          additionalData.cidade,
+          finalNome,
+          finalCidade,
           ...row.slice(2), // Outras colunas selecionadas
         ];
       });
@@ -538,6 +559,185 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const quantity_complete_CI_OW_X09 = planilha_CI_Complete_OW_X09.length;
   const quantity_complete_CI_OW_NOT_X09 = planilha_CI_Complete_OW_NOT_X09.length;
 
+  // Mapeamento e controle de evolução
+  const getComparisonSnapshot = () => {
+    if (!history || history.length === 0) return null;
+
+    const now = Date.now();
+    let targetTime = 0;
+    let minAge = 0;
+
+    if (comparisonMode === "last") {
+      return history.length >= 2 ? history[history.length - 2] : null;
+    } else if (comparisonMode === "day") {
+      targetTime = now - 24 * 60 * 60 * 1000;
+      minAge = 12 * 60 * 60 * 1000; // Mínimo de 12 horas de idade
+    } else if (comparisonMode === "week") {
+      targetTime = now - 7 * 24 * 60 * 60 * 1000;
+      minAge = 3 * 24 * 60 * 60 * 1000; // Mínimo de 3 dias de idade
+    } else if (comparisonMode === "month") {
+      targetTime = now - 30 * 24 * 60 * 60 * 1000;
+      minAge = 15 * 24 * 60 * 60 * 1000; // Mínimo de 15 dias de idade
+    }
+
+    let closestEntry = null;
+    let minDiff = Infinity;
+
+    for (const entry of history) {
+      const age = now - entry.timestamp;
+      if (age < minAge) continue; // Ignora registros muito recentes para essa comparação
+
+      const diff = Math.abs(entry.timestamp - targetTime);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestEntry = entry;
+      }
+    }
+
+    return closestEntry;
+  };
+
+  const compSnapshot = getComparisonSnapshot();
+
+  const calcDiff = (currentVal, metricKey, isFloat = false) => {
+    if (!compSnapshot || compSnapshot[metricKey] === undefined) return null;
+    const histVal = compSnapshot[metricKey];
+    const diff = currentVal - histVal;
+    if (isFloat) {
+      return parseFloat(diff.toFixed(2));
+    }
+    return diff;
+  };
+
+  useEffect(() => {
+    if (combinedData.length <= 1) return;
+
+    // Calcular métricas para o histórico
+    const currentMetrics = {
+      quantity_LTP_VD: quantity_LTP_VD || 0,
+      quantity_EX_LTP_VD: quantity_EX_LTP_VD || 0,
+      inRoute: inRouteOrders.length || 0,
+      quantity_LTP_RAC_REF: quantity_LTP_RAC_REF || 0,
+      quantity_EX_LTP_RAC_REF: quantity_EX_LTP_RAC_REF || 0,
+      quantity_LTP_WSM: quantity_LTP_WSM || 0,
+      quantity_LTP_VD_CI: quantity_LTP_VD_CI || 0,
+      quantity_LTP_MX_CI: quantity_LTP_MX_CI || 0,
+      quantity_FTF: quantity_FTF || 0,
+      quantityDa: quantityDa || 0,
+      quantity_LP_up_to_3_days: quantity_LP_up_to_3_days || 0,
+      quantity_all_outdated_orders: quantity_all_outdated_orders || 0,
+      quantity_ALL_DA_OW: quantity_ALL_DA_OW || 0,
+      quantity_DA_noParts: quantity_DA_noParts || 0,
+      quantity_Oudated_IH: quantity_Oudated_IH || 0,
+      quantity_Oudated_Repair_complete_IH: quantity_Oudated_Repair_complete_IH || 0,
+      quantity_complete_CI_LP: quantity_complete_CI_LP || 0,
+      quantity_complete_CI_OW_X09: quantity_complete_CI_OW_X09 || 0,
+      quantity_complete_CI_OW_NOT_X09: quantity_complete_CI_OW_NOT_X09 || 0,
+      quantity_POTENTIAL_first_visit: quantity_POTENTIAL_first_visit || 0,
+      quantity_agenda_today: quantity_agenda_today || 0,
+      quantity_agenda_tomorrow: quantity_agenda_tomorrow || 0,
+      average: parseFloat(average.toFixed(2)) || 0,
+      average2: parseFloat(average2.toFixed(2)) || 0
+    };
+
+    // Só salva se for diferente do último registro no histórico
+    const lastEntry = history[history.length - 1];
+    const isDifferent = !lastEntry || Object.keys(currentMetrics).some(
+      key => currentMetrics[key] !== lastEntry[key]
+    );
+
+    if (isDifferent) {
+      // Extrai um identificador limpo para a tabela/arquivo
+      let cleanSource = "local";
+      if (dataSource && dataSource.includes("Supabase")) {
+        const match = dataSource.match(/\(([^)]+)\)/);
+        cleanSource = match ? match[1] : "asc_0003198122";
+      } else if (dataSource && dataSource.includes("Planilha Local")) {
+        const match = dataSource.match(/\(([^)]+)\)/);
+        cleanSource = match ? match[1] : "local";
+      } else if (dataSource) {
+        cleanSource = dataSource;
+      }
+
+      const newEntry = {
+        timestamp: Date.now(),
+        ...currentMetrics
+      };
+      const newHistory = [...history, newEntry];
+      setHistory(newHistory);
+      localStorage.setItem(`tracking_metrics_history_${cleanSource}`, JSON.stringify(newHistory));
+
+      // Grava no Supabase de forma assíncrona
+      const saveToSupabase = async () => {
+        try {
+          const { error } = await supabase
+            .from('asc_metrics_history')
+            .insert([{
+              table_name: cleanSource,
+              quantity_ltp_vd: currentMetrics.quantity_LTP_VD,
+              quantity_ex_ltp_vd: currentMetrics.quantity_EX_LTP_VD,
+              in_route: currentMetrics.inRoute,
+              quantity_ltp_rac_ref: currentMetrics.quantity_LTP_RAC_REF,
+              quantity_ex_ltp_rac_ref: currentMetrics.quantity_EX_LTP_RAC_REF,
+              quantity_ltp_wsm: currentMetrics.quantity_LTP_WSM,
+              quantity_ltp_vd_ci: currentMetrics.quantity_LTP_VD_CI,
+              quantity_ltp_mx_ci: currentMetrics.quantity_LTP_MX_CI,
+              quantity_ftf: currentMetrics.quantity_FTF,
+              quantity_da: currentMetrics.quantityDa,
+              quantity_lp_up_to_3_days: currentMetrics.quantity_LP_up_to_3_days,
+              quantity_all_outdated_orders: currentMetrics.quantity_all_outdated_orders,
+              quantity_all_da_ow: currentMetrics.quantity_ALL_DA_OW,
+              quantity_da_noparts: currentMetrics.quantity_DA_noParts,
+              quantity_oudated_ih: currentMetrics.quantity_Oudated_IH,
+              quantity_oudated_repair_complete_ih: currentMetrics.quantity_Oudated_Repair_complete_IH,
+              quantity_complete_ci_lp: currentMetrics.quantity_complete_CI_LP,
+              quantity_complete_ci_ow_x09: currentMetrics.quantity_complete_CI_OW_X09,
+              quantity_complete_ci_ow_not_x09: currentMetrics.quantity_complete_CI_OW_NOT_X09,
+              quantity_potential_first_visit: currentMetrics.quantity_POTENTIAL_first_visit,
+              quantity_agenda_today: currentMetrics.quantity_agenda_today,
+              quantity_agenda_tomorrow: currentMetrics.quantity_agenda_tomorrow,
+              average: currentMetrics.average,
+              average2: currentMetrics.average2
+            }]);
+          if (error) throw error;
+          console.log('[Supabase History] Novo snapshot inserido.');
+        } catch (err) {
+          console.warn('[Supabase History] Falha ao persistir snapshot no banco:', err.message);
+        }
+      };
+      saveToSupabase();
+    }
+  }, [
+    combinedData,
+    quantity_LTP_VD,
+    quantity_EX_LTP_VD,
+    inRouteOrders,
+    quantity_LTP_RAC_REF,
+    quantity_EX_LTP_RAC_REF,
+    quantity_LTP_WSM,
+    quantity_LTP_VD_CI,
+    quantity_LTP_MX_CI,
+    quantity_FTF,
+    quantityDa,
+    quantity_LP_up_to_3_days,
+    quantity_all_outdated_orders,
+    quantity_ALL_DA_OW,
+    quantity_DA_noParts,
+    quantity_Oudated_IH,
+    quantity_Oudated_Repair_complete_IH,
+    quantity_complete_CI_LP,
+    quantity_complete_CI_OW_X09,
+    quantity_complete_CI_OW_NOT_X09,
+    quantity_POTENTIAL_first_visit,
+    quantity_agenda_today,
+    quantity_agenda_tomorrow,
+    average,
+    average2,
+    history,
+    setHistory,
+    dataSource
+  ]);
+
   const eventCounts = React.useMemo(() => {
     const counts = {};
     events.forEach((event) => {
@@ -668,6 +868,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
         presentationMode={presentationMode}
         onTogglePresentation={() => setPresentationMode(!presentationMode)}
         dataLoaded={combinedData.length > 1}
+        dataSource={dataSource}
+        lastUpdated={lastUpdated}
       />
 
       {/* Executive Summary */}
@@ -688,57 +890,66 @@ const HomePage = ({ activeTab, onTabChange }) => {
           />
         </div>
       )}
-      {/* <UploadBoxMenu ... /> */}
       <IndicatorsWrapper>
         <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} />
+          <StatCard size="sm" type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} diff={calcDiff(parseFloat(average.toFixed(2)) || 0, 'average', true)} />
         </div>
         <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} />
+          <StatCard size="sm" type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} diff={calcDiff(parseFloat(average2.toFixed(2)) || 0, 'average2', true)} />
         </div>
         {loading && <p className="text-xs text-slate-400 mt-2">Carregando...</p>}
         {message && <p className="text-xs text-slate-400 mt-2">{message}</p>}
       </IndicatorsWrapper>
 
+      {combinedData.length > 1 && (
+        <ControlsBar>
+          <span className="label">Comparar Evolução:</span>
+          <select
+            value={comparisonMode}
+            onChange={(e) => setComparisonMode(e.target.value)}
+          >
+            <option value="last">Últimos dados carregados</option>
+            <option value="day">Ontem (1 dia atrás)</option>
+            <option value="week">Há 1 semana (7 dias)</option>
+            <option value="month">Há 1 mês (30 dias)</option>
+          </select>
+        </ControlsBar>
+      )}
 
       <BasicTabs activeTab={activeTab} onTabChange={onTabChange}>
         <Dashboard>
-          <StatCard title="LTP VD IH" value={quantity_LTP_VD} percentage={pctLtpVd} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" />
-          <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} percentage={pctExLtpVd} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" />
-          <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" />
-          <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} percentage={pctLtpRacRef} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" />
-          <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} percentage={pctExLtpRacRef} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" />
-          <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} percentage={pctLtpWsm} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" />
-          <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" />
-          <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" />
-          <StatCard title="FTF (ST025)" value={quantity_FTF} onClick={() => toggleVisibility(60)} isActive={visibleComponents[60]} iconName="CheckCircle" />
-
+          <StatCard title="LTP VD IH" value={quantity_LTP_VD} percentage={pctLtpVd} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" diff={calcDiff(quantity_LTP_VD, 'quantity_LTP_VD')} />
+          <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} percentage={pctExLtpVd} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" diff={calcDiff(quantity_EX_LTP_VD, 'quantity_EX_LTP_VD')} />
+          <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" diff={calcDiff(inRouteOrders.length || 0, 'inRoute')} />
+          <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} percentage={pctLtpRacRef} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" diff={calcDiff(quantity_LTP_RAC_REF, 'quantity_LTP_RAC_REF')} />
+          <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} percentage={pctExLtpRacRef} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" diff={calcDiff(quantity_EX_LTP_RAC_REF, 'quantity_EX_LTP_RAC_REF')} />
+          <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} percentage={pctLtpWsm} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" diff={calcDiff(quantity_LTP_WSM, 'quantity_LTP_WSM')} />
+          <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" diff={calcDiff(quantity_LTP_VD_CI, 'quantity_LTP_VD_CI')} />
+          <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" diff={calcDiff(quantity_LTP_MX_CI, 'quantity_LTP_MX_CI')} />
+          <StatCard title="FTF (ST025)" value={quantity_FTF} onClick={() => toggleVisibility(60)} isActive={visibleComponents[60]} iconName="CheckCircle" diff={calcDiff(quantity_FTF, 'quantity_FTF')} />
         </Dashboard>
         <Dashboard>
-          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} />
-          <StatCard title="D+3" value={quantity_LP_up_to_3_days} onClick={() => toggleVisibility(80)} isActive={visibleComponents[80]} type="CI" />
-          <StatCard title="Ordens Desatualizadas" value={quantity_all_outdated_orders} onClick={() => toggleVisibility(81)} isActive={visibleComponents[81]} type="high" iconName="AlertTriangle" />
+          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} diff={calcDiff(quantityDa, 'quantityDa')} />
+          <StatCard title="D+3" value={quantity_LP_up_to_3_days} onClick={() => toggleVisibility(80)} isActive={visibleComponents[80]} type="CI" diff={calcDiff(quantity_LP_up_to_3_days, 'quantity_LP_up_to_3_days')} />
+          <StatCard title="Ordens Desatualizadas" value={quantity_all_outdated_orders} onClick={() => toggleVisibility(81)} isActive={visibleComponents[81]} type="high" iconName="AlertTriangle" diff={calcDiff(quantity_all_outdated_orders, 'quantity_all_outdated_orders')} />
 
-          <StatCard title="TODOS DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} />
+          <StatCard title="TODOS DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} diff={calcDiff(quantity_ALL_DA_OW, 'quantity_ALL_DA_OW')} />
 
-          <StatCard title="DA Sem Peça (OW/LP)" value={quantity_DA_noParts} onClick={() => toggleVisibility(6)} isActive={visibleComponents[6]} />
-          <StatCard title="Consumidor Fora do Prazo" value={quantity_Oudated_IH} onClick={() => toggleVisibility(8)} isActive={visibleComponents[8]} />
-          <StatCard title="R. Completo Fora do Prazo" value={quantity_Oudated_Repair_complete_IH} onClick={() => toggleVisibility(9)} isActive={visibleComponents[9]} iconName="CheckCircle" />
+          <StatCard title="DA Sem Peça (OW/LP)" value={quantity_DA_noParts} onClick={() => toggleVisibility(6)} isActive={visibleComponents[6]} diff={calcDiff(quantity_DA_noParts, 'quantity_DA_noParts')} />
+          <StatCard title="Consumidor Fora do Prazo" value={quantity_Oudated_IH} onClick={() => toggleVisibility(8)} isActive={visibleComponents[8]} diff={calcDiff(quantity_Oudated_IH, 'quantity_Oudated_IH')} />
+          <StatCard title="R. Completo Fora do Prazo" value={quantity_Oudated_Repair_complete_IH} onClick={() => toggleVisibility(9)} isActive={visibleComponents[9]} iconName="CheckCircle" diff={calcDiff(quantity_Oudated_Repair_complete_IH, 'quantity_Oudated_Repair_complete_IH')} />
 
-          <StatCard title="CI R. Completo LP" value={quantity_complete_CI_LP} onClick={() => toggleVisibility(32)} isActive={visibleComponents[32]} type="CI" iconName="CheckCircle" />
+          <StatCard title="CI R. Completo LP" value={quantity_complete_CI_LP} onClick={() => toggleVisibility(32)} isActive={visibleComponents[32]} type="CI" iconName="CheckCircle" diff={calcDiff(quantity_complete_CI_LP, 'quantity_complete_CI_LP')} />
 
+          <StatCard title="CI R. Completo OW - X09" value={quantity_complete_CI_OW_X09} onClick={() => toggleVisibility(33)} isActive={visibleComponents[33]} type="CI" iconName="CheckCircle" diff={calcDiff(quantity_complete_CI_OW_X09, 'quantity_complete_CI_OW_X09')} />
 
-          <StatCard title="CI R. Completo OW - X09" value={quantity_complete_CI_OW_X09} onClick={() => toggleVisibility(33)} isActive={visibleComponents[33]} type="CI" iconName="CheckCircle" />
-
-
-
-          <StatCard title="CI R. Completo OW" value={quantity_complete_CI_OW_NOT_X09} onClick={() => toggleVisibility(34)} isActive={visibleComponents[34]} type="CI" iconName="CheckCircle" />
+          <StatCard title="CI R. Completo OW" value={quantity_complete_CI_OW_NOT_X09} onClick={() => toggleVisibility(34)} isActive={visibleComponents[34]} type="CI" iconName="CheckCircle" diff={calcDiff(quantity_complete_CI_OW_NOT_X09, 'quantity_complete_CI_OW_NOT_X09')} />
 
           <StatCard title="LTP IH Em até 4 dias" value={0} onClick={() => toggleVisibility(7)} isActive={visibleComponents[7]} type="normal" />
           <StatCard title="Effect Appointment" value={0} onClick={() => toggleVisibility(10)} isActive={visibleComponents[10]} type="normal" />
-          <StatCard title="First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(11)} isActive={visibleComponents[11]} type="normal" />
-          <StatCard title="Agenda do Dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" />
-          <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" />
+          <StatCard title="First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(11)} isActive={visibleComponents[11]} type="normal" diff={calcDiff(quantity_POTENTIAL_first_visit, 'quantity_POTENTIAL_first_visit')} />
+          <StatCard title="Agenda do Dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" diff={calcDiff(quantity_agenda_today, 'quantity_agenda_today')} />
+          <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" diff={calcDiff(quantity_agenda_tomorrow, 'quantity_agenda_tomorrow')} />
         </Dashboard>
         
       <DashboardCharts
@@ -1336,5 +1547,54 @@ const MainContainer = styled.div`
   }
 `;
 
+const ControlsBar = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 1rem 0.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+  width: fit-content;
+
+  .label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+  }
+
+  select {
+    padding: 0.4rem 2rem 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #334155;
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.25rem;
+
+    &:hover {
+      border-color: #cbd5e1;
+    }
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    }
+  }
+`;
 
 export default HomePage;

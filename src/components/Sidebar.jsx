@@ -2,8 +2,10 @@ import React, { useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   Table2, ChevronLeft, ChevronRight, Presentation,
-  Upload, Download, FileSpreadsheet
+  Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
+  LogIn, LogOut
 } from 'lucide-react';
+import useHomeContext from '../hooks/UseHomeContext';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', tab: 0 },
@@ -13,7 +15,23 @@ const navItems = [
   { id: 'tables', label: 'Tabelas', icon: Table2, path: '/beta' },
 ];
 
-const Sidebar = ({ collapsed, onToggle, onTabChange, onPresentationMode, onUploadPending, onUploadCities, onDownload }) => {
+const Sidebar = ({
+  collapsed,
+  onToggle,
+  onTabChange,
+  onPresentationMode,
+  onUploadPending,
+  onUploadCities,
+  onDownload,
+  cloudLoading,
+  cloudError,
+  onCloudRefetch,
+  selectedTable,
+  setSelectedTable,
+  tablesList,
+  setTablesList
+}) => {
+  const { user, signOut, setIsLocalMode } = useHomeContext();
   const [activeId, setActiveId] = React.useState('dashboard');
   const pendingInputRef = useRef(null);
   const citiesInputRef = useRef(null);
@@ -141,10 +159,125 @@ const Sidebar = ({ collapsed, onToggle, onTabChange, onPresentationMode, onUploa
           <Download size={16} className="shrink-0" />
           {!collapsed && <span className="text-xs font-medium">Download</span>}
         </button>
+
+        {/* Bloco Nuvem condicionado ao login */}
+        {user ? (
+          <>
+            {/* Separador nuvem */}
+            {!collapsed && (
+              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">Nuvem</p>
+            )}
+
+            {/* Status do Supabase */}
+            {!collapsed && (
+              <div className="mx-3 mb-1 flex items-center gap-2">
+                {cloudLoading ? (
+                  <>
+                    <RefreshCw size={12} className="text-blue-400 animate-spin shrink-0" />
+                    <span className="text-[10px] text-blue-400">Sincronizando...</span>
+                  </>
+                ) : cloudError ? (
+                  <>
+                    <CloudOff size={12} className="text-red-400 shrink-0" />
+                    <span className="text-[10px] text-red-400 truncate" title={cloudError}>Erro na conexão</span>
+                  </>
+                ) : (
+                  <>
+                    <Cloud size={12} className="text-emerald-400 shrink-0" />
+                    <span className="text-[10px] text-emerald-400">Dados carregados</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Seletor de Tabela */}
+            {!collapsed && (
+              <div className="mx-3 my-2 space-y-1">
+                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide block">Unidade/Tabela</label>
+                <select
+                  value={selectedTable}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__add_new__') {
+                      const newTableName = prompt("Digite o nome da nova tabela do Supabase:");
+                      if (newTableName && newTableName.trim() !== "") {
+                        const cleaned = newTableName.trim();
+                        if (!tablesList.includes(cleaned)) {
+                          setTablesList([...tablesList, cleaned]);
+                        }
+                        setSelectedTable(cleaned);
+                      }
+                    } else {
+                      setSelectedTable(val);
+                    }
+                  }}
+                  className="w-full bg-slate-800 text-slate-200 border border-slate-700/60 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium transition-all"
+                >
+                  {tablesList.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                  <option value="__add_new__" className="text-blue-400 font-bold bg-slate-850">
+                    + Adicionar Tabela...
+                  </option>
+                </select>
+              </div>
+            )}
+
+            {/* Botão sincronizar */}
+            <button
+              onClick={() => onCloudRefetch && onCloudRefetch()}
+              disabled={cloudLoading}
+              className={`
+                w-full flex items-center gap-3 rounded-lg 
+                transition-all duration-200 group
+                text-slate-400 hover:text-blue-400 hover:bg-blue-500/10
+                disabled:opacity-40 disabled:cursor-not-allowed
+                ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+              `}
+              title="Sincronizar da Nuvem"
+            >
+              <RefreshCw size={16} className={`shrink-0 ${cloudLoading ? 'animate-spin' : ''}`} />
+              {!collapsed && <span className="text-xs font-medium">Sincronizar</span>}
+            </button>
+          </>
+        ) : (
+          /* Botão para conectar à nuvem se estiver offline */
+          <button
+            onClick={() => setIsLocalMode(false)}
+            className={`
+              w-full flex items-center gap-3 rounded-lg 
+              transition-all duration-200 group
+              text-slate-400 hover:text-blue-450 hover:bg-blue-500/10
+              ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+            `}
+            title="Conectar à Nuvem"
+          >
+            <LogIn size={16} className="shrink-0 text-slate-500 group-hover:text-blue-400" />
+            {!collapsed && <span className="text-xs font-medium">Conectar à Nuvem</span>}
+          </button>
+        )}
       </div>
 
       {/* Bottom Actions */}
       <div className="px-2 pb-4 space-y-1 border-t border-slate-800/50 pt-3">
+        {user && (
+          <button
+            onClick={signOut}
+            className={`
+              w-full flex items-center gap-3 rounded-lg 
+              transition-all duration-200 group
+              text-rose-400 hover:bg-rose-500/10
+              ${collapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
+            `}
+            title="Desconectar da Nuvem"
+          >
+            <LogOut size={18} className="shrink-0" />
+            {!collapsed && <span className="text-sm font-medium">Desconectar</span>}
+          </button>
+        )}
+
         {onPresentationMode && (
           <button
             onClick={onPresentationMode}
