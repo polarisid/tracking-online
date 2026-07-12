@@ -408,14 +408,13 @@ const HomePage = ({ activeTab, onTabChange }) => {
   ];
   const columnsToShow_type_service = [0, 1, 2, 9, 14, 15, 37, 22, 34];
 
-  // Função para ordenar as linhas com base na coluna 15 (índice 14)
+  // Função para ordenar as linhas com base na coluna 15 (pending_aging_days)
+  // Ordena de forma numérica e decrescente: do mais antigo (maior número de dias pendentes) para o mais recente (menor número)
   const sortData = (filteredData) => {
     return filteredData.sort((a, b) => {
-      const valA = a[15]; //15 ->16
-      const valB = b[15];
-      if (valA > valB) return -1;
-      if (valA < valB) return 1;
-      return 0;
+      const valA = Number(a[15]) || 0;
+      const valB = Number(b[15]) || 0;
+      return valB - valA;
     });
   };
 
