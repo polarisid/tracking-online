@@ -174,12 +174,16 @@ export const fetchServiceOrders = async (tableName = TABLE_NAME) => {
 
   if (allRows.length === 0) return [];
 
+  // Filtrar ordens que foram removidas (removido_em não é nulo/vazio)
+  const activeRows = allRows.filter(r => r.removido_em === null || r.removido_em === undefined);
+
   // ===== DIAGNÓSTICO =====
   console.group('[Supabase] Diagnóstico de campos críticos');
-  console.log('Total de linhas:', allRows.length);
+  console.log('Total de linhas brutas:', allRows.length);
+  console.log('Total de linhas ativas (não removidas):', activeRows.length);
 
   // Mostra exemplos dos 5 primeiros valores dos campos críticos dos filtros
-  const sample = allRows.slice(0, 5).map(r => ({
+  const sample = activeRows.slice(0, 5).map(r => ({
     'row[11] status_comment': r.status_comment,
     'row[34] service_type':   r.service_type,
     'row[37] warranty_flag':  r.in_out_warranty_flag,
@@ -195,7 +199,7 @@ export const fetchServiceOrders = async (tableName = TABLE_NAME) => {
   // Header row com os nomes das colunas (substitui row[0] do Excel)
   const headerRow = COLUMN_MAP.map((col) => col ?? '');
 
-  const dataRows = allRows.map(rowToArray);
+  const dataRows = activeRows.map(rowToArray);
 
   return [headerRow, ...dataRows];
 };
