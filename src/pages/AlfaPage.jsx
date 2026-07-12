@@ -251,13 +251,58 @@ const HomePage = () => {
   const columnsToShow_complete_repair = [1, 9, 14, 15, 37, 22, 34, 24, 27];
   const columnsToShow_type_service = [1, 9, 14, 15, 37, 22, 34];
 
-  // Função para ordenar as linhas com base na coluna 15 (pending_aging_days)
-  // Ordena de forma numérica e decrescente: do mais antigo (maior número de dias pendentes) para o mais recente (menor número)
+  // Helper para analisar e converter valores de data (string formatada ou serial Excel)
+  const parseDateVal = (val) => {
+    if (val === null || val === undefined) return 0;
+    const valStr = String(val).trim();
+    if (!valStr || valStr === '00/00/0000' || valStr === 'null' || valStr === 'undefined') {
+      return 0;
+    }
+    const num = Number(valStr);
+    if (!isNaN(num) && num > 30000 && num < 60000) {
+      return (num - 25569) * 86400 * 1000;
+    }
+    if (valStr.includes('/')) {
+      const parts = valStr.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        let year = parseInt(parts[2], 10);
+        if (year < 100) year += 2000;
+        return new Date(year, month, day).getTime();
+      }
+    }
+    const t = Date.parse(valStr);
+    return isNaN(t) ? 0 : t;
+  };
+
+  // Helper para obter o timestamp da data mais relevante da linha
+  const getRowDate = (row) => {
+    // Prioridade das colunas de data:
+    // 1. Data do agendamento (24)
+    // 2. Data de abertura (16)
+    // 3. Data da primeira visita (22)
+    // 4. Data de entrega (27)
+    for (const idx of [24, 16, 22, 27]) {
+      const val = row[idx];
+      if (val && val !== '00/00/0000' && val !== 'null') {
+        const t = parseDateVal(val);
+        if (t > 0) return t;
+      }
+    }
+    return 0;
+  };
+
+  // Ordena do mais antigo para o mais novo
+  // Linhas sem data válida (0) são jogadas para o final
   const sortData = (filteredData) => {
     return filteredData.sort((a, b) => {
-      const valA = Number(a[15]) || 0;
-      const valB = Number(b[15]) || 0;
-      return valB - valA;
+      const tA = getRowDate(a);
+      const tB = getRowDate(b);
+      if (tA === 0 && tB === 0) return 0;
+      if (tA === 0) return 1;
+      if (tB === 0) return -1;
+      return tA - tB;
     });
   };
 
