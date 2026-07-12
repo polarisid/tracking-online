@@ -293,10 +293,35 @@ const HomePage = () => {
     return 0;
   };
 
-  // Ordena do mais antigo para o mais novo
-  // Linhas sem data válida (0) são jogadas para o final
+  const isRowMarked = (row) => {
+    const os1 = String(row[0] || "").trim();
+    const os2 = String(row[1] || "").trim();
+    const os3 = String(row[2] || "").trim();
+
+    return inRouteOrders.some(r => {
+      const id = String(r[1] || r[2] || '').trim();
+      return id === os1 || id === os2 || id === os3;
+    });
+  };
+
+  // Ordena prioritariamente os marcados (em rota) no topo, do maior para o menor aging days.
+  // Os não marcados ficam abaixo, ordenados cronologicamente do mais antigo para o mais novo.
   const sortData = (filteredData) => {
     return filteredData.sort((a, b) => {
+      const markedA = isRowMarked(a);
+      const markedB = isRowMarked(b);
+
+      if (markedA && !markedB) return -1; // a vai para cima
+      if (!markedA && markedB) return 1;  // b vai para cima
+
+      if (markedA && markedB) {
+        // Ambos marcados: do maior para o menor based on pending_aging_days (coluna 15)
+        const valA = Number(a[15]) || 0;
+        const valB = Number(b[15]) || 0;
+        return valB - valA;
+      }
+
+      // Ambos não marcados: do mais antigo para o mais novo
       const tA = getRowDate(a);
       const tB = getRowDate(b);
       if (tA === 0 && tB === 0) return 0;
