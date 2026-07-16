@@ -68,7 +68,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
     comparisonMode,
     setComparisonMode,
     history,
-    setHistory
+    setHistory,
+    activeRoutes
   } = useHomeContext();
 
   const [presentationMode, setPresentationMode] = useState(false);
@@ -80,7 +81,6 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const [message, setMessage] = useState("");
 
   const [activeOrderIdsSet, setActiveOrderIdsSet] = useState(new Set());
-  const [activeRoutes, setActiveRoutes] = useState([]);
   const [inRouteOrders, setInRouteOrders] = useState([]);
   const [inRouteByStatus, setInRouteByStatus] = useState({ finalizadas: [], pendentes: [], a_fazer: [] });
 
@@ -92,22 +92,6 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-
-  useEffect(() => {
-    const fetchActiveRoutes = async () => {
-      try {
-        const [resOlive, resSlz] = await Promise.all([
-          fetch("https://smartos-olive.vercel.app/api/service-orders").then(r => r.ok ? r.json() : []),
-          fetch("https://smartos-slz.vercel.app/api/service-orders").then(r => r.ok ? r.json() : [])
-        ]);
-        const combined = [...resOlive, ...resSlz];
-        setActiveRoutes(combined);
-      } catch (error) {
-        console.error("Error fetching active routes:", error);
-      }
-    };
-    fetchActiveRoutes();
-  }, []);
 
   ///////////////////////////////
   const downloadExcel = (combinedData, fileName = "planilha.xlsx") => {

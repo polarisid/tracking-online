@@ -6,6 +6,7 @@ import {
   LogIn, LogOut
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
+import { exportStyledCloudReport } from '../utils/cloudReportExporter';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', tab: 0 },
@@ -31,7 +32,7 @@ const Sidebar = ({
   tablesList,
   setTablesList
 }) => {
-  const { user, signOut, setIsLocalMode } = useHomeContext();
+  const { user, signOut, setIsLocalMode, data1, activeRoutes } = useHomeContext();
   const [activeId, setActiveId] = React.useState('dashboard');
   const pendingInputRef = useRef(null);
   const citiesInputRef = useRef(null);
@@ -240,6 +241,23 @@ const Sidebar = ({
             >
               <RefreshCw size={16} className={`shrink-0 ${cloudLoading ? 'animate-spin' : ''}`} />
               {!collapsed && <span className="text-xs font-medium">Sincronizar</span>}
+            </button>
+
+            {/* Botão Baixar Relatório Completo da Nuvem */}
+            <button
+              onClick={() => exportStyledCloudReport(data1, activeRoutes, selectedTable)}
+              disabled={cloudLoading || !data1 || data1.length <= 1}
+              className={`
+                w-full flex items-center gap-3 rounded-lg 
+                transition-all duration-200 group
+                text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10
+                disabled:opacity-40 disabled:cursor-not-allowed
+                ${collapsed ? 'justify-center p-3' : 'px-3 py-2'}
+              `}
+              title="Baixar Relatório Completo"
+            >
+              <Download size={16} className="shrink-0" />
+              {!collapsed && <span className="text-xs font-medium">Relatório Nuvem</span>}
             </button>
           </>
         ) : (

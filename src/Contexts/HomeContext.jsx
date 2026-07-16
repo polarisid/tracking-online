@@ -1,9 +1,11 @@
 import { createContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import useActiveRoutes from "../hooks/useActiveRoutes";
 
 export const HomeContext = createContext(null);
 
 export function HomeProvider({ children }) {
+  const { activeRoutes, activeOrderIdsSet, loading: activeRoutesLoading, refetch: refetchActiveRoutes } = useActiveRoutes();
   const [file1, setFile1] = useState(null);
   const [file2, setFile2] = useState(null);
   const [data1, setData1] = useState([]);
@@ -264,7 +266,11 @@ export function HomeProvider({ children }) {
         isLocalMode,
         setIsLocalMode,
         signIn,
-        signOut
+        signOut,
+        activeRoutes,
+        activeOrderIdsSet,
+        activeRoutesLoading,
+        refetchActiveRoutes
       }}
     >
       {children}
