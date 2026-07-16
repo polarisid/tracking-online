@@ -36,7 +36,10 @@ const parseDate = (val) => {
   if (parts.length === 3) {
     const d = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10) - 1;
-    const y = parseInt(parts[2], 10);
+    let y = parseInt(parts[2], 10);
+    if (y < 100) {
+      y += 2000;
+    }
     return new Date(y, m, d);
   }
 
@@ -91,10 +94,14 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
     const suggestions = [];
     const dataRows = data1.slice(1);
 
-    // Filtra ordens de serviço ativas (não resolvidas) e fora de rota
+    // Filtra ordens de serviço ativas (não resolvidas), do tipo IH e fora de rota
     const activeCriticalOrders = dataRows.filter(row => {
       const isComplete = row[11] === 'ST035';
       if (isComplete) return false;
+
+      // Apenas ordens do tipo de serviço IH
+      const isIH = row[34] === 'IH';
+      if (!isIH) return false;
 
       const orderId = String(row[1] || '').trim();
       const jobNo = String(row[2] || '').trim();
@@ -179,8 +186,9 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       const partCode = row[61]; // parts_no01
       const requestStr = row[16]; // request_date
       const deliveryStr = row[27]; // goods_delivered_date
+      const isIH = row[34] === 'IH';
 
-      if (partCode && requestStr && deliveryStr) {
+      if (isIH && partCode && requestStr && deliveryStr) {
         const reqDate = parseDate(requestStr);
         const delDate = parseDate(deliveryStr);
 
@@ -213,9 +221,10 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       const requestStr = row[16];
       const deliveryStr = row[27];
       const isComplete = row[11] === 'ST035';
+      const isIH = row[34] === 'IH';
 
-      // Ativa, tem código de peça, mas não tem data de entrega
-      if (!isComplete && partCode && requestStr && (!deliveryStr || deliveryStr === '00/00/0000')) {
+      // Ativa, do tipo IH, tem código de peça, mas não tem data de entrega
+      if (!isComplete && isIH && partCode && requestStr && (!deliveryStr || deliveryStr === '00/00/0000')) {
         const reqDate = parseDate(requestStr);
         if (reqDate) {
           const avgDelay = partAvgDelays[partCode] || 6; // fallback 6 dias se sem histórico
