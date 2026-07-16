@@ -294,13 +294,13 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
           <Brain size={28} />
         </div>
         <div>
-          <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          <h2 className="text-base md:text-lg font-extrabold text-slate-800 flex items-center gap-2">
             Módulo de Inteligência & Otimização
-            <span className="text-[9px] uppercase font-bold px-2 py-0.5 bg-indigo-55 bg-indigo-50 text-indigo-600 border border-indigo-200/50 rounded-full tracking-wider">
+            <span className="text-[10px] uppercase font-extrabold px-2.5 py-0.5 bg-indigo-55 bg-indigo-50 text-indigo-600 border border-indigo-200/50 rounded-full tracking-wider">
               Operacional
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-1 max-w-3xl">
+          <p className="text-xs md:text-sm text-slate-500 mt-1 max-w-3xl">
             Cruzamento automático de dados de campo. Analisa locais de atendimento ativos para otimização de rotas e prevê a entrega de peças de fábrica com base em performance histórica.
           </p>
         </div>
@@ -316,10 +316,10 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
               <Truck size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Sugestões de Alocação de OS</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">LTPs fora de rota próximas a técnicos ativos</p>
+              <h3 className="text-sm md:text-base font-extrabold text-slate-900">Sugestões de Alocação de OS</h3>
+              <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">LTPs fora de rota próximas a técnicos ativos</p>
             </div>
-            <span className="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-650 text-slate-700">
+            <span className="ml-auto text-xs md:text-sm font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
               {allocationSuggestions.length}
             </span>
           </div>
@@ -328,8 +328,8 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
             {allocationSuggestions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Sparkles size={36} className="text-slate-300 mb-2" />
-                <p className="text-xs font-bold text-slate-600">Tudo em dia!</p>
-                <p className="text-[10px] text-slate-400 mt-1 max-w-[240px]">
+                <p className="text-xs md:text-sm font-bold text-slate-650">Tudo em dia!</p>
+                <p className="text-[10px] md:text-xs text-slate-400 mt-1 max-w-[240px]">
                   Não encontramos ordens LTP fora de rota nas mesmas regiões dos técnicos hoje.
                 </p>
               </div>
@@ -341,14 +341,14 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 font-mono">OS #{sug.orderId}</span>
-                      <h4 className="text-xs font-bold text-slate-800 mt-0.5">{sug.clientName}</h4>
-                      <p className="text-[10px] font-medium text-slate-500 mt-0.5">{sug.product}</p>
+                      <span className="text-[10.5px] md:text-[11px] font-bold text-slate-500 font-mono">OS #{sug.orderId}</span>
+                      <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-0.5">{sug.clientName}</h4>
+                      <p className="text-[10.5px] md:text-xs font-semibold text-slate-600 mt-0.5">{sug.product}</p>
                     </div>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wide uppercase ${
+                    <span className={`text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full tracking-wide uppercase ${
                       sug.classification === 'EX LTP' 
-                        ? 'bg-amber-100 text-amber-700 border border-amber-200/60' 
-                        : 'bg-yellow-100 text-yellow-800 border border-yellow-200/60'
+                        ? 'bg-amber-100 text-amber-700 border border-amber-250/60' 
+                        : 'bg-yellow-100 text-yellow-800 border border-yellow-250/60'
                     }`}>
                       {sug.classification} ({sug.agingDays}d)
                     </span>
@@ -356,13 +356,13 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
 
                   {/* Detalhes Localização e Motivo */}
                   <div className="flex flex-wrap items-center gap-2 mb-3">
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-100/80 py-1 px-2 rounded-lg font-medium">
-                      <MapPin size={12} className="text-slate-400" />
+                    <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-105 bg-slate-100 py-1 px-2 rounded-lg font-bold border border-slate-200/50">
+                      <MapPin size={12} className="text-slate-500" />
                       <span>{sug.city} {sug.neighborhood ? `— ${sug.neighborhood}` : ''}</span>
                     </div>
                     {sug.reason && (
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-100/80 py-1 px-2 rounded-lg font-medium">
-                        <span className="font-bold text-indigo-600">Motivo:</span>
+                      <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-105 bg-slate-100 py-1 px-2 rounded-lg font-semibold border border-slate-200/50">
+                        <span className="font-extrabold text-indigo-700">Motivo:</span>
                         <span className="truncate max-w-[200px] md:max-w-[300px]" title={sug.reason}>{sug.reason}</span>
                       </div>
                     )}
@@ -370,22 +370,22 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
 
                   {/* Recomendações de Alocação */}
                   <div className="space-y-2 border-t border-slate-100 pt-2.5">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Técnicos Próximos Hoje:</p>
+                    <p className="text-[9.5px] md:text-[10px] font-extrabold text-slate-450 uppercase tracking-widest text-center mb-1">Técnicos Próximos Hoje</p>
                     {sug.matchingRoutes.map((route, rIdx) => (
                       <div 
                         key={rIdx}
                         className="flex items-center justify-between bg-indigo-50/50 hover:bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5 transition-all text-xs"
                       >
                         <div className="flex items-center gap-2">
-                          <UserCheck size={14} className="text-indigo-550 text-indigo-600" />
+                          <UserCheck size={14} className="text-indigo-650 text-indigo-600" />
                           <div>
-                            <span className="font-bold text-slate-700">{route.technicianName}</span>
-                            <span className="text-[9px] text-slate-400 block font-medium">{route.routeName}</span>
+                            <span className="text-xs md:text-sm font-extrabold text-slate-800">{route.technicianName}</span>
+                            <span className="text-[9.5px] md:text-[10px] text-slate-550 text-slate-500 block font-semibold mt-0.5">{route.routeName}</span>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1">
-                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          <span className={`text-[9.5px] md:text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                             route.sameNeighborhood 
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
                               : 'bg-indigo-50 text-indigo-700 border border-indigo-200/60'
@@ -410,10 +410,10 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
               <Package size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Rastreamento e Gargalos de Peças</h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Previsões inteligentes de chegada de fábrica</p>
+              <h3 className="text-sm md:text-base font-extrabold text-slate-900">Rastreamento e Gargalos de Peças</h3>
+              <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">Previsões inteligentes de chegada de fábrica</p>
             </div>
-            <span className="ml-auto text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            <span className="ml-auto text-xs md:text-sm font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
               {partsPredictions.length}
             </span>
           </div>
@@ -422,8 +422,8 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
             {partsPredictions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <Package size={36} className="text-slate-300 mb-2" />
-                <p className="text-xs font-bold text-slate-600">Sem pendências de peças!</p>
-                <p className="text-[10px] text-slate-400 mt-1 max-w-[240px]">
+                <p className="text-xs md:text-sm font-bold text-slate-650">Sem pendências de peças!</p>
+                <p className="text-[10px] md:text-xs text-slate-400 mt-1 max-w-[240px]">
                   Nenhuma ordem ativa está aguardando chegada de peças de fábrica neste momento.
                 </p>
               </div>
@@ -435,36 +435,36 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <span className="text-[10px] font-bold text-slate-400 font-mono">OS #{pred.orderId} — {pred.clientName}</span>
-                      <h4 className="text-xs font-bold text-slate-800 mt-0.5">Peça: {pred.partCode}</h4>
-                      <p className="text-[10px] font-medium text-slate-500 mt-0.5 truncate max-w-[190px] md:max-w-xs">{pred.partDesc}</p>
+                      <span className="text-[10.5px] md:text-[11px] font-bold text-slate-500 font-mono">OS #{pred.orderId} — {pred.clientName}</span>
+                      <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-0.5">Peça: {pred.partCode}</h4>
+                      <p className="text-[10.5px] md:text-xs font-semibold text-slate-650 mt-0.5 truncate max-w-[190px] md:max-w-xs">{pred.partDesc}</p>
                     </div>
 
                     {pred.isOverdue ? (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
+                      <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
                         <AlertTriangle size={10} />
                         Atrasado {pred.daysOffset}d
                       </span>
                     ) : (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-55 bg-blue-50 text-blue-600 border border-blue-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
+                      <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
                         <Clock size={10} />
                         Previsão {pred.daysOffset}d
                       </span>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-[10px]">
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-xs">
                     <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-400 block uppercase font-bold text-[8px]">Solicitada</span>
-                      <span className="font-bold text-slate-700 block mt-0.5">{pred.requestDate}</span>
+                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Solicitada</span>
+                      <span className="font-bold text-slate-800 block mt-1">{pred.requestDate}</span>
                     </div>
                     <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-400 block uppercase font-bold text-[8px]">Tempo Médio</span>
-                      <span className="font-bold text-indigo-600 block mt-0.5">{pred.avgDelay} dias</span>
+                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Tempo Médio</span>
+                      <span className="font-bold text-indigo-700 block mt-1">{pred.avgDelay} dias</span>
                     </div>
                     <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-400 block uppercase font-bold text-[8px]">Est. Entrega</span>
-                      <span className={`font-bold block mt-0.5 ${pred.isOverdue ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Est. Entrega</span>
+                      <span className={`font-bold block mt-1 ${pred.isOverdue ? 'text-rose-700 font-extrabold' : 'text-emerald-700 font-extrabold'}`}>
                         {pred.estimatedDelivery}
                       </span>
                     </div>
