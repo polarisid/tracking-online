@@ -68,6 +68,34 @@ const getLtpClassification = (row) => {
   return 'Normal';
 };
 
+/**
+ * Checa se o motivo de pendência da ordem indica espera por peças.
+ * Suporta códigos originais (upload local) ou descrições (Supabase).
+ */
+const isPartsPendingReason = (row) => {
+  if (!row) return false;
+
+  // 1. Checa por código de motivo (se disponível, ex: upload local)
+  const code = String(row[13] || '').trim().toUpperCase();
+  const validCodes = ['HP040', 'HP041', 'HP042', 'HP045'];
+  if (code && validCodes.includes(code)) {
+    return true;
+  }
+
+  // 2. Checa pela descrição do motivo (para dados carregados do Supabase)
+  const reasonText = String(row[14] || '').trim().toLowerCase();
+  const partsKeywords = [
+    'parts in transit',
+    'parts back ordered',
+    'parts arrived',
+    'parts allocated',
+    'waiting for parts',
+    'waiting for part'
+  ];
+
+  return partsKeywords.some(keyword => reasonText.includes(keyword));
+};
+
 export default function IntelligencePanel({ data1, activeRoutes }) {
   const today = useMemo(() => new Date(), []);
 
@@ -223,8 +251,8 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       const isComplete = row[11] === 'ST035';
       const isIH = row[34] === 'IH';
 
-      // Ativa, do tipo IH, tem código de peça, mas não tem data de entrega
-      if (!isComplete && isIH && partCode && requestStr && (!deliveryStr || deliveryStr === '00/00/0000')) {
+      // Ativa, do tipo IH, depende de peça (HP040, HP041, HP042, HP045) e não tem data de entrega
+      if (!isComplete && isIH && partCode && requestStr && isPartsPendingReason(row) && (!deliveryStr || deliveryStr === '00/00/0000')) {
         const reqDate = parseDate(requestStr);
         if (reqDate) {
           const avgDelay = partAvgDelays[partCode] || 6; // fallback 6 dias se sem histórico
