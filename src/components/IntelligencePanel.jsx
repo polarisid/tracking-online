@@ -192,6 +192,7 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
           agingDays: aging,
           classification,
           product,
+          reason: row[14],
           matchingRoutes
         });
       }
@@ -353,10 +354,18 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
                     </span>
                   </div>
 
-                  {/* Detalhes Localização */}
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-600 mb-3 bg-slate-100/80 py-1 px-2 rounded-lg w-fit font-medium">
-                    <MapPin size={12} className="text-slate-400" />
-                    <span>{sug.city} {sug.neighborhood ? `— ${sug.neighborhood}` : ''}</span>
+                  {/* Detalhes Localização e Motivo */}
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-100/80 py-1 px-2 rounded-lg font-medium">
+                      <MapPin size={12} className="text-slate-400" />
+                      <span>{sug.city} {sug.neighborhood ? `— ${sug.neighborhood}` : ''}</span>
+                    </div>
+                    {sug.reason && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 bg-slate-100/80 py-1 px-2 rounded-lg font-medium">
+                        <span className="font-bold text-indigo-600">Motivo:</span>
+                        <span className="truncate max-w-[200px] md:max-w-[300px]" title={sug.reason}>{sug.reason}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Recomendações de Alocação */}
