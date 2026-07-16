@@ -150,7 +150,7 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       const neighborhood = row[5] || '';
       const aging = Number(row[15]) || 0;
       const classification = getLtpClassification(row);
-      const product = row[59] || row[9] || 'Aparelho';
+      const product = row[9] || 'Aparelho';
 
       const normCity = normalizeStr(city);
       const normNeighborhood = normalizeStr(neighborhood);
@@ -246,7 +246,7 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       const orderId = row[1];
       const clientName = row[3] || 'Cliente';
       const partCode = row[61];
-      const partDesc = row[59] || 'Peça de reposição';
+      const partDesc = row[9] || 'Modelo de Reposição';
       const requestStr = row[16];
       const deliveryStr = row[27];
       const isComplete = row[11] === 'ST035';
