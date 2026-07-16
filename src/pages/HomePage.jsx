@@ -18,6 +18,7 @@ import { UploadButton } from "../components/UploadButton";
 import useHomeContext from "../hooks/UseHomeContext";
 import BasicTabs from "../components/BasicTabs";
 import { supabase } from '../lib/supabaseClient';
+import IntelligencePanel from "../components/IntelligencePanel";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -1046,6 +1047,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
             popup
           />
         </CalendarContainer>
+        <IntelligencePanel data1={data1} activeRoutes={activeRoutes} />
       </BasicTabs>
 
       {

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   Table2, ChevronLeft, ChevronRight, Presentation,
   Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
-  LogIn, LogOut
+  LogIn, LogOut, Sparkles
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
 import { exportStyledCloudReport } from '../utils/cloudReportExporter';
@@ -13,6 +13,7 @@ const navItems = [
   { id: 'analysis', label: 'Análise', icon: Search, path: '/', tab: 1 },
   { id: 'charts', label: 'Gráficos', icon: BarChart3, path: '/', tab: 2 },
   { id: 'calendar', label: 'Calendário', icon: CalendarDays, path: '/', tab: 3 },
+  { id: 'optimization', label: 'Inteligência', icon: Sparkles, path: '/', tab: 4 },
   { id: 'tables', label: 'Tabelas', icon: Table2, path: '/beta' },
 ];
 
