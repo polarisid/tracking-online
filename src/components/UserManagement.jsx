@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { 
   Users, UserPlus, Trash2, Edit2, Shield, 
   Check, X, RefreshCw, AlertCircle, Plus, Info, Key
@@ -127,17 +128,25 @@ export default function UserManagement() {
           return;
         }
 
-        // 1. Cria a conta no Supabase Auth usando o RPC
-        const { error: createErr } = await supabase.rpc('admin_create_user', {
-          user_email: email.trim().toLowerCase(),
-          user_password: password
+        // 1. Cria a conta no Supabase Auth de forma limpa usando um cliente temporário (não afeta a sessão do admin)
+        const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+        const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+        
+        const tempSupabase = createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+          }
         });
 
-        if (createErr) {
-          if (createErr.message?.includes('function') && createErr.message?.includes('does not exist')) {
-            throw new Error('A função de banco de dados para criação de usuários não está instalada no Supabase. Você precisa executar o script SQL no SQL Editor do Supabase.');
-          }
-          throw createErr;
+        const { error: signUpErr } = await tempSupabase.auth.signUp({
+          email: email.trim().toLowerCase(),
+          password: password
+        });
+
+        if (signUpErr) {
+          throw signUpErr;
         }
 
         // 2. Insere as permissões na tabela user_permissions
