@@ -21,6 +21,7 @@ export default function UserManagement() {
   const [selectedTables, setSelectedTables] = useState([]);
   const [customTable, setCustomTable] = useState('');
   const [seeAll, setSeeAll] = useState(false);
+  const [password, setPassword] = useState('');
 
   // Password edit state
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -64,6 +65,7 @@ export default function UserManagement() {
     setSelectedTables([]);
     setCustomTable('');
     setSeeAll(false);
+    setPassword('');
   };
 
   const handleTableCheckboxChange = (table) => {
@@ -119,13 +121,32 @@ export default function UserManagement() {
         if (updateErr) throw updateErr;
         setSuccess('Permissões do usuário atualizadas com sucesso!');
       } else {
-        // Insert
+        if (!password || password.length < 6) {
+          setError('A senha é obrigatória e deve ter pelo menos 6 caracteres.');
+          setLoading(false);
+          return;
+        }
+
+        // 1. Cria a conta no Supabase Auth usando o RPC
+        const { error: createErr } = await supabase.rpc('admin_create_user', {
+          user_email: email.trim().toLowerCase(),
+          user_password: password
+        });
+
+        if (createErr) {
+          if (createErr.message?.includes('function') && createErr.message?.includes('does not exist')) {
+            throw new Error('A função de banco de dados para criação de usuários não está instalada no Supabase. Você precisa executar o script SQL no SQL Editor do Supabase.');
+          }
+          throw createErr;
+        }
+
+        // 2. Insere as permissões na tabela user_permissions
         const { error: insertErr } = await supabase
           .from('user_permissions')
           .insert(payload);
         
         if (insertErr) throw insertErr;
-        setSuccess('Novo usuário adicionado com sucesso!');
+        setSuccess('Novo usuário adicionado e cadastrado com sucesso!');
       }
 
       resetForm();
@@ -320,6 +341,21 @@ export default function UserManagement() {
                 <option value="admin">Administrador (Controle Total)</option>
               </select>
             </div>
+
+            {/* Senha - Apenas para cadastro de novo usuário */}
+            {!isEditing && (
+              <div className="space-y-1.5 animate-fadeIn">
+                <label className="text-slate-500 font-bold block uppercase tracking-wider">Senha do Usuário</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-800 placeholder-slate-400 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                />
+              </div>
+            )}
 
             {/* Permissões de Visualização */}
             <div className="space-y-2 border-t border-slate-100 pt-4">
