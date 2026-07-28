@@ -54,6 +54,117 @@ export function HomeProvider({ children }) {
     return localStorage.getItem('tracking_local_mode') === 'true';
   });
 
+  const [userRole, setUserRole] = useState(null);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
+
+  const checkPermissions = async () => {
+    if (!user) return;
+    try {
+      // 1. Busca permissão do usuário logado
+      const { data, error } = await supabase
+        .from('user_permissions')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[Permissions] Erro ao carregar permissões:', error.message);
+        setIsPendingApproval(true);
+        setTablesList([]);
+        return;
+      }
+
+      if (data) {
+        // Usuário existe no cadastro de permissões
+        setUserRole(data.role);
+        setIsPendingApproval(false);
+
+        const defaults = ['asc_0003198122', 'asc_0005286953'];
+        let finalTables = [];
+
+        if (data.allowed_tables?.includes('*') || data.role === 'admin') {
+          // Acesso a todas
+          try {
+            const stored = localStorage.getItem('tracking_tables_list');
+            const parsed = stored ? JSON.parse(stored) : [];
+            finalTables = Array.from(new Set([...defaults, ...parsed]));
+          } catch (e) {
+            finalTables = defaults;
+          }
+        } else {
+          // Acesso restrito
+          finalTables = data.allowed_tables || [];
+        }
+
+        setTablesList(finalTables);
+
+        // Ajusta a tabela selecionada ativa se não for permitida
+        if (finalTables.length > 0 && !finalTables.includes(selectedTable)) {
+          setSelectedTable(finalTables[0]);
+        }
+      } else {
+        // Usuário não está na tabela de permissões. Vamos verificar se a tabela está totalmente vazia (bootstrapping)
+        const { count, error: countError } = await supabase
+          .from('user_permissions')
+          .select('*', { count: 'exact', head: true });
+
+        if (!countError && count === 0) {
+          // A tabela de permissões está vazia! Registra o primeiro usuário como admin com acesso total
+          const defaults = ['asc_0003198122', 'asc_0005286953'];
+          const { error: insertError } = await supabase
+            .from('user_permissions')
+            .insert({
+              email: user.email,
+              role: 'admin',
+              allowed_tables: ['*']
+            });
+
+          if (insertError) {
+            console.error('[Permissions] Erro no auto-cadastro admin:', insertError.message);
+            setIsPendingApproval(true);
+            setTablesList([]);
+          } else {
+            console.log('[Permissions] Primeiro usuário autoinicializado como admin!');
+            setUserRole('admin');
+            setTablesList(defaults);
+            setIsPendingApproval(false);
+          }
+        } else {
+          // Já existem usuários cadastrados, então este novo usuário deve aguardar liberação
+          setIsPendingApproval(true);
+          setUserRole('user');
+          setTablesList([]);
+        }
+      }
+    } catch (err) {
+      console.error('[Permissions] Erro genérico de permissões:', err);
+      setIsPendingApproval(true);
+      setTablesList([]);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      checkPermissions();
+    } else {
+      setUserRole(null);
+      setIsPendingApproval(false);
+      // Reset tablesList para os padrões do local ao deslogar
+      const defaults = ['asc_0003198122', 'asc_0005286953'];
+      try {
+        const stored = localStorage.getItem('tracking_tables_list');
+        if (stored) {
+          setTablesList(Array.from(new Set([...defaults, ...JSON.parse(stored)])));
+        } else {
+          setTablesList(defaults);
+        }
+      } catch (e) {
+        setTablesList(defaults);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   useEffect(() => {
     localStorage.setItem('tracking_selected_table', selectedTable);
   }, [selectedTable]);
@@ -270,7 +381,10 @@ export function HomeProvider({ children }) {
         activeRoutes,
         activeOrderIdsSet,
         activeRoutesLoading,
-        refetchActiveRoutes
+        refetchActiveRoutes,
+        userRole,
+        isPendingApproval,
+        refreshPermissions: checkPermissions
       }}
     >
       {children}

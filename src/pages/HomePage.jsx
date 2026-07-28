@@ -19,6 +19,7 @@ import useHomeContext from "../hooks/UseHomeContext";
 import BasicTabs from "../components/BasicTabs";
 import { supabase } from '../lib/supabaseClient';
 import IntelligencePanel from "../components/IntelligencePanel";
+import UserManagement from "../components/UserManagement";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -70,7 +71,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
     setComparisonMode,
     history,
     setHistory,
-    activeRoutes
+    activeRoutes,
+    userRole
   } = useHomeContext();
 
   const [presentationMode, setPresentationMode] = useState(false);
@@ -1048,6 +1050,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
           />
         </CalendarContainer>
         <IntelligencePanel data1={data1} activeRoutes={activeRoutes} />
+        {userRole === 'admin' ? <UserManagement /> : <div className="text-xs text-slate-500 font-semibold p-6 text-center">Acesso restrito ao administrador.</div>}
       </BasicTabs>
 
       {

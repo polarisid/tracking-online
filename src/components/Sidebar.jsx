@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   Table2, ChevronLeft, ChevronRight, Presentation,
   Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
-  LogIn, LogOut, Sparkles
+  LogIn, LogOut, Sparkles, Users
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
 import { exportStyledCloudReport } from '../utils/cloudReportExporter';
@@ -33,10 +33,18 @@ const Sidebar = ({
   tablesList,
   setTablesList
 }) => {
-  const { user, signOut, setIsLocalMode, data1, activeRoutes } = useHomeContext();
+  const { user, signOut, setIsLocalMode, data1, activeRoutes, userRole } = useHomeContext();
   const [activeId, setActiveId] = React.useState('dashboard');
   const pendingInputRef = useRef(null);
   const citiesInputRef = useRef(null);
+
+  const items = React.useMemo(() => {
+    const list = [...navItems];
+    if (userRole === 'admin') {
+      list.push({ id: 'users', label: 'Usuários', icon: Users, path: '/', tab: 5 });
+    }
+    return list;
+  }, [userRole]);
 
   return (
     <aside
@@ -63,7 +71,7 @@ const Sidebar = ({
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
 
           return (
@@ -220,9 +228,11 @@ const Sidebar = ({
                       {t}
                     </option>
                   ))}
-                  <option value="__add_new__" className="text-blue-400 font-bold bg-slate-850">
-                    + Adicionar Tabela...
-                  </option>
+                  {userRole === 'admin' && (
+                    <option value="__add_new__" className="text-blue-400 font-bold bg-slate-850">
+                      + Adicionar Tabela...
+                    </option>
+                  )}
                 </select>
               </div>
             )}

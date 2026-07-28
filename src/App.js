@@ -33,7 +33,9 @@ const AppContent = () => {
     tablesList,
     setTablesList,
     user,
-    isLocalMode
+    isLocalMode,
+    isPendingApproval,
+    signOut
   } = useHomeContext();
 
   // Carregamento automático da nuvem (Supabase)
@@ -91,6 +93,41 @@ const AppContent = () => {
 
   if (!user && !isLocalMode) {
     return <LoginPage />;
+  }
+
+  if (user && isPendingApproval) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-950 relative overflow-hidden font-sans">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none" />
+
+        <div className="w-full max-w-md mx-4 bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] text-center animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto mb-4 border border-amber-500/25">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h1 className="text-white font-extrabold text-lg tracking-tight mb-1">Acesso Pendente</h1>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-6">Tracking Online</p>
+          
+          <div className="bg-slate-950/40 border border-slate-800 p-4 rounded-xl mb-6 text-left space-y-2">
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">Usuário Logado</p>
+            <p className="text-xs text-blue-400 font-bold font-mono break-all">{user.email}</p>
+          </div>
+
+          <p className="text-slate-300 text-xs md:text-sm leading-relaxed mb-6 font-medium">
+            Seu cadastro foi efetuado no sistema, mas você ainda não possui permissão para visualizar nenhuma operação.
+            <br />
+            <span className="text-slate-400 text-xs mt-2 block font-semibold">Entre em contato com o administrador para liberar seu acesso.</span>
+          </p>
+          <button
+            onClick={() => signOut()}
+            className="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-750 hover:text-white text-slate-200 font-bold py-2.5 px-4 rounded-lg text-xs border border-slate-700 transition-all duration-200"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <span>Desconectar Conta</span>
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
