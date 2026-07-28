@@ -3,12 +3,13 @@ import { Mail, Lock, AlertCircle, Eye, EyeOff, Loader2, Cloud, FileSpreadsheet }
 import useHomeContext from '../hooks/UseHomeContext';
 
 export default function LoginPage() {
-  const { signIn, setIsLocalMode } = useHomeContext();
+  const { signIn, signUp, setIsLocalMode } = useHomeContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,13 +22,17 @@ export default function LoginPage() {
     setError('');
 
     try {
-      await signIn(email, password);
+      if (isSignUp) {
+        await signUp(email, password);
+      } else {
+        await signIn(email, password);
+      }
     } catch (err) {
       console.error(err);
       if (err.message === 'Invalid login credentials') {
         setError('E-mail ou senha incorretos.');
       } else {
-        setError(err.message || 'Erro ao realizar login. Tente novamente.');
+        setError(err.message || 'Erro ao processar solicitação. Tente novamente.');
       }
     } finally {
       setLoading(false);
@@ -52,7 +57,7 @@ export default function LoginPage() {
             Tracking <span className="text-blue-400">Online</span>
           </h1>
           <p className="text-slate-400 text-xs mt-1.5 font-medium tracking-wide uppercase">
-            Autenticação do Sistema
+            {isSignUp ? 'Cadastro de Conta' : 'Autenticação do Sistema'}
           </p>
         </div>
 
@@ -121,14 +126,26 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Autenticando...</span>
+                <span>{isSignUp ? 'Cadastrando...' : 'Autenticando...'}</span>
               </>
             ) : (
               <>
                 <Cloud size={16} />
-                <span>Acessar Nuvem</span>
+                <span>{isSignUp ? 'Criar Nova Conta' : 'Acessar Nuvem'}</span>
               </>
             )}
+          </button>
+          
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              setIsSignUp(!isSignUp);
+              setError('');
+            }}
+            className="w-full text-center text-slate-450 text-[11px] font-bold text-slate-400 hover:text-blue-400 uppercase tracking-wider py-1.5 transition-colors mt-2 cursor-pointer"
+          >
+            {isSignUp ? 'Já tem uma conta? Entrar' : 'Não tem conta? Solicitar Acesso / Cadastrar'}
           </button>
         </form>
 

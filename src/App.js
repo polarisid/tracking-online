@@ -56,9 +56,9 @@ const AppContent = () => {
     if (user && !manualDataLoaded && cloudData && cloudData.length > 0) {
       setData1(cloudData);
       setDataSource(`Supabase (${selectedTable})`);
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const dateStr = now.toLocaleDateString('pt-BR');
+      const syncDate = cloudData.latestSync ? new Date(cloudData.latestSync) : new Date();
+      const timeStr = syncDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const dateStr = syncDate.toLocaleDateString('pt-BR');
       setLastUpdated(`${dateStr} ${timeStr}`);
     }
   }, [cloudData, manualDataLoaded, setData1, setDataSource, setLastUpdated, selectedTable, user]);

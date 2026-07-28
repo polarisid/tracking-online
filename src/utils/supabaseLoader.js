@@ -201,5 +201,19 @@ export const fetchServiceOrders = async (tableName = TABLE_NAME) => {
 
   const dataRows = activeRows.map(rowToArray);
 
-  return [headerRow, ...dataRows];
+  const result = [headerRow, ...dataRows];
+
+  // Encontra a maior data de sincronização (synced_at)
+  let latestSync = null;
+  for (const row of activeRows) {
+    if (row.synced_at) {
+      const d = new Date(row.synced_at);
+      if (!latestSync || d > latestSync) {
+        latestSync = d;
+      }
+    }
+  }
+  result.latestSync = latestSync;
+
+  return result;
 };
