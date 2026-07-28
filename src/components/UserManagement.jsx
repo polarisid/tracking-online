@@ -22,6 +22,11 @@ export default function UserManagement() {
   const [customTable, setCustomTable] = useState('');
   const [seeAll, setSeeAll] = useState(false);
 
+  // Password edit state
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordTargetEmail, setPasswordTargetEmail] = useState('');
+  const [newPasswordVal, setNewPasswordVal] = useState('');
+
   const availableTables = React.useMemo(() => {
     const defaults = ['asc_0003198122', 'asc_0005286953'];
     return Array.from(new Set([...defaults, ...(tablesList || [])]));
@@ -185,22 +190,47 @@ export default function UserManagement() {
     }
   };
 
-  const handleResetPasswordClick = async (email) => {
-    if (!window.confirm(`Enviar e-mail de redefinição de senha para ${email}?`)) {
+  const handleOpenPasswordModal = (targetEmail) => {
+    setPasswordTargetEmail(targetEmail);
+    setNewPasswordVal('');
+    setShowPasswordModal(true);
+    setError('');
+    setSuccess('');
+  };
+
+  const handlePasswordChangeSubmit = async (e) => {
+    e.preventDefault();
+    if (!newPasswordVal || newPasswordVal.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
       return;
     }
+
     setLoading(true);
     setError('');
     setSuccess('');
+
     try {
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}`
+      const { data, error: rpcErr } = await supabase.rpc('admin_update_user_password', {
+        user_email: passwordTargetEmail,
+        new_password: newPasswordVal
       });
-      if (resetErr) throw resetErr;
-      setSuccess(`E-mail de redefinição de senha enviado com sucesso para ${email}!`);
+
+      if (rpcErr) {
+        if (rpcErr.message?.includes('function') && rpcErr.message?.includes('does not exist')) {
+          throw new Error('A função de banco de dados não está instalada no Supabase. Execute o script SQL no SQL Editor do Supabase para habilitar a alteração direta de senha.');
+        }
+        throw rpcErr;
+      }
+
+      if (data) {
+        setSuccess(`Senha do usuário ${passwordTargetEmail} alterada com sucesso!`);
+        setShowPasswordModal(false);
+      } else {
+        throw new Error('Usuário não encontrado ou nenhuma senha foi alterada.');
+      }
     } catch (err) {
       console.error(err);
-      setError('Erro ao enviar e-mail de redefinição: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -461,9 +491,9 @@ export default function UserManagement() {
                       <td className="py-3.5 px-2 text-right">
                         <div className="flex justify-end gap-1.5">
                           <button
-                            onClick={() => handleResetPasswordClick(usr.email)}
+                            onClick={() => handleOpenPasswordModal(usr.email)}
                             className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
-                            title="Redefinir senha (enviar e-mail)"
+                            title="Alterar Senha do Usuário"
                           >
                             <Key size={13} />
                           </button>
@@ -493,6 +523,70 @@ export default function UserManagement() {
         </div>
 
       </div>
+
+      {/* Modal de Alteração de Senha */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xl w-full max-w-sm animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+              <div className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
+                <Key size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Alterar Senha</h3>
+                <p className="text-[10px] text-slate-400 font-medium">Defina uma nova senha para o usuário</p>
+              </div>
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="ml-auto text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePasswordChangeSubmit} className="space-y-4 text-xs font-semibold text-slate-650">
+              <div className="bg-slate-50 border border-slate-150 p-3 rounded-lg space-y-1">
+                <span className="text-[10px] text-slate-400 block uppercase tracking-wider font-bold">Usuário</span>
+                <span className="text-xs text-slate-800 font-bold font-mono break-all block">{passwordTargetEmail}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-bold block uppercase tracking-wider">Nova Senha</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Min. 6 caracteres"
+                  value={newPasswordVal}
+                  onChange={(e) => setNewPasswordVal(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-750 font-bold py-2 rounded-lg text-xs transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition-all shadow-md shadow-blue-650/10"
+                >
+                  {loading ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <Check size={14} />
+                  )}
+                  <span>Salvar Senha</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
