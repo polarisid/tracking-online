@@ -30,7 +30,7 @@ export default function UserManagement() {
   const [newPasswordVal, setNewPasswordVal] = useState('');
 
   const availableTables = React.useMemo(() => {
-    const defaults = ['asc_0003198122', 'asc_0005286953'];
+    const defaults = ['asc_0003198122', 'asc_0005286953', 'asc_0003886546'];
     return Array.from(new Set([...defaults, ...(tablesList || [])]));
   }, [tablesList]);
 
