@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 import useHomeContext from '../hooks/UseHomeContext';
 
 export default function UserManagement() {
-  const { user: currentUser, refreshPermissions } = useHomeContext();
+  const { user: currentUser, refreshPermissions, tablesList } = useHomeContext();
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,10 @@ export default function UserManagement() {
   const [customTable, setCustomTable] = useState('');
   const [seeAll, setSeeAll] = useState(false);
 
-  const availableTables = ['asc_0003198122', 'asc_0005286953'];
+  const availableTables = React.useMemo(() => {
+    const defaults = ['asc_0003198122', 'asc_0005286953'];
+    return Array.from(new Set([...defaults, ...(tablesList || [])]));
+  }, [tablesList]);
 
   // Carrega lista de usuários
   const fetchUsers = async () => {
