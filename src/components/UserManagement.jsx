@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, UserPlus, Trash2, Edit2, Shield, 
-  Check, X, RefreshCw, AlertCircle, Plus, Info
+  Check, X, RefreshCw, AlertCircle, Plus, Info, Key
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import useHomeContext from '../hooks/UseHomeContext';
@@ -180,6 +180,27 @@ export default function UserManagement() {
     } catch (err) {
       console.error(err);
       setError('Erro ao remover usuário: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPasswordClick = async (email) => {
+    if (!window.confirm(`Enviar e-mail de redefinição de senha para ${email}?`)) {
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}`
+      });
+      if (resetErr) throw resetErr;
+      setSuccess(`E-mail de redefinição de senha enviado com sucesso para ${email}!`);
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao enviar e-mail de redefinição: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -439,6 +460,13 @@ export default function UserManagement() {
                       </td>
                       <td className="py-3.5 px-2 text-right">
                         <div className="flex justify-end gap-1.5">
+                          <button
+                            onClick={() => handleResetPasswordClick(usr.email)}
+                            className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+                            title="Redefinir senha (enviar e-mail)"
+                          >
+                            <Key size={13} />
+                          </button>
                           <button
                             onClick={() => handleEditClick(usr)}
                             className="p-1 text-slate-400 hover:text-blue-600 hover:bg-slate-100 rounded-md transition-colors"
