@@ -21,17 +21,38 @@ const MX_CODES = ["NPC01", "NPC02", "NPC03", "THB01", "THB02", "THB03", "THB05",
   "THB04", "THB05", "THB42", "THB43", "THB44", "THB96", "THB98", "THB99", "THBZ1", "THBZ2", "THBZ5", "NPC01", "NPC02", "NPC03", "NPC99",
   "SDT02"];
 
-const isPastDate = (dateStr) => {
-  if (!dateStr) return false;
-  const parts = dateStr.split("/");
-  if (parts.length !== 3) return false;
-  // A string original do sistema é DD/MM/YYYY
-  const day = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1;
-  const year = parseInt(parts[2], 10);
+const parseDateString = (dateStr) => {
+  if (!dateStr) return null;
+  const str = String(dateStr).trim();
+  
+  // Formato ISO: YYYY-MM-DD
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const d = new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 
-  const d = new Date(year, month, day);
-  d.setHours(0, 0, 0, 0);
+  // Formato DD/MM/YYYY ou D/M/YY
+  const parts = str.split("/");
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      const d = new Date(year, month, day);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+  }
+  return null;
+};
+
+const isPastDate = (dateStr) => {
+  const d = parseDateString(dateStr);
+  if (!d) return false;
   
   const t = new Date();
   t.setHours(0, 0, 0, 0);
