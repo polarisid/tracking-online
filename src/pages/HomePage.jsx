@@ -577,6 +577,32 @@ const HomePage = ({ activeTab, onTabChange }) => {
   );
   const quantity_all_DTV_LP = planilha_all_DTV_LP.length;
 
+  // Mapa OS/AscJob → nome da rota (ex: "Rota Breno - Aracaju")
+  const orderRouteMap = React.useMemo(() => {
+    const map = {};
+    if (!activeRoutes || !Array.isArray(activeRoutes)) return map;
+    activeRoutes.forEach(route => {
+      const routeName = route.name || 'Rota s/ nome';
+      route.stops?.forEach(stop => {
+        if (stop.serviceOrder) map[String(stop.serviceOrder).trim()] = routeName;
+        if (stop.ascJobNumber) map[String(stop.ascJobNumber).trim()] = routeName;
+      });
+      route.serviceOrders?.forEach(order => {
+        if (order.serviceOrderNumber) map[String(order.serviceOrderNumber).trim()] = routeName;
+      });
+      route.finalizadas?.forEach(o => {
+        if (o.serviceOrderNumber) map[String(o.serviceOrderNumber).trim()] = routeName;
+      });
+      route.pendentes?.forEach(o => {
+        if (o.serviceOrderNumber) map[String(o.serviceOrderNumber).trim()] = routeName;
+      });
+      route.a_fazer?.forEach(o => {
+        if (o.serviceOrderNumber) map[String(o.serviceOrderNumber).trim()] = routeName;
+      });
+    });
+    return map;
+  }, [activeRoutes]);
+
   const planilha_FTF_Backlog_IH = combinedData.slice(1).filter(filters.filter_FTF_Backlog_IH);
   const ftfBacklogReasonCounts = planilha_FTF_Backlog_IH.reduce((acc, row) => {
     const reason = row[14] || "N/A";
@@ -923,6 +949,9 @@ const HomePage = ({ activeTab, onTabChange }) => {
       return id === os1 || id === os2 || id === os3;
     });
 
+    // Busca nome da rota para esta OS
+    const routeName = orderRouteMap[os2] || orderRouteMap[os3] || orderRouteMap[os1] || null;
+
     let rowStyle = {};
     let borderClass = '';
 
@@ -946,11 +975,19 @@ const HomePage = ({ activeTab, onTabChange }) => {
     return (
       <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
         {columns.map((colIndex) => (
-          <td key={colIndex}>{renderBadge(row[colIndex])}</td>
+          <td key={colIndex}>
+            {colIndex === 38
+              ? (routeName
+                  ? <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{routeName}</span>
+                  : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>)
+              : renderBadge(row[colIndex])
+            }
+          </td>
         ))}
       </tr>
     );
   };
+
 
 
   return (
