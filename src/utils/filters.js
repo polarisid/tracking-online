@@ -260,6 +260,17 @@ const filters = {
     const isBacklog = row[15] > 7;
     return isIH && isBacklog;
   },
+
+  // Todas as ordens DTV (Digital TV) somente LP + IH
+  all_lp_DTV: (row) => {
+    const isLP = row[37] === "LP";
+    const isIH = row[34] === "IH";
+    const DTV_CODES = ["DTV01", "DTV02", "LTV01", "LTV02", "LTV99", "LED01", "LED02", "LED03", "LED85",
+      "CTV01", "CTV02", "CTV97", "CTV98", "CTV99", "BTV01", "HTV01", "HTV02", "WTV01",
+      "PDP01", "PDP02", "LFD01", "LFD02", "TFT01", "TFT02", "MON01", "LDI01", "LDI02",
+      "PJM01", "PJM99", "PJT01", "MST01", "MOT01"];
+    return isLP && isIH && DTV_CODES.includes(row[58]);
+  },
 };
 
 export default filters;

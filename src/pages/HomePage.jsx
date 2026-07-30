@@ -394,6 +394,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
     0, 1, 2, 9, 14, 15, 37, 22, 34, 24, 27,
   ];
   const columnsToShow_type_service = [0, 1, 2, 9, 14, 15, 37, 22, 34];
+  // Colunas da tabela enriquecida: OS, Nome, Cidade, Modelo, Reason, LTP, Previsão, Peça, Garantia, Técnico (Rota)
+  const columnsToShow_ltp_analysis = [1, 3, 4, 9, 14, 15, 24, 61, 37, 38];
 
   // Helper para analisar e converter valores de data (string formatada ou serial Excel)
   const parseDateVal = (val) => {
@@ -569,6 +571,11 @@ const HomePage = ({ activeTab, onTabChange }) => {
     combinedData.slice(1).filter(filters.filter_all_outdated_orders)
   );
   const quantity_all_outdated_orders = planilha_all_outdated_orders.length;
+
+  const planilha_all_DTV_LP = sortData(
+    combinedData.slice(1).filter(filters.all_lp_DTV)
+  );
+  const quantity_all_DTV_LP = planilha_all_DTV_LP.length;
 
   const planilha_FTF_Backlog_IH = combinedData.slice(1).filter(filters.filter_FTF_Backlog_IH);
   const ftfBacklogReasonCounts = planilha_FTF_Backlog_IH.reduce((acc, row) => {
@@ -899,6 +906,53 @@ const HomePage = ({ activeTab, onTabChange }) => {
   };
 
 
+  // Função renderRowLTP com marcação de LTP (amarelo) e EX-LTP (vermelho) por pending_aging_days
+  const LTP_DA_THRESHOLD = 5;
+  const EX_LTP_DA_THRESHOLD = 10;
+  const LTP_DTV_THRESHOLD = 5;
+  const EX_LTP_DTV_THRESHOLD = 10;
+
+  const renderRowLTP = (row, rowIndex, columns, ltpThreshold, exLtpThreshold) => {
+    const aging = parseFloat(row[15]) || 0;
+    const os1 = String(row[0] || '').trim();
+    const os2 = String(row[1] || '').trim();
+    const os3 = String(row[2] || '').trim();
+
+    const inSet = (set) => set.some(r => {
+      const id = String(r[1] || r[2] || '').trim();
+      return id === os1 || id === os2 || id === os3;
+    });
+
+    let rowStyle = {};
+    let borderClass = '';
+
+    if (inSet(inRouteByStatus.finalizadas)) {
+      rowStyle = { background: '#bbf7d0' };
+      borderClass = 'border-l-4 border-green-600';
+    } else if (inSet(inRouteByStatus.pendentes)) {
+      rowStyle = { background: '#fecaca' };
+      borderClass = 'border-l-4 border-red-600';
+    } else if (inSet(inRouteByStatus.a_fazer)) {
+      rowStyle = { background: '#bfdbfe' };
+      borderClass = 'border-l-4 border-blue-600';
+    } else if (aging >= exLtpThreshold) {
+      rowStyle = { background: '#fee2e2' };
+      borderClass = 'border-l-4 border-red-500';
+    } else if (aging >= ltpThreshold) {
+      rowStyle = { background: '#fef9c3' };
+      borderClass = 'border-l-4 border-yellow-400';
+    }
+
+    return (
+      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
+        {columns.map((colIndex) => (
+          <td key={colIndex}>{renderBadge(row[colIndex])}</td>
+        ))}
+      </tr>
+    );
+  };
+
+
   return (
     <MainContainer>
       {presentationMode && (
@@ -992,7 +1046,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
           <StatCard title="FTF (ST025)" value={quantity_FTF} onClick={() => toggleVisibility(60)} isActive={visibleComponents[60]} iconName="CheckCircle" diff={calcDiff(quantity_FTF, 'quantity_FTF')} />
         </Dashboard>
         <Dashboard>
-          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(31)} isActive={visibleComponents[31]} diff={calcDiff(quantityDa, 'quantityDa')} />
+          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(91)} isActive={visibleComponents[91]} diff={calcDiff(quantityDa, 'quantityDa')} />
+          <StatCard title="TODOS DTV LP" value={quantity_all_DTV_LP} onClick={() => toggleVisibility(92)} isActive={visibleComponents[92]} diff={calcDiff(quantity_all_DTV_LP, 'quantity_all_DTV_LP')} />
           <StatCard title="D+3" value={quantity_LP_up_to_3_days} onClick={() => toggleVisibility(80)} isActive={visibleComponents[80]} type="CI" diff={calcDiff(quantity_LP_up_to_3_days, 'quantity_LP_up_to_3_days')} />
           <StatCard title="Ordens Desatualizadas" value={quantity_all_outdated_orders} onClick={() => toggleVisibility(81)} isActive={visibleComponents[81]} type="high" iconName="AlertTriangle" diff={calcDiff(quantity_all_outdated_orders, 'quantity_all_outdated_orders')} />
 
@@ -1530,6 +1585,76 @@ const HomePage = ({ activeTab, onTabChange }) => {
                 </thead>
                 <tbody>
                   {planilha_all_outdated_orders.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+            {/* Card 91 - DA LP com marcação LTP/EX-LTP e Rota/Previsão */}
+            <ToggleableComponent isVisible={visibleComponents[91]}>
+              <h2>Todos DA LP — Análise de Rota e LTP</h2>
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
+                  LTP (≥{LTP_DA_THRESHOLD} dias)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
+                  EX-LTP (≥{EX_LTP_DA_THRESHOLD} dias)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
+                  Em Rota (A Fazer)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
+                  Em Rota (Finalizado)
+                </span>
+              </div>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow_ltp_analysis.map((colIndex) => (
+                      <th key={colIndex}>{colIndex === 38 ? 'Técnico / Rota' : colIndex === 24 ? 'Previsão Atend.' : (combinedData[0][colIndex] || colIndex)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedData8.map((row, rowIndex) => renderRowLTP(row, rowIndex, columnsToShow_ltp_analysis, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD))}
+                </tbody>
+              </table>
+            </ToggleableComponent>
+
+            {/* Card 92 - DTV LP com marcação LTP/EX-LTP e Rota/Previsão */}
+            <ToggleableComponent isVisible={visibleComponents[92]}>
+              <h2>Todos DTV LP — Análise de Rota e LTP</h2>
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
+                  LTP (≥{LTP_DTV_THRESHOLD} dias)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
+                  EX-LTP (≥{EX_LTP_DTV_THRESHOLD} dias)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
+                  Em Rota (A Fazer)
+                </span>
+                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
+                  Em Rota (Finalizado)
+                </span>
+              </div>
+              <table className="toggleDiv">
+                <thead>
+                  <tr>
+                    {columnsToShow_ltp_analysis.map((colIndex) => (
+                      <th key={colIndex}>{colIndex === 38 ? 'Técnico / Rota' : colIndex === 24 ? 'Previsão Atend.' : (combinedData[0][colIndex] || colIndex)}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {planilha_all_DTV_LP.map((row, rowIndex) => renderRowLTP(row, rowIndex, columnsToShow_ltp_analysis, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD))}
                 </tbody>
               </table>
             </ToggleableComponent>
