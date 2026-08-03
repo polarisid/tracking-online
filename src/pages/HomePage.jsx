@@ -20,6 +20,7 @@ import BasicTabs from "../components/BasicTabs";
 import { supabase } from '../lib/supabaseClient';
 import IntelligencePanel from "../components/IntelligencePanel";
 import UserManagement from "../components/UserManagement";
+import { getCleanSourceName } from "../utils/dataSource";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -744,16 +745,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
 
     if (isDifferent) {
       // Extrai um identificador limpo para a tabela/arquivo
-      let cleanSource = "local";
-      if (dataSource && dataSource.includes("Supabase")) {
-        const match = dataSource.match(/\(([^)]+)\)/);
-        cleanSource = match ? match[1] : "asc_0003198122";
-      } else if (dataSource && dataSource.includes("Planilha Local")) {
-        const match = dataSource.match(/\(([^)]+)\)/);
-        cleanSource = match ? match[1] : "local";
-      } else if (dataSource) {
-        cleanSource = dataSource;
-      }
+      const cleanSource = getCleanSourceName(dataSource);
 
       const newEntry = {
         timestamp: Date.now(),
@@ -1141,7 +1133,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
             popup
           />
         </CalendarContainer>
-        <IntelligencePanel data1={data1} activeRoutes={activeRoutes} />
+        <IntelligencePanel data1={data1} activeRoutes={activeRoutes} dataSource={dataSource} />
         {userRole === 'admin' ? <UserManagement /> : <div className="text-xs text-slate-500 font-semibold p-6 text-center">Acesso restrito ao administrador.</div>}
       </BasicTabs>
 

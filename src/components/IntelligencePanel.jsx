@@ -1,9 +1,67 @@
-import React, { useMemo } from 'react';
-import { 
-  Brain, Sparkles, MapPin, Truck, AlertTriangle, 
-  Clock, Package, ArrowRight, UserCheck
+import React, { useMemo, useState, useEffect } from 'react';
+import {
+  Brain, Sparkles, MapPin, Truck, AlertTriangle,
+  Clock, ArrowRight, UserCheck,
+  ListChecks, Loader2, Wand2, CircleCheck, Wrench, ShieldAlert,
+  Copy, Check, Flame, TrendingUp, Gauge, Zap, Layers, Database
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import filters from '../utils/filters';
+import { formatDateToDDMMYYYY } from '../utils/dateFomatter';
+import { supabase } from '../lib/supabaseClient';
+import { getCleanSourceName } from '../utils/dataSource';
+
+const AI_CHECKLIST_CACHE_KEY = 'tracking_ai_checklist_cache';
+const HISTORY_LOOKBACK_DAYS = 14;
+
+/**
+ * Hash curto e estável (FNV-1a) usado só para comparar payloads no cache local,
+ * não para segurança.
+ */
+const hashString = (str) => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+/**
+ * Fingerprint do payload enviado à IA — muda sempre que os casos críticos
+ * relevantes mudam, permitindo detectar quando o checklist pode ser reaproveitado.
+ */
+const computeChecklistFingerprint = (criticalCasesTop20, totals) => {
+  const normalized = criticalCasesTop20
+    .map(c => `${c.orderId}|${c.categories.join(',')}|${c.agingDays}`)
+    .join(';');
+  return hashString(`${normalized}::${JSON.stringify(totals)}`);
+};
+
+const STATUS_LABELS = {
+  ST015: 'Acknowledge (ASC)',
+  ST025: 'Engineer Assigned',
+  ST030: 'Pending',
+  ST035: 'Repair Completed',
+};
+
+const REASON_LABELS = {
+  HE004: 'Appointment Date is set',
+  HE005: 'Repair in progress',
+};
+
+const CATEGORY_META = {
+  sem_reparo_iniciado: { label: 'Sem Reparo Iniciado', color: 'bg-rose-50 text-rose-700 border-rose-200/60' },
+  status_incorreto_rota: { label: 'Status Incorreto em Rota', color: 'bg-amber-100 text-amber-700 border-amber-250/60' },
+  sem_evolucao_sistema: { label: 'Sem Evolução no Sistema', color: 'bg-purple-50 text-purple-700 border-purple-200/60' },
+  desatualizado: { label: 'Desatualizado', color: 'bg-slate-200 text-slate-700 border-slate-300/60' },
+};
+
+const SERVICE_TYPE_META = {
+  IH: { label: 'IH', color: 'bg-blue-50 text-blue-700 border-blue-200/60' },
+  II: { label: 'II', color: 'bg-purple-50 text-purple-700 border-purple-200/60' },
+  SH: { label: 'SH', color: 'bg-teal-50 text-teal-700 border-teal-200/60' },
+};
 
 /**
  * Utilitário de normalização de strings para comparação flexível.
@@ -68,36 +126,9 @@ const getLtpClassification = (row) => {
   return 'Normal';
 };
 
-/**
- * Checa se o motivo de pendência da ordem indica espera por peças.
- * Suporta códigos originais (upload local) ou descrições (Supabase).
- */
-const isPartsPendingReason = (row) => {
-  if (!row) return false;
-
-  // 1. Checa por código de motivo (se disponível, ex: upload local)
-  const code = String(row[13] || '').trim().toUpperCase();
-  const validCodes = ['HP040', 'HP041', 'HP042', 'HP045'];
-  if (code && validCodes.includes(code)) {
-    return true;
-  }
-
-  // 2. Checa pela descrição do motivo (para dados carregados do Supabase)
-  const reasonText = String(row[14] || '').trim().toLowerCase();
-  const partsKeywords = [
-    'parts in transit',
-    'parts back ordered',
-    'parts arrived',
-    'parts allocated',
-    'waiting for parts',
-    'waiting for part'
-  ];
-
-  return partsKeywords.some(keyword => reasonText.includes(keyword));
-};
-
-export default function IntelligencePanel({ data1, activeRoutes }) {
+export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
   const today = useMemo(() => new Date(), []);
+  const cleanSource = useMemo(() => getCleanSourceName(dataSource), [dataSource]);
 
   // 1. Mapeamento de OS em rotas ativas (Set de cache rápido)
   const routeOrdersSet = useMemo(() => {
@@ -130,6 +161,11 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
       // Apenas ordens do tipo de serviço IH
       const isIH = row[34] === 'IH';
       if (!isIH) return false;
+
+      // Apenas "Engineer Assigned" (ST025) ou "Waiting for Confirmation from customer" (HP030)
+      const isEngineerAssigned = row[11] === 'ST025';
+      const isWaitingCustomer = row[13] === 'HP030';
+      if (!isEngineerAssigned && !isWaitingCustomer) return false;
 
       const orderId = String(row[1] || '').trim();
       const jobNo = String(row[2] || '').trim();
@@ -202,92 +238,417 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
     return suggestions.sort((a, b) => b.agingDays - a.agingDays);
   }, [data1, activeRoutes, routeOrdersSet]);
 
-  // 3. Previsão de gargalos de entrega de peças
-  const partsPredictions = useMemo(() => {
+  // 3. Ordens desatualizadas: IH, II ou SH com ASC Last Appointment Date anterior a hoje
+  // (substitui temporariamente o card "Peças em Risco", desativado por hora)
+  const outdatedOrders = useMemo(() => {
     if (!data1 || data1.length <= 1) return [];
 
     const dataRows = data1.slice(1);
-    
-    // Mapa para acumular tempos de entrega históricos por código de peça
-    const partDelaysAccumulator = {};
+    const VALID_SERVICE_TYPES = ['IH', 'II', 'SH'];
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    dataRows.forEach(row => {
-      const partCode = row[61]; // parts_no01
-      const requestStr = row[16]; // request_date
-      const deliveryStr = row[27]; // goods_delivered_date
-      const isIH = row[34] === 'IH';
+    const list = dataRows
+      .filter(row => {
+        const isComplete = row[11] === 'ST035';
+        if (isComplete) return false;
 
-      if (isIH && partCode && requestStr && deliveryStr) {
-        const reqDate = parseDate(requestStr);
-        const delDate = parseDate(deliveryStr);
+        if (!VALID_SERVICE_TYPES.includes(row[34])) return false;
 
-        if (reqDate && delDate && delDate >= reqDate) {
-          const diffDays = Math.round((delDate - reqDate) / (86400 * 1000));
-          if (!partDelaysAccumulator[partCode]) {
-            partDelaysAccumulator[partCode] = { totalDays: 0, count: 0 };
-          }
-          partDelaysAccumulator[partCode].totalDays += diffDays;
-          partDelaysAccumulator[partCode].count += 1;
-        }
-      }
-    });
+        const appointmentDate = parseDate(row[24]);
+        if (!appointmentDate) return false;
+        const appointmentOnly = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
+        return appointmentOnly < todayOnly;
+      })
+      .map(row => ({
+        orderId: row[1],
+        clientName: row[3] || 'Cliente',
+        city: row[4] || '',
+        neighborhood: row[5] || '',
+        product: row[9] || 'Aparelho',
+        serviceType: row[34],
+        agingDays: Number(row[15]) || 0,
+        statusLabel: STATUS_LABELS[row[11]] || row[11] || 'Desconhecido',
+        ascLastAppointmentDate: row[24] || '',
+      }));
 
-    // Calcula a média para cada peça
-    const partAvgDelays = {};
-    Object.keys(partDelaysAccumulator).forEach(code => {
-      const accum = partDelaysAccumulator[code];
-      partAvgDelays[code] = Math.round(accum.totalDays / accum.count);
-    });
-
-    // Agora, busca peças que estão atualmente aguardando (OS ativas com partCode e sem data de entrega)
-    const pendingPartsList = [];
-
-    dataRows.forEach(row => {
-      const orderId = row[1];
-      const clientName = row[3] || 'Cliente';
-      const partCode = row[61];
-      const partDesc = row[9] || 'Modelo de Reposição';
-      const requestStr = row[16];
-      const deliveryStr = row[27];
-      const isComplete = row[11] === 'ST035';
-      const isIH = row[34] === 'IH';
-
-      // Ativa, do tipo IH, depende de peça (HP040, HP041, HP042, HP045) e não tem data de entrega
-      if (!isComplete && isIH && partCode && requestStr && isPartsPendingReason(row) && (!deliveryStr || deliveryStr === '00/00/0000')) {
-        const reqDate = parseDate(requestStr);
-        if (reqDate) {
-          const avgDelay = partAvgDelays[partCode] || 6; // fallback 6 dias se sem histórico
-          const estDelivery = new Date(reqDate.getTime() + avgDelay * 86400 * 1000);
-          
-          const diffTime = today - estDelivery;
-          const isOverdue = today > estDelivery;
-          const daysOffset = Math.abs(Math.round(diffTime / (86400 * 1000)));
-
-          pendingPartsList.push({
-            orderId,
-            clientName,
-            partCode,
-            partDesc,
-            requestDate: requestStr,
-            avgDelay,
-            estimatedDelivery: estDelivery.toLocaleDateString('pt-BR'),
-            isOverdue,
-            daysOffset
-          });
-        }
-      }
-    });
-
-    // Ordena colocando peças em atraso no topo
-    return pendingPartsList.sort((a, b) => {
-      if (a.isOverdue && !b.isOverdue) return -1;
-      if (!a.isOverdue && b.isOverdue) return 1;
-      return b.daysOffset - a.daysOffset;
-    });
+    return list.sort((a, b) => b.agingDays - a.agingDays);
   }, [data1, today]);
 
+  // 4. Casos críticos do dia: 4 regras de negócio + corte de Pareto (top 20%)
+  const criticalCases = useMemo(() => {
+    if (!data1 || data1.length <= 1) return { all: [], top20: [] };
+
+    const todayForm = formatDateToDDMMYYYY(today);
+    const dataRows = data1.slice(1);
+
+    // Ordens já trabalhadas pelo técnico em campo (saíram de "a_fazer")
+    const finalIds = new Set();
+    const pendIds = new Set();
+    if (Array.isArray(activeRoutes)) {
+      activeRoutes.forEach(route => {
+        route.finalizadas?.forEach(o => {
+          if (o.serviceOrderNumber) finalIds.add(String(o.serviceOrderNumber).trim());
+        });
+        route.pendentes?.forEach(o => {
+          if (o.serviceOrderNumber) pendIds.add(String(o.serviceOrderNumber).trim());
+        });
+      });
+    }
+
+    const casesMap = new Map();
+
+    const addCategory = (row, category) => {
+      const orderId = String(row[1] || '').trim();
+      if (!orderId) return;
+      if (!casesMap.has(orderId)) {
+        casesMap.set(orderId, {
+          orderId,
+          clientName: row[3] || 'Cliente',
+          city: row[4] || '',
+          neighborhood: row[5] || '',
+          product: row[9] || 'Aparelho',
+          agingDays: Number(row[15]) || 0,
+          statusLabel: STATUS_LABELS[row[11]] || row[11] || 'Desconhecido',
+          reasonLabel: REASON_LABELS[row[13]] || row[14] || '—',
+          ascLastAppointmentDate: row[24] || '',
+          isToday: row[24] === todayForm,
+          categories: [],
+        });
+      }
+      const entry = casesMap.get(orderId);
+      if (!entry.categories.includes(category)) {
+        entry.categories.push(category);
+      }
+    };
+
+    dataRows.forEach(row => {
+      const isComplete = row[11] === 'ST035';
+      if (isComplete) return;
+
+      // Apenas ordens do tipo de serviço IH (In-Home)
+      if (row[34] !== 'IH') return;
+
+      const orderId = String(row[1] || '').trim();
+      const jobNo = String(row[2] || '').trim();
+      const inRoute = routeOrdersSet.has(orderId) || routeOrdersSet.has(jobNo);
+
+      // Regra 1: em rota, agendada para hoje, mas não está "Repair in progress"
+      if (inRoute && row[24] === todayForm && row[13] !== 'HE005') {
+        addCategory(row, 'sem_reparo_iniciado');
+      }
+
+      // Regra 2: em rota, não é hoje, mas não está "Appointment Date is set"
+      if (inRoute && row[24] !== todayForm && row[13] !== 'HE004') {
+        addCategory(row, 'status_incorreto_rota');
+      }
+
+      // Regra 3: técnico já classificou como pendente/finalizada em campo, mas sistema não evoluiu
+      if (finalIds.has(orderId) || pendIds.has(orderId)) {
+        addCategory(row, 'sem_evolucao_sistema');
+      }
+
+      // Regra 4: ordens desatualizadas (filtro já existente)
+      if (filters.filter_all_outdated_orders(row)) {
+        addCategory(row, 'desatualizado');
+      }
+    });
+
+    const combined = Array.from(casesMap.values()).sort((a, b) => b.agingDays - a.agingDays);
+    const top20Count = combined.length > 0 ? Math.ceil(combined.length * 0.2) : 0;
+
+    return { all: combined, top20: combined.slice(0, top20Count) };
+  }, [data1, activeRoutes, routeOrdersSet, today]);
+
+  // 4b. Grava um snapshot diário dos casos críticos (histórico p/ "fechar o ciclo").
+  // Idempotente via UNIQUE(table_name, service_order_no, snapshot_day) + upsert —
+  // não importa quantas vezes o painel carregue no mesmo dia, não duplica.
+  useEffect(() => {
+    if (!criticalCases.all.length || !cleanSource) return;
+
+    const top20Ids = new Set(criticalCases.top20.map(c => c.orderId));
+    const rows = criticalCases.all.map(c => ({
+      table_name: cleanSource,
+      service_order_no: String(c.orderId),
+      client_name: c.clientName,
+      city: c.city,
+      categories: c.categories,
+      aging_days: c.agingDays,
+      status_label: c.statusLabel,
+      is_pareto_top20: top20Ids.has(c.orderId),
+    }));
+
+    const BATCH_SIZE = 500;
+    const saveSnapshot = async () => {
+      try {
+        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+          const batch = rows.slice(i, i + BATCH_SIZE);
+          const { error } = await supabase
+            .from('critical_cases_snapshots')
+            .upsert(batch, { onConflict: 'table_name,service_order_no,snapshot_day' });
+          if (error) throw error;
+        }
+      } catch (err) {
+        // Histórico é acessório — não deve incomodar o usuário se a tabela
+        // ainda não existir ou a gravação falhar.
+        console.error('[Inteligência] Falha ao gravar snapshot de casos críticos:', err.message || err);
+      }
+    };
+
+    saveSnapshot();
+  }, [criticalCases, cleanSource]);
+
+  // 4c. Busca o histórico de snapshots (últimos dias) para calcular tendência e
+  // quantos casos foram resolvidos/surgiram desde o snapshot anterior.
+  const [casesHistory, setCasesHistory] = useState({ loaded: false, available: false, trend: [], resolvedCount: 0, newCount: 0 });
+
+  useEffect(() => {
+    if (!cleanSource) return;
+
+    const loadHistory = async () => {
+      try {
+        const since = new Date();
+        since.setDate(since.getDate() - HISTORY_LOOKBACK_DAYS);
+        const sinceStr = since.toISOString().slice(0, 10);
+
+        const { data, error } = await supabase
+          .from('critical_cases_snapshots')
+          .select('snapshot_day, service_order_no')
+          .eq('table_name', cleanSource)
+          .gte('snapshot_day', sinceStr)
+          .order('snapshot_day', { ascending: true });
+
+        if (error) throw error;
+
+        const byDay = new Map();
+        (data || []).forEach(row => {
+          if (!byDay.has(row.snapshot_day)) byDay.set(row.snapshot_day, new Set());
+          byDay.get(row.snapshot_day).add(row.service_order_no);
+        });
+
+        const days = Array.from(byDay.keys()).sort();
+        const trend = days.map(day => ({ day: day.slice(5), count: byDay.get(day).size }));
+
+        let resolvedCount = 0;
+        let newCount = 0;
+        if (days.length >= 2) {
+          const previousSet = byDay.get(days[days.length - 2]);
+          const latestSet = byDay.get(days[days.length - 1]);
+          previousSet.forEach(id => { if (!latestSet.has(id)) resolvedCount++; });
+          latestSet.forEach(id => { if (!previousSet.has(id)) newCount++; });
+        }
+
+        setCasesHistory({ loaded: true, available: days.length >= 2, trend, resolvedCount, newCount });
+      } catch (err) {
+        console.error('[Inteligência] Falha ao carregar histórico de casos críticos:', err.message || err);
+        setCasesHistory({ loaded: true, available: false, trend: [], resolvedCount: 0, newCount: 0 });
+      }
+    };
+
+    loadHistory();
+  }, [cleanSource, criticalCases]);
+
+  // 5. Checklist de ações gerado por IA (Gemini via Supabase Edge Function)
+  const [aiChecklist, setAiChecklist] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [aiGeneratedAt, setAiGeneratedAt] = useState(null);
+  const [aiFromCache, setAiFromCache] = useState(false);
+
+  const checklistTotals = useMemo(() => {
+    const byCategory = {};
+    criticalCases.all.forEach(item => {
+      item.categories.forEach(cat => {
+        byCategory[cat] = (byCategory[cat] || 0) + 1;
+      });
+    });
+    return { totalCritical: criticalCases.all.length, byCategory };
+  }, [criticalCases]);
+
+  const checklistFingerprint = useMemo(
+    () => computeChecklistFingerprint(criticalCases.top20, checklistTotals),
+    [criticalCases, checklistTotals]
+  );
+
+  // Hidrata o checklist a partir do cache local sempre que o fingerprint bater
+  // (ao montar, ou quando os casos críticos mudam e coincidem com um cache salvo)
+  useEffect(() => {
+    try {
+      const cachedRaw = localStorage.getItem(AI_CHECKLIST_CACHE_KEY);
+      if (!cachedRaw) return;
+      const cached = JSON.parse(cachedRaw);
+      if (cached?.fingerprint === checklistFingerprint && Array.isArray(cached.checklist)) {
+        setAiChecklist(cached.checklist);
+        setAiGeneratedAt(cached.generatedAt ? new Date(cached.generatedAt) : null);
+        setAiFromCache(true);
+      }
+    } catch {
+      // cache corrompido, ignora
+    }
+  }, [checklistFingerprint]);
+
+  const handleGenerateChecklist = async () => {
+    setAiError(null);
+
+    // Se os dados não mudaram desde a última geração, reaproveita o cache local
+    // em vez de gastar uma chamada à IA.
+    try {
+      const cachedRaw = localStorage.getItem(AI_CHECKLIST_CACHE_KEY);
+      const cached = cachedRaw ? JSON.parse(cachedRaw) : null;
+      if (cached?.fingerprint === checklistFingerprint && Array.isArray(cached.checklist)) {
+        setAiChecklist(cached.checklist);
+        setAiGeneratedAt(cached.generatedAt ? new Date(cached.generatedAt) : new Date());
+        setAiFromCache(true);
+        return;
+      }
+    } catch {
+      // cache corrompido, segue para gerar de novo
+    }
+
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-scenario', {
+        body: {
+          criticalCases: criticalCases.top20.slice(0, 25),
+          totals: checklistTotals,
+        },
+      });
+
+      if (error) {
+        // supabase-js só traz uma mensagem genérica em `error.message` quando a
+        // function responde com status != 2xx. O corpo real do erro (definido em
+        // supabase/functions/analyze-scenario/index.ts) fica em `error.context`.
+        let detail = error.message;
+        if (error.context && typeof error.context.json === 'function') {
+          try {
+            const body = await error.context.json();
+            if (body?.error) detail = body.error;
+          } catch {
+            // corpo não era JSON, mantém a mensagem genérica
+          }
+        }
+        throw new Error(detail);
+      }
+      if (data?.error) throw new Error(data.error);
+
+      const checklist = data.checklist || [];
+      const generatedAt = new Date();
+      setAiChecklist(checklist);
+      setAiGeneratedAt(generatedAt);
+      setAiFromCache(false);
+
+      try {
+        localStorage.setItem(AI_CHECKLIST_CACHE_KEY, JSON.stringify({
+          fingerprint: checklistFingerprint,
+          checklist,
+          generatedAt: generatedAt.toISOString(),
+        }));
+      } catch {
+        // localStorage indisponível/cheio — segue sem cache, não é crítico
+      }
+    } catch (err) {
+      console.error('Erro ao gerar checklist com IA:', err);
+      setAiError(err.message || 'Falha ao gerar checklist. Tente novamente.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Aba ativa do painel ('acao' = Casos Críticos + Checklist IA, 'dados' = Alocação + Peças)
+  const [activeTab, setActiveTab] = useState('acao');
+
+  // Cópia rápida de números de OS com feedback visual
+  const [copiedOrderId, setCopiedOrderId] = useState(null);
+
+  const handleCopyOrderId = (orderId) => {
+    if (!orderId) return;
+    navigator.clipboard?.writeText(String(orderId)).then(() => {
+      setCopiedOrderId(orderId);
+      setTimeout(() => {
+        setCopiedOrderId((prev) => (prev === orderId ? null : prev));
+      }, 1500);
+    }).catch(() => {});
+  };
+
+  const PRIORITY_META = {
+    alta: { label: 'Alta', icon: Flame, badge: 'bg-rose-50 text-rose-700 border-rose-200/60', bar: 'border-l-rose-400' },
+    media: { label: 'Média', icon: TrendingUp, badge: 'bg-amber-100 text-amber-700 border-amber-250/60', bar: 'border-l-amber-400' },
+    baixa: { label: 'Baixa', icon: Gauge, badge: 'bg-emerald-50 text-emerald-700 border-emerald-200/60', bar: 'border-l-emerald-400' },
+  };
+
+  const CATEGORY_ICON = {
+    sem_reparo_iniciado: Wrench,
+    status_incorreto_rota: ShieldAlert,
+    sem_evolucao_sistema: Truck,
+    desatualizado: Clock,
+  };
+
+  // Botão pequeno e reutilizável para copiar um número de OS com um clique
+  const CopyOrderChip = ({ orderId, className = '' }) => {
+    const isCopied = copiedOrderId === orderId;
+    return (
+      <button
+        type="button"
+        onClick={() => handleCopyOrderId(orderId)}
+        title="Clique para copiar o número da OS"
+        className={`inline-flex items-center gap-1.5 font-mono font-extrabold rounded-lg border transition-all duration-150 active:scale-95 ${
+          isCopied
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
+        } ${className}`}
+      >
+        {isCopied ? <Check size={11} /> : <Copy size={11} />}
+        {isCopied ? 'Copiado!' : `OS #${orderId}`}
+      </button>
+    );
+  };
+
+  // KPIs de resumo para o topo da página (dashboard)
+  const KPI_CARDS = [
+    {
+      id: 'criticos',
+      label: 'Ação Imediata Hoje',
+      value: criticalCases.top20.length,
+      sub: `de ${criticalCases.all.length} casos críticos`,
+      icon: ShieldAlert,
+      accent: 'from-rose-500 to-rose-600',
+      tab: 'acao',
+    },
+    {
+      id: 'checklist',
+      label: 'Checklist IA',
+      value: aiChecklist ? aiChecklist.length : '—',
+      sub: aiChecklist ? 'ações geradas' : 'clique em gerar',
+      icon: ListChecks,
+      accent: 'from-indigo-500 to-purple-600',
+      tab: 'acao',
+    },
+    {
+      id: 'alocacao',
+      label: 'Sugestões de Alocação',
+      value: allocationSuggestions.length,
+      sub: 'LTPs fora de rota',
+      icon: Truck,
+      accent: 'from-blue-500 to-blue-600',
+      tab: 'dados',
+    },
+    {
+      id: 'desatualizadas',
+      label: 'Ordens Desatualizadas',
+      value: outdatedOrders.length,
+      sub: 'IH · II · SH',
+      icon: Clock,
+      accent: 'from-amber-500 to-orange-600',
+      tab: 'dados',
+    },
+  ];
+
+  const TABS = [
+    { id: 'acao', label: 'Ação Agora', icon: Zap },
+    { id: 'dados', label: 'Alocação & Peças', icon: Layers },
+  ];
+
   return (
-    <div className="space-y-8 animate-fadeIn px-4 py-2">
+    <div className="space-y-6 animate-fadeIn px-4 py-2">
       {/* Header do Painel */}
       <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
         <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/10 text-white shrink-0 self-start md:self-auto">
@@ -301,14 +662,64 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
             </span>
           </h2>
           <p className="text-xs md:text-sm text-slate-500 mt-1 max-w-3xl">
-            Cruzamento automático de dados de campo. Analisa locais de atendimento ativos para otimização de rotas e prevê a entrega de peças de fábrica com base em performance histórica.
+            Cruzamento automático de dados de campo. Analisa locais de atendimento ativos para otimização de rotas e identifica ordens desatualizadas por tipo de atendimento.
           </p>
         </div>
       </div>
 
-      {/* Grid de Seções */}
+      {/* Barra de KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {KPI_CARDS.map((kpi) => {
+          const KpiIcon = kpi.icon;
+          return (
+            <button
+              key={kpi.id}
+              type="button"
+              onClick={() => setActiveTab(kpi.tab)}
+              className={`text-left bg-white border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+                activeTab === kpi.tab ? 'border-indigo-200' : 'border-slate-200/80'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`p-2 rounded-lg bg-gradient-to-br ${kpi.accent} text-white shadow-sm`}>
+                  <KpiIcon size={16} />
+                </div>
+              </div>
+              <p className="text-2xl md:text-3xl font-extrabold text-slate-900 leading-none">{kpi.value}</p>
+              <p className="text-[11px] md:text-xs font-extrabold text-slate-700 mt-2">{kpi.label}</p>
+              <p className="text-[10px] md:text-[11px] text-slate-400 font-semibold mt-0.5">{kpi.sub}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Navegação em abas */}
+      <div className="flex items-center gap-1.5 p-1.5 bg-slate-100 rounded-xl w-fit">
+        {TABS.map((tab) => {
+          const TabIcon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 text-xs md:text-sm font-extrabold px-4 py-2 rounded-lg transition-all duration-200 ${
+                isActive
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <TabIcon size={14} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Aba: Alocação & Peças */}
+      {activeTab === 'dados' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Seção 1: Sugestões de Alocação */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col min-h-[500px] shadow-sm">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
@@ -403,79 +814,332 @@ export default function IntelligencePanel({ data1, activeRoutes }) {
           </div>
         </div>
 
-        {/* Seção 2: Previsão de Gargalos de Peças */}
+        {/* Seção 2: Ordens Desatualizadas (Peças em Risco desativado temporariamente) */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col min-h-[500px] shadow-sm">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg border border-purple-100">
-              <Package size={18} />
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100">
+              <Clock size={18} />
             </div>
             <div>
-              <h3 className="text-sm md:text-base font-extrabold text-slate-900">Rastreamento e Gargalos de Peças</h3>
-              <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">Previsões inteligentes de chegada de fábrica</p>
+              <h3 className="text-sm md:text-base font-extrabold text-slate-900">Ordens Desatualizadas</h3>
+              <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">IH, II e SH com agendamento (ASC Last Appointment Date) vencido</p>
             </div>
             <span className="ml-auto text-xs md:text-sm font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
-              {partsPredictions.length}
+              {outdatedOrders.length}
             </span>
           </div>
 
           <div className="space-y-4 overflow-y-auto max-h-[550px] pr-1 flex-1">
-            {partsPredictions.length === 0 ? (
+            {outdatedOrders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Package size={36} className="text-slate-300 mb-2" />
-                <p className="text-xs md:text-sm font-bold text-slate-650">Sem pendências de peças!</p>
+                <CircleCheck size={36} className="text-emerald-300 mb-2" />
+                <p className="text-xs md:text-sm font-bold text-slate-650">Tudo em dia!</p>
                 <p className="text-[10px] md:text-xs text-slate-400 mt-1 max-w-[240px]">
-                  Nenhuma ordem ativa está aguardando chegada de peças de fábrica neste momento.
+                  Nenhuma ordem IH, II ou SH com agendamento vencido no momento.
                 </p>
               </div>
             ) : (
-              partsPredictions.map((pred, pIdx) => (
-                <div 
-                  key={pIdx}
-                  className="bg-slate-50/40 border border-slate-200/50 hover:border-slate-300/80 hover:bg-slate-50 rounded-xl p-4 transition-all duration-200"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <span className="text-[10.5px] md:text-[11px] font-bold text-slate-500 font-mono">OS #{pred.orderId} — {pred.clientName}</span>
-                      <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-0.5">Peça: {pred.partCode}</h4>
-                      <p className="text-[10.5px] md:text-xs font-semibold text-slate-650 mt-0.5 truncate max-w-[190px] md:max-w-xs">{pred.partDesc}</p>
+              outdatedOrders.map((order) => {
+                const typeMeta = SERVICE_TYPE_META[order.serviceType] || { label: order.serviceType || '—', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+                return (
+                  <div
+                    key={order.orderId}
+                    className="bg-slate-50/40 border border-slate-200/50 hover:border-slate-300/80 hover:bg-slate-50 rounded-xl p-4 transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <CopyOrderChip orderId={order.orderId} className="text-[10px] px-2 py-0.5" />
+                        <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-1.5">{order.clientName}</h4>
+                        <p className="text-[10.5px] md:text-xs font-semibold text-slate-600 mt-0.5">{order.product}</p>
+                      </div>
+                      <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full tracking-wide uppercase bg-rose-50 text-rose-600 border border-rose-200/60 shrink-0">
+                        {order.agingDays}d
+                      </span>
                     </div>
 
-                    {pred.isOverdue ? (
-                      <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
-                        <AlertTriangle size={10} />
-                        Atrasado {pred.daysOffset}d
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className={`text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide border ${typeMeta.color}`}>
+                        {typeMeta.label}
                       </span>
-                    ) : (
-                      <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/60 flex items-center gap-1 uppercase tracking-wide shrink-0">
-                        <Clock size={10} />
-                        Previsão {pred.daysOffset}d
-                      </span>
-                    )}
-                  </div>
+                      <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-100 py-1 px-2 rounded-lg font-bold border border-slate-200/50">
+                        <MapPin size={12} className="text-slate-500" />
+                        <span>{order.city} {order.neighborhood ? `— ${order.neighborhood}` : ''}</span>
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-xs">
-                    <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Solicitada</span>
-                      <span className="font-bold text-slate-800 block mt-1">{pred.requestDate}</span>
-                    </div>
-                    <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Tempo Médio</span>
-                      <span className="font-bold text-indigo-700 block mt-1">{pred.avgDelay} dias</span>
-                    </div>
-                    <div className="bg-slate-100/60 p-2 rounded-lg text-center">
-                      <span className="text-slate-500 block uppercase font-extrabold text-[9px] tracking-widest">Est. Entrega</span>
-                      <span className={`font-bold block mt-1 ${pred.isOverdue ? 'text-rose-700 font-extrabold' : 'text-emerald-700 font-extrabold'}`}>
-                        {pred.estimatedDelivery}
-                      </span>
+                    <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-100 py-1 px-2 rounded-lg font-semibold border border-slate-200/50 w-fit">
+                      <span className="font-extrabold text-indigo-700">Status:</span>
+                      <span>{order.statusLabel}</span>
+                      <span className="text-slate-400">·</span>
+                      <span>Agendado: {order.ascLastAppointmentDate || '—'}</span>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
 
       </div>
+      )}
+
+      {/* Aba: Ação Agora */}
+      {activeTab === 'acao' && (
+      <div className="space-y-8">
+
+      {/* Seção: Evolução dos Casos Críticos (histórico automático, sem marcação manual) */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg border border-emerald-100">
+            <TrendingUp size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm md:text-base font-extrabold text-slate-900">Evolução dos Casos Críticos</h3>
+            <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">
+              Comparação automática entre snapshots diários — ninguém precisa marcar nada
+            </p>
+          </div>
+        </div>
+
+        {!casesHistory.loaded ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 size={20} className="text-slate-300 animate-spin" />
+          </div>
+        ) : !casesHistory.available ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <Database size={28} className="text-slate-300 mb-2" />
+            <p className="text-xs md:text-sm font-bold text-slate-600">Ainda coletando histórico</p>
+            <p className="text-[10px] md:text-xs text-slate-400 mt-1 max-w-sm">
+              Volte amanhã para ver quantos casos foram resolvidos. Se a tabela de histórico ainda não existir no Supabase, esses dados não são gravados.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 bg-emerald-50/60 border border-emerald-200/60 rounded-xl p-4">
+                <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg shrink-0">
+                  <CircleCheck size={18} />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-extrabold text-emerald-700 leading-none">{casesHistory.resolvedCount}</p>
+                  <p className="text-[10px] md:text-xs font-bold text-emerald-700/80 mt-1">Resolvidos desde ontem</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 bg-rose-50/60 border border-rose-200/60 rounded-xl p-4">
+                <div className="p-2 bg-rose-100 text-rose-700 rounded-lg shrink-0">
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-extrabold text-rose-700 leading-none">{casesHistory.newCount}</p>
+                  <p className="text-[10px] md:text-xs font-bold text-rose-700/80 mt-1">Novos desde ontem</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-28">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={casesHistory.trend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="day" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip formatter={(value) => [`${value} casos`, 'Total']} labelFormatter={(label) => `Dia ${label}`} />
+                  <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Seção 3: Casos Críticos do Dia (Top 20% - Pareto) */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="p-2 bg-rose-50 text-rose-600 rounded-lg border border-rose-100">
+            <ShieldAlert size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm md:text-base font-extrabold text-slate-900">Casos Críticos do Dia</h3>
+            <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">
+              Top 20% por dias pendentes — reparo não iniciado, status incorreto em rota, sem evolução no sistema e ordens desatualizadas
+            </p>
+          </div>
+          <span className="ml-auto text-xs md:text-sm font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            {criticalCases.top20.length} / {criticalCases.all.length}
+          </span>
+        </div>
+
+        <div className="space-y-3 overflow-y-auto max-h-[550px] pr-1">
+          {criticalCases.top20.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <CircleCheck size={32} className="text-emerald-300 mb-2" />
+              <p className="text-xs md:text-sm font-bold text-slate-600">Nenhum caso crítico identificado hoje.</p>
+            </div>
+          ) : (
+            criticalCases.top20.map((item) => (
+              <div
+                key={item.orderId}
+                className="bg-slate-50/40 border border-slate-200/50 hover:border-slate-300/80 hover:bg-slate-50 rounded-xl p-4 transition-all duration-200"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div>
+                    <CopyOrderChip orderId={item.orderId} className="text-[10px] px-2 py-0.5" />
+                    <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-1.5">{item.clientName}</h4>
+                    <p className="text-[10.5px] md:text-xs font-semibold text-slate-600 mt-0.5">{item.product}</p>
+                  </div>
+                  <span className="text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full tracking-wide uppercase bg-slate-200 text-slate-700 border border-slate-300/60 shrink-0">
+                    {item.agingDays}d
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-100 py-1 px-2 rounded-lg font-bold border border-slate-200/50">
+                    <MapPin size={12} className="text-slate-500" />
+                    <span>{item.city} {item.neighborhood ? `— ${item.neighborhood}` : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10.5px] md:text-xs text-slate-700 bg-slate-100 py-1 px-2 rounded-lg font-semibold border border-slate-200/50">
+                    <span className="font-extrabold text-indigo-700">Status:</span>
+                    <span>{item.statusLabel} · {item.reasonLabel}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {item.categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className={`text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide border ${CATEGORY_META[cat]?.color || 'bg-slate-100 text-slate-700 border-slate-200'}`}
+                    >
+                      {CATEGORY_META[cat]?.label || cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Seção 4: Checklist de Ações Gerado por IA */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100">
+              <ListChecks size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm md:text-base font-extrabold text-slate-900">Checklist de Ações (IA)</h3>
+              <p className="text-[11px] md:text-xs text-slate-500 font-medium mt-0.5">
+                Analisa os casos críticos acima e sugere os próximos passos
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGenerateChecklist}
+            disabled={aiLoading || criticalCases.top20.length === 0}
+            className="ml-auto flex items-center gap-2 text-xs md:text-sm font-extrabold px-4 py-2 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+          >
+            {aiLoading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+            {aiLoading ? 'Gerando...' : aiChecklist ? 'Gerar Novamente' : 'Gerar Checklist com IA'}
+          </button>
+        </div>
+
+        {aiError && (
+          <div className="flex items-start gap-2 bg-rose-50 border border-rose-200/60 text-rose-700 rounded-xl p-3 text-xs md:text-sm font-semibold mb-4">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <span>{aiError}</span>
+          </div>
+        )}
+
+        {!aiChecklist && !aiLoading && !aiError && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Sparkles size={32} className="text-slate-300 mb-2" />
+            <p className="text-xs md:text-sm font-bold text-slate-600">Nenhum checklist gerado ainda</p>
+            <p className="text-[10px] md:text-xs text-slate-400 mt-1 max-w-sm">
+              Clique em "Gerar Checklist com IA" para transformar os casos críticos acima em uma lista de ações práticas.
+            </p>
+          </div>
+        )}
+
+        {aiLoading && (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Loader2 size={28} className="text-indigo-400 animate-spin mb-2" />
+            <p className="text-xs md:text-sm font-bold text-slate-600">Analisando cenário com IA...</p>
+          </div>
+        )}
+
+        {aiChecklist && !aiLoading && (
+          <>
+            {aiGeneratedAt && (
+              <p className="text-[10px] text-slate-400 font-semibold mb-3 flex items-center gap-1.5">
+                <span>Gerado às {aiGeneratedAt.toLocaleTimeString('pt-BR')}</span>
+                {aiFromCache && (
+                  <span className="inline-flex items-center gap-1 text-slate-400 italic">
+                    <Database size={10} />
+                    (dados inalterados desde a última geração)
+                  </span>
+                )}
+              </p>
+            )}
+            {aiChecklist.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <CircleCheck size={32} className="text-emerald-300 mb-2" />
+                <p className="text-xs md:text-sm font-bold text-slate-600">Nenhuma ação crítica identificada pela IA.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {aiChecklist.map((item, idx) => {
+                  const CategoryIconComp = CATEGORY_ICON[item.category] || ListChecks;
+                  const priorityMeta = PRIORITY_META[item.priority] || PRIORITY_META.baixa;
+                  const PriorityIconComp = priorityMeta.icon;
+                  const categoryColor = CATEGORY_META[item.category]?.color || 'bg-slate-100 text-slate-700 border-slate-200';
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`group flex items-start gap-3 bg-white border border-slate-200/70 border-l-4 ${priorityMeta.bar} hover:shadow-md hover:border-slate-300 rounded-xl p-4 transition-all duration-200`}
+                    >
+                      {/* Número do passo */}
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                        {idx + 1}
+                      </div>
+
+                      {/* Ícone de categoria */}
+                      <div className={`p-2 rounded-lg border shrink-0 ${categoryColor}`}>
+                        <CategoryIconComp size={16} />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-xs md:text-sm font-extrabold text-slate-900">{item.title}</h4>
+                          <span className={`flex items-center gap-1 text-[9.5px] md:text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide border shrink-0 ${priorityMeta.badge}`}>
+                            <PriorityIconComp size={11} />
+                            {priorityMeta.label}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] md:text-xs text-slate-600 font-medium mt-1">{item.description}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                          {CATEGORY_META[item.category] && (
+                            <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide border ${categoryColor}`}>
+                              {CATEGORY_META[item.category].label}
+                            </span>
+                          )}
+                          {item.relatedOrderId && (
+                            <CopyOrderChip orderId={item.relatedOrderId} className="text-[10px] px-2 py-0.5" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      </div>
+      )}
     </div>
   );
 }
