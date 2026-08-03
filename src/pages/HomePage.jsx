@@ -691,6 +691,13 @@ const HomePage = ({ activeTab, onTabChange }) => {
       }
     }
 
+    // Ainda não existe histórico velho o suficiente para essa janela (ex: ferramenta
+    // em uso há menos de 3/15 dias) — em vez de não mostrar nada, usa o snapshot mais
+    // antigo disponível, que é a melhor comparação possível até o histórico crescer.
+    if (!closestEntry && history.length >= 2) {
+      closestEntry = history[0];
+    }
+
     return closestEntry;
   };
 
@@ -1059,6 +1066,15 @@ const HomePage = ({ activeTab, onTabChange }) => {
             <option value="week">Há 1 semana (7 dias)</option>
             <option value="month">Há 1 mês (30 dias)</option>
           </select>
+          {compSnapshot ? (
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>
+              Comparando com {new Date(compSnapshot.timestamp).toLocaleDateString('pt-BR')} {new Date(compSnapshot.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          ) : (
+            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8' }}>
+              Histórico insuficiente ainda para comparar
+            </span>
+          )}
         </ControlsBar>
       )}
 

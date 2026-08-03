@@ -585,14 +585,52 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
   // Cópia rápida de números de OS com feedback visual
   const [copiedOrderId, setCopiedOrderId] = useState(null);
 
+  // Fallback para contextos sem Clipboard API (HTTP não-localhost, navegadores antigos,
+  // permissão negada) — sem isso, o clique não fazia nada visível em ambientes assim.
+  const legacyCopyToClipboard = (text) => {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
   const handleCopyOrderId = (orderId) => {
     if (!orderId) return;
-    navigator.clipboard?.writeText(String(orderId)).then(() => {
+    const text = String(orderId);
+
+    const markCopied = () => {
       setCopiedOrderId(orderId);
       setTimeout(() => {
         setCopiedOrderId((prev) => (prev === orderId ? null : prev));
       }, 1500);
-    }).catch(() => {});
+    };
+
+    const hasClipboardApi = typeof navigator !== 'undefined'
+      && navigator.clipboard
+      && typeof navigator.clipboard.writeText === 'function'
+      && window.isSecureContext;
+
+    if (hasClipboardApi) {
+      navigator.clipboard.writeText(text)
+        .then(markCopied)
+        .catch(() => {
+          if (legacyCopyToClipboard(text)) markCopied();
+        });
+    } else if (legacyCopyToClipboard(text)) {
+      markCopied();
+    }
   };
 
   const PRIORITY_META = {
