@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
-  Table2, ChevronLeft, ChevronRight, Presentation,
+  ChevronLeft, ChevronRight, Presentation,
   Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
   LogIn, LogOut, Sparkles, Users
 } from 'lucide-react';
@@ -14,7 +14,6 @@ const navItems = [
   { id: 'charts', label: 'Gráficos', icon: BarChart3, path: '/', tab: 2 },
   { id: 'calendar', label: 'Calendário', icon: CalendarDays, path: '/', tab: 3 },
   { id: 'optimization', label: 'Inteligência', icon: Sparkles, path: '/', tab: 4 },
-  { id: 'tables', label: 'Tabelas', icon: Table2, path: '/beta' },
 ];
 
 const Sidebar = ({

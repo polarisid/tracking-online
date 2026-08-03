@@ -1,15 +1,28 @@
 import React, { useState } from 'react';
 import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as PieTooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as BarTooltip
+  BarChart, Bar, Cell, LabelList, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 
-// Distinct modern color palettes
-const COLORS_DIST = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#6366f1'];
-const COLORS_BACKLOG = ['#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+// Cor primária do app (mesma usada nos gradientes de header) — comparações de
+// magnitude usam 1 única cor sequencial, não uma paleta categórica arco-íris.
+const PRIMARY = '#6366f1'; // indigo-500
+const NEUTRAL = '#cbd5e1'; // slate-300 — tom de "não é o destaque"
 
-// Progress bar gauge component for percentage visualization
-const PercentGauge = ({ label, value, total, color, bgColor = '#f1f5f9' }) => {
+// Status é uma escala fixa e reservada (nunca decorativa) — mesmas cores que
+// StatCard.jsx já usa para type 'high'/'mid'/'normal', para os dois lados concordarem.
+const STATUS_COLORS = {
+  high: '#ef4444',   // red-500
+  mid: '#f59e0b',    // amber-500
+  normal: '#94a3b8', // slate-400
+};
+
+const tooltipStyle = { borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' };
+
+// Progress bar gauge component for percentage visualization.
+// A trilha (track) é sempre um tom claro da MESMA cor do preenchimento — nunca
+// um cinza genérico desconectado — para o medidor ler como "uma rampa só".
+const PercentGauge = ({ label, value, total, color, trackColor }) => {
   const pct = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
   const width = total > 0 ? Math.min((value / total) * 100, 100) : 0;
 
@@ -22,7 +35,7 @@ const PercentGauge = ({ label, value, total, color, bgColor = '#f1f5f9' }) => {
           <span className="text-sm font-extrabold" style={{ color }}>{pct}%</span>
         </div>
       </div>
-      <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: bgColor }}>
+      <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: trackColor || '#f1f5f9' }}>
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{ width: `${width}%`, backgroundColor: color }}
@@ -31,6 +44,16 @@ const PercentGauge = ({ label, value, total, color, bgColor = '#f1f5f9' }) => {
     </div>
   );
 };
+
+// Pequena legenda de status (cor = significado, nunca só decoração) — usada
+// no gráfico RTAT, onde a cor de cada barra reflete o valor real, não a categoria.
+const StatusLegend = () => (
+  <div className="flex items-center justify-center gap-4 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.high }} />Alto</span>
+    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.mid }} />Médio</span>
+    <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: STATUS_COLORS.normal }} />Normal</span>
+  </div>
+);
 
 const DashboardCharts = ({
   dataLtpVd = 0,
@@ -42,33 +65,34 @@ const DashboardCharts = ({
   dataDaCompleteOudated = 0,
   dataAgendaToday = 0,
   dataAgendaTomorrow = 0,
-  
+
   // Analytics metrics
   rtatVd = 0,
   rtatDa = 0,
-  totalDa = 0,
+  rtatVdStatus = 'normal', // 'high' | 'mid' | 'normal' — mesmo cálculo do StatCard "RTAT VD"
+  rtatDaStatus = 'normal', // 'high' | 'mid' | 'normal' — mesmo cálculo do StatCard "RTAT DA"
   daNoParts = 0,
-  inRoute = 0,
-  firstVisitWait = 0,
 
   // Percentage chart totals
   totalAllDaLp = 0,
   totalAllVdLp = 0,
 
-  // Backlog Reason data (IH, LTP > 7) — array of [reason, count]
+  // Backlog Reason data (IH, LTP > 7) — array de [reason, count], já vem ordenado
+  // do maior para o menor (ver HomePage.jsx: ftfBacklogReasonEntries)
   backlogReasonData = [],
   backlogRawData = [],
   backlogHeaders = []
 }) => {
   const [selectedReason, setSelectedReason] = useState(null);
 
-  const pieData = [
+  // Comparação de magnitude entre categorias → 1 cor só, ordenado do maior pro menor
+  const distributionData = [
     { name: 'LTP VD', value: dataLtpVd },
     { name: 'EX LTP VD', value: dataExLtpVd },
     { name: 'LTP RAC/REF', value: dataLtpRacRef },
     { name: 'EX LTP RAC/REF', value: dataExLtpRacRef },
     { name: 'LTP WSM', value: dataLtpWsm },
-  ].filter(item => item.value > 0);
+  ].filter(item => item.value > 0).sort((a, b) => b.value - a.value);
 
   const barData = [
     { name: 'Fora Prz Cons', total: dataDaOudated },
@@ -77,17 +101,18 @@ const DashboardCharts = ({
     { name: 'Agenda Amanhã', total: dataAgendaTomorrow }
   ];
 
-  // RTAT Averaging (Average days)
+  // RTAT — cor por status real (mesmos limiares do StatCard ao lado), não por categoria fixa
   const rtatData = [
-    { name: 'RTAT VD', media: parseFloat(rtatVd) || 0, fill: '#f59e0b' },
-    { name: 'RTAT DA', media: parseFloat(rtatDa) || 0, fill: '#ef4444' }
+    { name: 'RTAT VD', media: parseFloat(rtatVd) || 0, status: rtatVdStatus },
+    { name: 'RTAT DA', media: parseFloat(rtatDa) || 0, status: rtatDaStatus }
   ];
 
-  // Backlog by Reason (IH, LTP > 7)
+  // Backlog by Reason — emphasis: só o motivo #1 (maior backlog) recebe destaque
   const backlogByReasonData = backlogReasonData.map(([reason, count]) => ({
     name: reason,
     total: count,
   }));
+  const topBacklogReason = backlogByReasonData[0]?.name;
 
   // Columns to show in the backlog detail table
   const backlogDetailCols = [0, 1, 2, 9, 14, 15, 34, 11];
@@ -108,33 +133,29 @@ const DashboardCharts = ({
     <div className="flex flex-col gap-6 my-8 w-full max-w-screen-2xl mx-auto px-4">
       {/* Row 1: Distribution and Scheduling */}
       <div className="flex flex-col lg:flex-row gap-6 w-full">
-        {/* Pie Chart Card */}
+        {/* Distribuição por Categoria — comparação de magnitude, 1 cor, ordenado */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
           <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">Distribuição por Categoria</h3>
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={65}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
+            {distributionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={distributionData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 40, left: 20, bottom: 5 }}
                 >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS_DIST[index % COLORS_DIST.length]} />
-                  ))}
-                </Pie>
-                <PieTooltip 
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-                />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-              </PieChart>
-            </ResponsiveContainer>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                  <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} width={110} interval={0} />
+                  <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={tooltipStyle} formatter={(value) => [`${value} ordens`, 'Quantidade']} />
+                  <Bar dataKey="value" fill={PRIMARY} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                    <LabelList dataKey="value" position="right" style={{ fill: '#334155', fontSize: 11, fontWeight: 700 }} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-slate-400 text-sm">Sem dados no momento</div>
+            )}
           </div>
         </div>
 
@@ -150,11 +171,11 @@ const DashboardCharts = ({
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" tick={{fill: '#64748b', fontSize: 11}} dy={10} axisLine={false} tickLine={false} />
                 <YAxis tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} />
-                <BarTooltip
+                <Tooltip
                   cursor={{fill: '#f1f5f9'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  contentStyle={tooltipStyle}
                 />
-                <Bar dataKey="total" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                <Bar dataKey="total" fill={PRIMARY} radius={[4, 4, 0, 0]} maxBarSize={60} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -163,10 +184,11 @@ const DashboardCharts = ({
 
       {/* Row 2: RTAT and Backlog */}
       <div className="flex flex-col lg:flex-row gap-6 w-full">
-        {/* RTAT Bar Chart */}
+        {/* RTAT Bar Chart — cor = status real (mesmo cálculo do StatCard ao lado) */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
-          <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">Tempos Médios de Resolução (RTAT)</h3>
-          <div className="h-[280px] w-full">
+          <h3 className="text-sm font-bold text-slate-500 mb-1 text-center uppercase tracking-wider">Tempos Médios de Resolução (RTAT)</h3>
+          <StatusLegend />
+          <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={rtatData}
@@ -176,14 +198,14 @@ const DashboardCharts = ({
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                 <XAxis type="number" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} />
                 <YAxis dataKey="name" type="category" tick={{fill: '#475569', fontSize: 12, fontWeight: 600}} axisLine={false} tickLine={false} />
-                <BarTooltip
+                <Tooltip
                   cursor={{fill: '#f1f5f9'}}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  contentStyle={tooltipStyle}
                   formatter={(value) => [`${value} dias`, 'Média']}
                 />
                 <Bar dataKey="media" radius={[0, 4, 4, 0]} barSize={40}>
                   {rtatData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.status] || STATUS_COLORS.normal} />
                   ))}
                 </Bar>
               </BarChart>
@@ -191,7 +213,7 @@ const DashboardCharts = ({
           </div>
         </div>
 
-        {/* Backlog by Reason Chart (IH, LTP > 7) */}
+        {/* Backlog by Reason Chart (IH, LTP > 7) — emphasis: só o #1 motivo se destaca */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
           <h3 className="text-sm font-bold text-slate-500 mb-2 text-center uppercase tracking-wider">Backlog por Reason (IH, LTP &gt; 7 dias)</h3>
           <p className="text-xs text-slate-400 text-center mb-4">Total: {backlogByReasonData.reduce((sum, d) => sum + d.total, 0)} ordens</p>
@@ -206,16 +228,16 @@ const DashboardCharts = ({
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
                   <XAxis type="number" tick={{fill: '#64748b', fontSize: 11}} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis dataKey="name" type="category" tick={{fill: '#475569', fontSize: 10, fontWeight: 600}} axisLine={false} tickLine={false} width={160} interval={0} />
-                  <BarTooltip
+                  <Tooltip
                     cursor={{fill: '#f1f5f9'}}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                    contentStyle={tooltipStyle}
                     formatter={(value) => [`${value} ordens`, 'Quantidade']}
                   />
                   <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20} cursor="pointer" onClick={handleBarClick}>
                     {backlogByReasonData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={COLORS_BACKLOG[index % COLORS_BACKLOG.length]}
+                        fill={entry.name === topBacklogReason ? PRIMARY : NEUTRAL}
                         stroke={selectedReason === entry.name ? '#1e293b' : 'none'}
                         strokeWidth={selectedReason === entry.name ? 2 : 0}
                       />
@@ -267,28 +289,29 @@ const DashboardCharts = ({
         </div>
       </div>
 
-      {/* Row 3: Percentage Penetration Gauges */}
+      {/* Row 3: Percentage Penetration Gauges — cada bloco usa 1 família de cor
+          (mais forte = Total, mais claro = componentes), trilha = tom claro da mesma cor */}
       <div className="flex flex-col lg:flex-row gap-6 w-full">
-        {/* VD Category Percentages */}
+        {/* VD Category Percentages — família indigo */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
           <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Impacto LTP — Categoria VD</h3>
           <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllVdLp} ordens VD LP no sistema</p>
           <div className="flex flex-col gap-5 py-2">
-            <PercentGauge label="LTP VD" value={dataLtpVd} total={totalAllVdLp} color="#3b82f6" />
-            <PercentGauge label="EX LTP VD" value={dataExLtpVd} total={totalAllVdLp} color="#10b981" />
-            <PercentGauge label="Total (LTP + EX LTP) VD" value={totalLtpVd} total={totalAllVdLp} color="#6366f1" />
+            <PercentGauge label="LTP VD" value={dataLtpVd} total={totalAllVdLp} color="#a5b4fc" trackColor="#eef2ff" />
+            <PercentGauge label="EX LTP VD" value={dataExLtpVd} total={totalAllVdLp} color="#818cf8" trackColor="#eef2ff" />
+            <PercentGauge label="Total (LTP + EX LTP) VD" value={totalLtpVd} total={totalAllVdLp} color="#4f46e5" trackColor="#e0e7ff" />
           </div>
         </div>
 
-        {/* DA Category Percentages */}
+        {/* DA Category Percentages — família violeta */}
         <div className="flex-1 bg-white p-6 rounded-xl border border-slate-200 shadow-sm min-w-0">
           <h3 className="text-sm font-bold text-slate-500 mb-6 text-center uppercase tracking-wider">% Impacto LTP — Categoria DA</h3>
           <p className="text-xs text-slate-400 text-center mb-4">Base: {totalAllDaLp} ordens DA LP no sistema</p>
           <div className="flex flex-col gap-5 py-2">
-            <PercentGauge label="LTP RAC/REF" value={dataLtpRacRef} total={totalAllDaLp} color="#f59e0b" />
-            <PercentGauge label="EX LTP RAC/REF" value={dataExLtpRacRef} total={totalAllDaLp} color="#ef4444" />
-            <PercentGauge label="LTP WSM/HKE" value={dataLtpWsm} total={totalAllDaLp} color="#8b5cf6" />
-            <PercentGauge label="DA Sem Peça" value={daNoParts} total={totalAllDaLp} color="#ec4899" />
+            <PercentGauge label="LTP RAC/REF" value={dataLtpRacRef} total={totalAllDaLp} color="#c4b5fd" trackColor="#f5f3ff" />
+            <PercentGauge label="EX LTP RAC/REF" value={dataExLtpRacRef} total={totalAllDaLp} color="#a78bfa" trackColor="#f5f3ff" />
+            <PercentGauge label="LTP WSM/HKE" value={dataLtpWsm} total={totalAllDaLp} color="#8b5cf6" trackColor="#f5f3ff" />
+            <PercentGauge label="DA Sem Peça" value={daNoParts} total={totalAllDaLp} color="#6d28d9" trackColor="#ede9fe" />
           </div>
         </div>
       </div>
@@ -297,4 +320,3 @@ const DashboardCharts = ({
 };
 
 export default DashboardCharts;
-

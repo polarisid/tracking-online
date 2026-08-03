@@ -643,6 +643,11 @@ const HomePage = ({ activeTab, onTabChange }) => {
   const sum2 = midVar2.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
   const average2 = matches2 > 0 ? sum2 / matches2 : 0;
 
+  // Status do RTAT (reaproveitado no StatCard e no gráfico RTAT de DashboardCharts,
+  // para os dois concordarem sobre o que é "alto"/"médio"/"normal")
+  const rtatVdStatus = average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal");
+  const rtatDaStatus = average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal");
+
   // Base totals for percentage calculations (IH + LP only)
   const baseVD = combinedData.slice(1).filter(filters.all_lp_AV).length;
   const baseDA = matches2; // all_lp_DA already computed
@@ -1045,10 +1050,10 @@ const HomePage = ({ activeTab, onTabChange }) => {
       )}
       <IndicatorsWrapper>
         <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal")} title="RTAT VD" value={average.toFixed(2)} diff={calcDiff(parseFloat(average.toFixed(2)) || 0, 'average', true)} />
+          <StatCard size="sm" type={rtatVdStatus} title="RTAT VD" value={average.toFixed(2)} diff={calcDiff(parseFloat(average.toFixed(2)) || 0, 'average', true)} />
         </div>
         <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal")} title="RTAT DA" value={average2.toFixed(2)} diff={calcDiff(parseFloat(average2.toFixed(2)) || 0, 'average2', true)} />
+          <StatCard size="sm" type={rtatDaStatus} title="RTAT DA" value={average2.toFixed(2)} diff={calcDiff(parseFloat(average2.toFixed(2)) || 0, 'average2', true)} />
         </div>
         {loading && <p className="text-xs text-slate-400 mt-2">Carregando...</p>}
         {message && <p className="text-xs text-slate-400 mt-2">{message}</p>}
@@ -1127,10 +1132,9 @@ const HomePage = ({ activeTab, onTabChange }) => {
         dataAgendaTomorrow={quantity_agenda_tomorrow || 0}
         rtatVd={average?.toFixed(2) || 0}
         rtatDa={average2?.toFixed(2) || 0}
-        totalDa={quantityDa || 0}
+        rtatVdStatus={rtatVdStatus}
+        rtatDaStatus={rtatDaStatus}
         daNoParts={quantity_DA_noParts || 0}
-        inRoute={inRouteOrders?.length || 0}
-        firstVisitWait={quantity_POTENTIAL_first_visit || 0}
         totalAllDaLp={quantityDa || 0}
         totalAllVdLp={matches || 0}
         backlogReasonData={ftfBacklogReasonEntries}

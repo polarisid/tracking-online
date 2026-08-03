@@ -5,7 +5,7 @@ import {
   ListChecks, Loader2, Wand2, CircleCheck, Wrench, ShieldAlert,
   Copy, Check, Flame, TrendingUp, Gauge, Zap, Layers, Database, Quote
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import filters from '../utils/filters';
 import { formatDateToDDMMYYYY } from '../utils/dateFomatter';
 import { supabase } from '../lib/supabaseClient';
@@ -1003,12 +1003,18 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
 
             <div className="h-28">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={casesHistory.trend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                <AreaChart data={casesHistory.trend} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="criticalTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.18} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <XAxis dataKey="day" tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
                   <YAxis hide />
                   <Tooltip formatter={(value) => [`${value} casos`, 'Total']} labelFormatter={(label) => `Dia ${label}`} />
-                  <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} dot={{ r: 2 }} />
-                </LineChart>
+                  <Area type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} fill="url(#criticalTrendFill)" dot={{ r: 2 }} />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
