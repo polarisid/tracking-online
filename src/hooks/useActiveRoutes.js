@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
-const API_URL_OLIVE = 'https://smartos-olive.vercel.app/api/service-orders';
-const API_URL_SLZ = 'https://smartos-slz.vercel.app/api/service-orders';
+const API_URL_OLIVE = 'https://smartos-olive.vercel.app/api/service-orders'; // asc_0003198122
+const API_URL_SLZ = 'https://smartos-slz.vercel.app/api/service-orders'; // asc_0005286953
+const API_URL_THE = 'https://smartos-the.vercel.app/api/service-orders'; // asc_0003886546
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 
@@ -20,11 +21,12 @@ export default function useActiveRoutes() {
       setLoading(true);
       setError(null);
       
-      const [resOlive, resSlz] = await Promise.all([
+      const [resOlive, resSlz, resThe] = await Promise.all([
         fetch(API_URL_OLIVE).then(r => r.ok ? r.json() : []),
-        fetch(API_URL_SLZ).then(r => r.ok ? r.json() : [])
+        fetch(API_URL_SLZ).then(r => r.ok ? r.json() : []),
+        fetch(API_URL_THE).then(r => r.ok ? r.json() : [])
       ]);
-      const data = [...resOlive, ...resSlz];
+      const data = [...resOlive, ...resSlz, ...resThe];
       setActiveRoutes(data);
 
       // Build order IDs set (cache layer)

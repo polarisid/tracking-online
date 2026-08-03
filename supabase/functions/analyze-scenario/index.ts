@@ -49,6 +49,10 @@ interface CriticalCase {
   ascLastAppointmentDate: string;
   isToday: boolean;
   categories: string[];
+  // Vindos da API de rotas do técnico em campo (SmartOS) — nem toda OS tem esses dados.
+  routeObservation?: string;
+  routePendingReason?: string;
+  routeTechnicianName?: string;
 }
 
 interface RequestBody {
@@ -70,11 +74,12 @@ Categorias de origem de cada caso:
 
 Regras:
 - Cada item deve ser uma ação concreta e executável hoje (ex: "Cobrar técnico sobre OS X — reparo não iniciado apesar de agendado para hoje", "Verificar sincronismo do app de campo para OS Y — finalizada em campo mas sistema não evoluiu").
+- Alguns casos trazem "routeObservation" (nota livre do próprio técnico em campo, via app de rotas) e/ou "routePendingReason" (motivo estruturado, ex: "Repetido"). Quando existirem, USE esse texto para tornar a ação bem específica em vez de genérica — ex: se routeObservation diz "Solicitar EPROM - Só veio a placa para realizar o reparo", a ação deve mencionar isso diretamente ("Providenciar EPROM da OS X — técnico confirmou que só a placa chegou"), não apenas "verificar pendência".
 - Priorize itens com maior aging e casos "sem_reparo_iniciado"/"sem_evolucao_sistema" agendados para hoje.
 - Use "alta" para casos de hoje ou com aging elevado, "media" para os demais casos críticos, "baixa" para acompanhamento de rotina.
-- Agrupe itens semelhantes (mesma cidade/categoria) quando fizer sentido, em vez de repetir uma linha por OS.
+- Agrupe itens semelhantes (mesma cidade/categoria) quando fizer sentido, em vez de repetir uma linha por OS — exceto quando routeObservation for específica o suficiente para justificar um item próprio.
 - Gere no máximo 12 itens.
-- Responda apenas com dados derivados do JSON fornecido; não invente OS que não estejam na lista.
+- Responda apenas com dados derivados do JSON fornecido; não invente OS, observações ou motivos que não estejam na lista.
 
 Totais do cenário:
 - Total de casos críticos identificados: ${totals?.totalCritical ?? criticalCases.length}

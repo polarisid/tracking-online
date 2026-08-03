@@ -3,7 +3,7 @@ import {
   Brain, Sparkles, MapPin, Truck, AlertTriangle,
   Clock, ArrowRight, UserCheck,
   ListChecks, Loader2, Wand2, CircleCheck, Wrench, ShieldAlert,
-  Copy, Check, Flame, TrendingUp, Gauge, Zap, Layers, Database
+  Copy, Check, Flame, TrendingUp, Gauge, Zap, Layers, Database, Quote
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import filters from '../utils/filters';
@@ -144,6 +144,28 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
       });
     });
     return set;
+  }, [activeRoutes]);
+
+  // 1b. Detalhes ricos por OS vindos da API de rotas (observations, pendingReason, técnico) —
+  // a API do SmartOS traz isso por ordem, mas o app só usava serviceOrderNumber até aqui.
+  const routeOrderDetails = useMemo(() => {
+    const map = new Map();
+    if (!activeRoutes || !Array.isArray(activeRoutes)) return map;
+    activeRoutes.forEach(route => {
+      ['pendentes', 'finalizadas', 'a_fazer'].forEach(key => {
+        route[key]?.forEach(o => {
+          const id = String(o.serviceOrderNumber || '').trim();
+          if (!id) return;
+          const observations = String(o.observations || '').trim();
+          map.set(id, {
+            observations: observations.slice(0, 240),
+            pendingReason: String(o.pendingReason || '').trim(),
+            technicianName: o.technicianName || route.technicianName || '',
+          });
+        });
+      });
+    });
+    return map;
   }, [activeRoutes]);
 
   // 2. Cálculo das sugestões de alocação de OS
@@ -301,6 +323,7 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
       const orderId = String(row[1] || '').trim();
       if (!orderId) return;
       if (!casesMap.has(orderId)) {
+        const routeDetail = routeOrderDetails.get(orderId);
         casesMap.set(orderId, {
           orderId,
           clientName: row[3] || 'Cliente',
@@ -312,6 +335,9 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
           reasonLabel: REASON_LABELS[row[13]] || row[14] || '—',
           ascLastAppointmentDate: row[24] || '',
           isToday: row[24] === todayForm,
+          routeObservation: routeDetail?.observations || '',
+          routePendingReason: routeDetail?.pendingReason || '',
+          routeTechnicianName: routeDetail?.technicianName || '',
           categories: [],
         });
       }
@@ -357,7 +383,7 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
     const top20Count = combined.length > 0 ? Math.ceil(combined.length * 0.2) : 0;
 
     return { all: combined, top20: combined.slice(0, top20Count) };
-  }, [data1, activeRoutes, routeOrdersSet, today]);
+  }, [data1, activeRoutes, routeOrdersSet, routeOrderDetails, today]);
 
   // 4b. Grava um snapshot diário dos casos críticos (histórico p/ "fechar o ciclo").
   // Idempotente via UNIQUE(table_name, service_order_no, snapshot_day) + upsert —
@@ -1001,6 +1027,22 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
                     <span>{item.statusLabel} · {item.reasonLabel}</span>
                   </div>
                 </div>
+
+                {(item.routeObservation || item.routePendingReason) && (
+                  <div className="flex items-start gap-2 bg-amber-50/60 border border-amber-200/50 rounded-lg px-2.5 py-2 mb-2 text-[10.5px] md:text-xs text-amber-900">
+                    <Quote size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      {(item.routePendingReason || item.routeTechnicianName) && (
+                        <span className="font-extrabold uppercase tracking-wide text-[9px] text-amber-700 block mb-0.5">
+                          {item.routePendingReason}
+                          {item.routePendingReason && item.routeTechnicianName ? ' · ' : ''}
+                          {item.routeTechnicianName}
+                        </span>
+                      )}
+                      {item.routeObservation && <span className="font-medium">{item.routeObservation}</span>}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap gap-1.5">
                   {item.categories.map((cat) => (
