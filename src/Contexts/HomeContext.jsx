@@ -4,6 +4,9 @@ import useActiveRoutes from "../hooks/useActiveRoutes";
 
 export const HomeContext = createContext(null);
 
+// As 3 tabelas/ASCs padrão do sistema (mesmos 3 endpoints do SmartOS em useActiveRoutes.js)
+const DEFAULT_TABLES = ['asc_0003198122', 'asc_0005286953', 'asc_0003886546'];
+
 export function HomeProvider({ children }) {
   const { activeRoutes, activeOrderIdsSet, loading: activeRoutesLoading, refetch: refetchActiveRoutes } = useActiveRoutes();
   const [file1, setFile1] = useState(null);
@@ -34,7 +37,7 @@ export function HomeProvider({ children }) {
   });
 
   const [tablesList, setTablesList] = useState(() => {
-    const defaults = ['asc_0003198122', 'asc_0005286953'];
+    const defaults = DEFAULT_TABLES;
     try {
       const stored = localStorage.getItem('tracking_tables_list');
       if (stored) {
@@ -79,7 +82,7 @@ export function HomeProvider({ children }) {
         setUserRole(data.role);
         setIsPendingApproval(false);
 
-        const defaults = ['asc_0003198122', 'asc_0005286953'];
+        const defaults = DEFAULT_TABLES;
         let finalTables = [];
 
         if (data.allowed_tables?.includes('*') || data.role === 'admin') {
@@ -110,7 +113,7 @@ export function HomeProvider({ children }) {
 
         if (!countError && count === 0) {
           // A tabela de permissões está vazia! Registra o primeiro usuário como admin com acesso total
-          const defaults = ['asc_0003198122', 'asc_0005286953'];
+          const defaults = DEFAULT_TABLES;
           const { error: insertError } = await supabase
             .from('user_permissions')
             .insert({
@@ -150,7 +153,7 @@ export function HomeProvider({ children }) {
       setUserRole(null);
       setIsPendingApproval(false);
       // Reset tablesList para os padrões do local ao deslogar
-      const defaults = ['asc_0003198122', 'asc_0005286953'];
+      const defaults = DEFAULT_TABLES;
       try {
         const stored = localStorage.getItem('tracking_tables_list');
         if (stored) {
