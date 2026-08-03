@@ -1113,8 +1113,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
 
           <StatCard title="CI R. Completo OW" value={quantity_complete_CI_OW_NOT_X09} onClick={() => toggleVisibility(34)} isActive={visibleComponents[34]} type="CI" iconName="CheckCircle" diff={calcDiff(quantity_complete_CI_OW_NOT_X09, 'quantity_complete_CI_OW_NOT_X09')} />
 
-          <StatCard title="LTP IH Em até 4 dias" value={0} onClick={() => toggleVisibility(7)} isActive={visibleComponents[7]} type="normal" />
-          <StatCard title="Effect Appointment" value={0} onClick={() => toggleVisibility(10)} isActive={visibleComponents[10]} type="normal" />
+          <StatCard title="LTP IH Em até 4 dias" value={filteredAndSortedData5.length} onClick={() => toggleVisibility(7)} isActive={visibleComponents[7]} type="normal" diff={calcDiff(filteredAndSortedData5.length, 'quantity_LTP_next_4_days')} />
+          <StatCard title="Effect Appointment" value={filteredAndSortedData6.length} onClick={() => toggleVisibility(10)} isActive={visibleComponents[10]} type="normal" diff={calcDiff(filteredAndSortedData6.length, 'quantity_effect_appointment')} />
           <StatCard title="First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(11)} isActive={visibleComponents[11]} type="normal" diff={calcDiff(quantity_POTENTIAL_first_visit, 'quantity_POTENTIAL_first_visit')} />
           <StatCard title="Agenda do Dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" diff={calcDiff(quantity_agenda_today, 'quantity_agenda_today')} />
           <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" diff={calcDiff(quantity_agenda_tomorrow, 'quantity_agenda_tomorrow')} />
