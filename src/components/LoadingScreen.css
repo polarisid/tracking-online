@@ -1,22 +1,42 @@
 /* src/components/LoadingScreen.css */
+/*
+ * Escondido por padrão (display:none + pointer-events:none). Antes o padrão
+ * era display:flex e a classe .hidden tentava sobrepor com display:none —
+ * mas as duas regras têm a MESMA especificidade CSS (.loading-container e a
+ * classe genérica .hidden), então quem ganha é quem vem depois no bundle, e
+ * .loading-container sempre vencia. Resultado: o overlay nunca saía do
+ * layout e, mesmo com opacity:0/invisível a olho nu, ficava com
+ * pointer-events:auto bloqueando cliques na página inteira. Agora
+ * pointer-events acompanha display explicitamente em cada estado, então
+ * nunca fica "invisível mas clicável" independente de qualquer empate de
+ * especificidade.
+ */
 .loading-container {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
+  display: none;
   justify-content: center;
   align-items: center;
-  background-color: rgb(255, 255, 255); /* Fundo semitransparente */
-  z-index: 9999; /* Certifique-se de que o carregamento esteja acima de outros conteúdos */
+  background-color: rgb(255, 255, 255);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.loading-container.visible {
+  display: flex;
   opacity: 1;
-  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+  pointer-events: auto;
 }
 
 .loading-container.hidden {
+  display: none;
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
 }
 
 .loading-image {
