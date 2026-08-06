@@ -38,6 +38,35 @@ const computeChecklistFingerprint = (criticalCasesTop20, totals) => {
   return hashString(`${normalized}::${JSON.stringify(totals)}`);
 };
 
+/**
+ * Botão pequeno e reutilizável para copiar um número de OS com um clique.
+ * Definido no escopo do módulo (não dentro de IntelligencePanel) — se ficasse
+ * dentro, o React recriaria essa função a cada render do painel e trataria o
+ * botão como um componente novo, desmontando/remontando o DOM real dele. Como
+ * o painel tem vários efeitos assíncronos (snapshot, histórico, cache da IA)
+ * disparando re-renders a qualquer momento, isso podia acontecer bem no meio
+ * de um clique (entre mousedown e mouseup) e o navegador perdia o evento —
+ * o botão parecia simplesmente não responder ao clique do mouse.
+ */
+const CopyOrderChip = ({ orderId, className = '', copiedOrderId, onCopy }) => {
+  const isCopied = copiedOrderId === orderId;
+  return (
+    <button
+      type="button"
+      onClick={() => onCopy(orderId)}
+      title="Clique para copiar o número da OS"
+      className={`inline-flex items-center gap-1.5 font-mono font-extrabold rounded-lg border transition-all duration-150 active:scale-95 ${
+        isCopied
+          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+          : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
+      } ${className}`}
+    >
+      {isCopied ? <Check size={11} /> : <Copy size={11} />}
+      {isCopied ? 'Copiado!' : `OS #${orderId}`}
+    </button>
+  );
+};
+
 const STATUS_LABELS = {
   ST015: 'Acknowledge (ASC)',
   ST025: 'Engineer Assigned',
@@ -646,26 +675,6 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
     desatualizado: Clock,
   };
 
-  // Botão pequeno e reutilizável para copiar um número de OS com um clique
-  const CopyOrderChip = ({ orderId, className = '' }) => {
-    const isCopied = copiedOrderId === orderId;
-    return (
-      <button
-        type="button"
-        onClick={() => handleCopyOrderId(orderId)}
-        title="Clique para copiar o número da OS"
-        className={`inline-flex items-center gap-1.5 font-mono font-extrabold rounded-lg border transition-all duration-150 active:scale-95 ${
-          isCopied
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-            : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
-        } ${className}`}
-      >
-        {isCopied ? <Check size={11} /> : <Copy size={11} />}
-        {isCopied ? 'Copiado!' : `OS #${orderId}`}
-      </button>
-    );
-  };
-
   // KPIs de resumo para o topo da página (dashboard)
   const KPI_CARDS = [
     {
@@ -912,7 +921,7 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
-                        <CopyOrderChip orderId={order.orderId} className="text-[10px] px-2 py-0.5" />
+                        <CopyOrderChip orderId={order.orderId} className="text-[10px] px-2 py-0.5" copiedOrderId={copiedOrderId} onCopy={handleCopyOrderId} />
                         <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-1.5">{order.clientName}</h4>
                         <p className="text-[10.5px] md:text-xs font-semibold text-slate-600 mt-0.5">{order.product}</p>
                       </div>
@@ -1052,7 +1061,7 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <CopyOrderChip orderId={item.orderId} className="text-[10px] px-2 py-0.5" />
+                    <CopyOrderChip orderId={item.orderId} className="text-[10px] px-2 py-0.5" copiedOrderId={copiedOrderId} onCopy={handleCopyOrderId} />
                     <h4 className="text-xs md:text-sm font-extrabold text-slate-900 mt-1.5">{item.clientName}</h4>
                     <p className="text-[10.5px] md:text-xs font-semibold text-slate-600 mt-0.5">{item.product}</p>
                   </div>
@@ -1211,7 +1220,7 @@ export default function IntelligencePanel({ data1, activeRoutes, dataSource }) {
                             </span>
                           )}
                           {item.relatedOrderId && (
-                            <CopyOrderChip orderId={item.relatedOrderId} className="text-[10px] px-2 py-0.5" />
+                            <CopyOrderChip orderId={item.relatedOrderId} className="text-[10px] px-2 py-0.5" copiedOrderId={copiedOrderId} onCopy={handleCopyOrderId} />
                           )}
                         </div>
                       </div>
