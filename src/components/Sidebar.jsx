@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   ChevronLeft, ChevronRight, Presentation,
   Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
-  LogIn, LogOut, Sparkles, Users
+  LogIn, LogOut, Sparkles, Users, FileBarChart
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
 import { exportStyledCloudReport } from '../utils/cloudReportExporter';
@@ -14,6 +14,7 @@ const navItems = [
   { id: 'charts', label: 'Gráficos', icon: BarChart3, path: '/', tab: 2 },
   { id: 'calendar', label: 'Calendário', icon: CalendarDays, path: '/', tab: 3 },
   { id: 'optimization', label: 'Inteligência', icon: Sparkles, path: '/', tab: 4 },
+  { id: 'indicators', label: 'Indicadores', icon: FileBarChart, path: '/', tab: 5 },
 ];
 
 const Sidebar = ({
@@ -40,7 +41,7 @@ const Sidebar = ({
   const items = React.useMemo(() => {
     const list = [...navItems];
     if (userRole === 'admin') {
-      list.push({ id: 'users', label: 'Usuários', icon: Users, path: '/', tab: 5 });
+      list.push({ id: 'users', label: 'Usuários', icon: Users, path: '/', tab: 6 });
     }
     return list;
   }, [userRole]);
