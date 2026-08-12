@@ -64,27 +64,67 @@ table {
   color: var(--color-text-secondary);
 }
 
-.table-wrapper, .toggleDiv {
+.table-wrapper {
   width: 100%;
   overflow-x: auto;
   padding: 0 0.5rem;
 }
 
+/* Seção de cada planilha togglável: largura consistente e título calmo. */
+.toggleableDiv {
+  max-width: 1800px;
+  margin: 0 auto 1.75rem;
+  padding: 0 1rem;
+}
+
+.toggleableDiv h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
+  margin: 1.25rem 0 0.5rem;
+}
+
+/* Cada tabela de planilha vira ela mesma o container rolável: um <table> sozinho
+   não cria área de scroll (por isso as colunas eram cortadas). display:block
+   resolve isso — some rolagem horizontal E vertical, com o cabeçalho fixo no topo,
+   então nenhuma coluna fica inacessível, não importa quantas o relatório tenha. */
+table.toggleDiv {
+  display: block;
+  overflow: auto;
+  max-height: 620px;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-lg);
+}
+
+table.toggleDiv thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+/* Primeira coluna (nº da OS) com leve destaque — é a âncora de leitura da linha. */
+table.toggleDiv tbody td:first-child {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
 th {
-  background-color: #f8fafc;
+  background-color: #f1f5f9;
   color: #334155;
   font-weight: 700;
   text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.5rem 0.75rem;
-  border-bottom: 2px solid var(--color-border);
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
-  font-size: 0.65rem;
+  font-size: 0.64rem;
 }
 
 td {
-  padding: 0.4rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   border-bottom: 1px solid #f1f5f9;
   background-color: inherit;
   white-space: nowrap;
@@ -100,11 +140,11 @@ table tbody tr {
 }
 
 table tbody tr:nth-child(even) {
-  background-color: #f8fafc;
+  background-color: #fafbfc;
 }
 
 table tbody tr:hover {
-  background-color: #f1f5f9;
+  background-color: #eef2ff;
   cursor: pointer;
 }
 
