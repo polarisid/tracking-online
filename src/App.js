@@ -153,7 +153,7 @@ const AppContent = () => {
 
       {/* Main Content Area */}
       <div
-        className="flex-1 flex flex-col min-h-screen transition-all duration-300"
+        className="flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300"
         style={{ marginLeft: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
       >
         <main className="flex-1">

@@ -70,8 +70,13 @@ table {
   padding: 0 0.5rem;
 }
 
-/* Seção de cada planilha togglável: largura consistente e título calmo. */
+/* Seção de cada planilha togglável: largura consistente e título calmo.
+   width:100% + min-width:0 são essenciais: como o MainContainer é flex, sem eles
+   este bloco incha até o max-width (1800px) e estoura a viewport (o .App tem
+   overflow-x:hidden, então isso vira corte em vez de rolagem). */
 .toggleableDiv {
+  width: 100%;
+  min-width: 0;
   max-width: 1800px;
   margin: 0 auto 1.75rem;
   padding: 0 1rem;
