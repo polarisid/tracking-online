@@ -23,8 +23,13 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
     return 'text-slate-500';
   };
 
+  // A barra de acento carrega informação, não é enfeite: quando há histórico,
+  // ela reflete a TENDÊNCIA (subir = piora nestes backlogs → vermelho; cair =
+  // melhora → verde). Sem histórico, cai no tom do tipo do card.
+  const hasTrend = diff !== undefined && diff !== null && diff !== 0;
   const getAccentColor = () => {
     if (isActive) return 'bg-white/40';
+    if (hasTrend) return diff > 0 ? 'bg-rose-400 group-hover:bg-rose-500' : 'bg-emerald-400 group-hover:bg-emerald-500';
     if (type === 'high') return 'bg-red-400 group-hover:bg-red-500';
     if (type === 'mid') return 'bg-orange-400 group-hover:bg-orange-500';
     if (type === 'CI') return 'bg-indigo-400 group-hover:bg-indigo-500';
@@ -39,13 +44,13 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
         transition-all duration-300 ease-in-out cursor-pointer group
         ${getThemeClasses()}
         hover:-translate-y-1 hover:shadow-lg
-        ${isLg ? 'p-6 h-[140px]' : isSm ? 'p-3 h-[75px]' : 'p-4 min-w-[140px] h-[110px]'}
+        ${isLg ? 'p-6 h-[140px]' : isSm ? 'p-3 h-[75px]' : 'p-3.5 min-w-[130px] h-[104px]'}
         flex-1 w-full
       `}
     >
       {/* Header Row */}
       <div className="flex justify-between items-start w-full gap-2">
-        <span className={`${isLg ? 'text-xs md:text-sm' : isSm ? 'text-[9px]' : 'text-[11px] md:text-xs'} font-bold leading-snug tracking-wider uppercase ${getHeaderColor()}`}>
+        <span className={`${isLg ? 'text-sm md:text-base' : isSm ? 'text-[10px]' : 'text-xs md:text-[13px]'} font-bold leading-snug tracking-tight ${getHeaderColor()}`}>
           {title}
         </span>
         {Icon && !isSm && (

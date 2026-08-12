@@ -62,11 +62,12 @@ const ExecutiveSummary = ({ metrics = {} }) => {
         </div>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-slate-100">
-        <MiniKpi icon={TrendingUp} label="% Impacto" value={`${pctPenetration}%`} sub={`${totalLtpAll}/${totalBase}`} color="blue" />
+      {/* KPI Grid — a fileira herói: as métricas de topo num relance, incluindo os dois RTAT */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-slate-100">
+        <MiniKpi icon={TrendingUp} label="Impacto LTP" value={`${pctPenetration}%`} sub={`${totalLtpAll} de ${totalBase}`} color="blue" />
         <MiniKpi icon={Truck} label="Em Rota" value={inRouteCount} sub="ordens ativas" color="cyan" />
         <MiniKpi icon={Clock} label="RTAT VD" value={`${rtatVd} dias`} sub={parseFloat(rtatVd) > 4 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatVd) > 4 ? 'red' : 'emerald'} />
+        <MiniKpi icon={Clock} label="RTAT DA" value={`${rtatDa} dias`} sub={parseFloat(rtatDa) > 5 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatDa) > 5 ? 'red' : 'emerald'} />
         <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />
       </div>
 

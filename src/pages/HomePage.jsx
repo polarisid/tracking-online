@@ -21,6 +21,7 @@ import { supabase } from '../lib/supabaseClient';
 import IntelligencePanel from "../components/IntelligencePanel";
 import IndicatorsPanel from "../components/IndicatorsPanel";
 import UserManagement from "../components/UserManagement";
+import EmptyState from "../components/EmptyState";
 import { getCleanSourceName } from "../utils/dataSource";
 
 import * as React from "react";
@@ -53,7 +54,7 @@ const CustomEvent = ({ event }) => {
   );
 };
 
-const HomePage = ({ activeTab, onTabChange }) => {
+const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const {
     setFile1,
     setFile2,
@@ -76,6 +77,8 @@ const HomePage = ({ activeTab, onTabChange }) => {
     activeRoutes,
     userRole
   } = useHomeContext();
+
+  const hasData = combinedData.length > 1;
 
   const [presentationMode, setPresentationMode] = useState(false);
 
@@ -1031,9 +1034,10 @@ const HomePage = ({ activeTab, onTabChange }) => {
         lastUpdated={lastUpdated}
       />
 
-      {/* Executive Summary */}
-      {combinedData.length > 1 && (
-        <div className="max-w-screen-2xl mx-auto px-4 pb-4">
+      {/* Topo: uma tese só. Com dados → resumo executivo (a fileira herói, com os
+          dois RTAT integrados). Sem dados → convite a carregar a planilha. */}
+      <div className="max-w-screen-2xl mx-auto w-full px-4 pt-3 pb-4">
+        {hasData ? (
           <ExecutiveSummary
             metrics={{
               totalLtpAll: (quantity_LTP_VD || 0) + (quantity_EX_LTP_VD || 0) + (quantity_LTP_RAC_REF || 0) + (quantity_EX_LTP_RAC_REF || 0) + (quantity_LTP_WSM || 0),
@@ -1047,18 +1051,10 @@ const HomePage = ({ activeTab, onTabChange }) => {
               agendaToday: quantity_agenda_today || 0,
             }}
           />
-        </div>
-      )}
-      <IndicatorsWrapper>
-        <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={rtatVdStatus} title="RTAT VD" value={average.toFixed(2)} diff={calcDiff(parseFloat(average.toFixed(2)) || 0, 'average', true)} />
-        </div>
-        <div style={{ width: '130px' }}>
-          <StatCard size="sm" type={rtatDaStatus} title="RTAT DA" value={average2.toFixed(2)} diff={calcDiff(parseFloat(average2.toFixed(2)) || 0, 'average2', true)} />
-        </div>
-        {loading && <p className="text-xs text-slate-400 mt-2">Carregando...</p>}
-        {message && <p className="text-xs text-slate-400 mt-2">{message}</p>}
-      </IndicatorsWrapper>
+        ) : (
+          <EmptyState onUpload={onUploadPending} />
+        )}
+      </div>
 
       {combinedData.length > 1 && (
         <ControlsBar>
@@ -1086,23 +1082,26 @@ const HomePage = ({ activeTab, onTabChange }) => {
 
       <BasicTabs activeTab={activeTab} onTabChange={onTabChange}>
         <Dashboard>
+          {hasData && (<>
           <StatCard title="LTP VD IH" value={quantity_LTP_VD} percentage={pctLtpVd} onClick={() => toggleVisibility(1)} isActive={visibleComponents[1]} iconName="Activity" diff={calcDiff(quantity_LTP_VD, 'quantity_LTP_VD')} />
           <StatCard title="EX LTP VD IH" value={quantity_EX_LTP_VD} percentage={pctExLtpVd} onClick={() => toggleVisibility(21)} isActive={visibleComponents[21]} iconName="Activity" diff={calcDiff(quantity_EX_LTP_VD, 'quantity_EX_LTP_VD')} />
-          <StatCard title="Ordens Em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" diff={calcDiff(inRouteOrders.length || 0, 'inRoute')} />
+          <StatCard title="Ordens em Rota" value={inRouteOrders.length || 0} onClick={() => toggleVisibility(40)} isActive={visibleComponents[40]} iconName="Truck" diff={calcDiff(inRouteOrders.length || 0, 'inRoute')} />
           <StatCard title="LTP REF/RAC IH" value={quantity_LTP_RAC_REF} percentage={pctLtpRacRef} onClick={() => toggleVisibility(2)} isActive={visibleComponents[2]} iconName="Activity" diff={calcDiff(quantity_LTP_RAC_REF, 'quantity_LTP_RAC_REF')} />
           <StatCard title="EX-LTP REF/RAC" value={quantity_EX_LTP_RAC_REF} percentage={pctExLtpRacRef} onClick={() => toggleVisibility(20)} isActive={visibleComponents[20]} iconName="Activity" diff={calcDiff(quantity_EX_LTP_RAC_REF, 'quantity_EX_LTP_RAC_REF')} />
           <StatCard title="LTP WSM/HKE" value={quantity_LTP_WSM} percentage={pctLtpWsm} onClick={() => toggleVisibility(3)} isActive={visibleComponents[3]} iconName="Activity" diff={calcDiff(quantity_LTP_WSM, 'quantity_LTP_WSM')} />
           <StatCard title="LTP VD CI" value={quantity_LTP_VD_CI} onClick={() => toggleVisibility(4)} isActive={visibleComponents[4]} type="CI" iconName="Activity" diff={calcDiff(quantity_LTP_VD_CI, 'quantity_LTP_VD_CI')} />
           <StatCard title="LTP MX CI" value={quantity_LTP_MX_CI} onClick={() => toggleVisibility(5)} isActive={visibleComponents[5]} type="CI" iconName="Activity" diff={calcDiff(quantity_LTP_MX_CI, 'quantity_LTP_MX_CI')} />
           <StatCard title="FTF (ST025)" value={quantity_FTF} onClick={() => toggleVisibility(60)} isActive={visibleComponents[60]} iconName="CheckCircle" diff={calcDiff(quantity_FTF, 'quantity_FTF')} />
+          </>)}
         </Dashboard>
         <Dashboard>
-          <StatCard title="TODOS DA LP" value={quantityDa} onClick={() => toggleVisibility(91)} isActive={visibleComponents[91]} diff={calcDiff(quantityDa, 'quantityDa')} />
-          <StatCard title="TODOS DTV LP" value={quantity_all_DTV_LP} onClick={() => toggleVisibility(92)} isActive={visibleComponents[92]} diff={calcDiff(quantity_all_DTV_LP, 'quantity_all_DTV_LP')} />
+          {hasData && (<>
+          <StatCard title="Todos DA LP" value={quantityDa} onClick={() => toggleVisibility(91)} isActive={visibleComponents[91]} diff={calcDiff(quantityDa, 'quantityDa')} />
+          <StatCard title="Todos DTV LP" value={quantity_all_DTV_LP} onClick={() => toggleVisibility(92)} isActive={visibleComponents[92]} diff={calcDiff(quantity_all_DTV_LP, 'quantity_all_DTV_LP')} />
           <StatCard title="D+3" value={quantity_LP_up_to_3_days} onClick={() => toggleVisibility(80)} isActive={visibleComponents[80]} type="CI" diff={calcDiff(quantity_LP_up_to_3_days, 'quantity_LP_up_to_3_days')} />
           <StatCard title="Ordens Desatualizadas" value={quantity_all_outdated_orders} onClick={() => toggleVisibility(81)} isActive={visibleComponents[81]} type="high" iconName="AlertTriangle" diff={calcDiff(quantity_all_outdated_orders, 'quantity_all_outdated_orders')} />
 
-          <StatCard title="TODOS DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} diff={calcDiff(quantity_ALL_DA_OW, 'quantity_ALL_DA_OW')} />
+          <StatCard title="Todos DA OW" value={quantity_ALL_DA_OW} onClick={() => toggleVisibility(51)} isActive={visibleComponents[51]} diff={calcDiff(quantity_ALL_DA_OW, 'quantity_ALL_DA_OW')} />
 
           <StatCard title="DA Sem Peça (OW/LP)" value={quantity_DA_noParts} onClick={() => toggleVisibility(6)} isActive={visibleComponents[6]} diff={calcDiff(quantity_DA_noParts, 'quantity_DA_noParts')} />
           <StatCard title="Consumidor Fora do Prazo" value={quantity_Oudated_IH} onClick={() => toggleVisibility(8)} isActive={visibleComponents[8]} diff={calcDiff(quantity_Oudated_IH, 'quantity_Oudated_IH')} />
@@ -1119,6 +1118,7 @@ const HomePage = ({ activeTab, onTabChange }) => {
           <StatCard title="First Visit - Aguardando" value={quantity_POTENTIAL_first_visit} onClick={() => toggleVisibility(11)} isActive={visibleComponents[11]} type="normal" diff={calcDiff(quantity_POTENTIAL_first_visit, 'quantity_POTENTIAL_first_visit')} />
           <StatCard title="Agenda do Dia" value={quantity_agenda_today} onClick={() => toggleVisibility(12)} isActive={visibleComponents[12]} iconName="Calendar" diff={calcDiff(quantity_agenda_today, 'quantity_agenda_today')} />
           <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" diff={calcDiff(quantity_agenda_tomorrow, 'quantity_agenda_tomorrow')} />
+          </>)}
         </Dashboard>
         
       <DashboardCharts
@@ -1736,18 +1736,6 @@ const UploadBox = styled.div`
   }
 `;
 
-const IndicatorsWrapper = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin: 1rem 2rem 0 auto;
-  width: fit-content;
-  align-items: center;
-`;
-
-
-
-
 
 
 
@@ -1774,10 +1762,11 @@ const SubMenuSection = styled.div`
 `;
 const Dashboard = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin: 1.5rem 1rem;
-  padding: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  max-width: 1536px;
+  margin: 1.25rem auto;
+  padding: 0 1rem;
 `;
 const MainContainer = styled.div`
   display: flex;

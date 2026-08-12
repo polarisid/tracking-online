@@ -51,6 +51,7 @@ const Sidebar = ({
       className={`
         fixed left-0 top-0 h-full z-40
         bg-slate-900/95 backdrop-blur-xl border-r border-slate-800/50
+        shadow-[8px_0_28px_-12px_rgba(15,23,42,0.45)]
         flex flex-col
         transition-all duration-300 ease-in-out
         ${collapsed ? 'w-16' : 'w-56'}

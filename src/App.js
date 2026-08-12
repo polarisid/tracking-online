@@ -157,7 +157,7 @@ const AppContent = () => {
         style={{ marginLeft: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
       >
         <main className="flex-1">
-          <PagesRoutes activeTab={activeTab} onTabChange={setActiveTab} />
+          <PagesRoutes activeTab={activeTab} onTabChange={setActiveTab} onUploadPending={(e) => handleUpload(e, setFile1, setData1)} />
         </main>
 
         {/* Footer */}
