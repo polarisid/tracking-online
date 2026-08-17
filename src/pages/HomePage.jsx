@@ -806,9 +806,16 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               average2: currentMetrics.average2
             }]);
           if (error) throw error;
-          console.log('[Supabase History] Novo snapshot inserido.');
+          console.log('[Supabase History] ✅ Snapshot salvo em asc_metrics_history (table_name=' + cleanSource + ').');
         } catch (err) {
-          console.warn('[Supabase History] Falha ao persistir snapshot no banco:', err.message);
+          // Falha de gravação não pode ser silenciosa: se a tabela não existir ou
+          // o RLS bloquear o INSERT, o histórico nunca cresce. Surface completo.
+          console.error(
+            '[Supabase History] ❌ FALHA ao salvar snapshot em asc_metrics_history. ' +
+            'O histórico (Evolução no Tempo / Comparar Evolução) não vai crescer até resolver. ' +
+            'Verifique se a tabela existe e o RLS permite INSERT (rode supabase/migrations/asc_metrics_history.sql).',
+            err
+          );
         }
       };
       saveToSupabase();
