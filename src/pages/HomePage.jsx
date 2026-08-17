@@ -22,6 +22,8 @@ import IntelligencePanel from "../components/IntelligencePanel";
 import IndicatorsPanel from "../components/IndicatorsPanel";
 import UserManagement from "../components/UserManagement";
 import EmptyState from "../components/EmptyState";
+import TrendCharts from "../components/TrendCharts";
+import DataTable from "../components/DataTable";
 import { getCleanSourceName } from "../utils/dataSource";
 
 import * as React from "react";
@@ -996,7 +998,20 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     );
   };
 
+  // Envolve uma planilha togglável no DataTable — busca por OS, ordenação por
+  // coluna, paginação e export — preservando a coloração das linhas (em rota,
+  // LTP/EX-LTP) via o renderRow/renderRowLTP passado.
+  const planilhaTable = (data, cols, rowRenderer, header = combinedData[0]) => (
+    <DataTable data={data} columns={cols} headerRow={header} renderRow={rowRenderer} />
+  );
 
+  // Header das tabelas de análise LTP: rótulos customizados nas colunas 38 e 24.
+  const ltpAnalysisHeader = (() => {
+    const h = [...(combinedData[0] || [])];
+    h[38] = 'Técnico / Rota';
+    h[24] = 'Previsão Atend.';
+    return h;
+  })();
 
   return (
     <MainContainer>
@@ -1120,7 +1135,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
           <StatCard title="Agenda de Amanhã" value={quantity_agenda_tomorrow} onClick={() => toggleVisibility(13)} isActive={visibleComponents[13]} iconName="Calendar" diff={calcDiff(quantity_agenda_tomorrow, 'quantity_agenda_tomorrow')} />
           </>)}
         </Dashboard>
-        
+
+      <div className="enter-up">
+      <TrendCharts history={history} />
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}
@@ -1142,6 +1159,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         backlogRawData={planilha_FTF_Backlog_IH}
         backlogHeaders={combinedData[0] || []}
       />
+      </div>
       <CalendarContainer>
           <Calendar
             localizer={localizer}
@@ -1168,18 +1186,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
             </SubMenuSection>
             <ToggleableComponent isVisible={visibleComponents[1]}>
               <h2>EM LTP DTV </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_LTP_IH_VD_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[40]}>
               <h2>ORDENS EM ROTA</h2>
@@ -1274,370 +1281,106 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[31]}>
               <h2>Todos DA LP </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData8.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData8, columnsToShow, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[51]}>
               <h2>Todos DA OW</h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_ALL_DA_OW.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_ALL_DA_OW, columnsToShow, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[32]}>
               <h2>Todos LP EM REPARO COMPLETO </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_RC.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_CI_Complete_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_RC))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_CI_Complete_LP, columnsToShow_RC, renderRow)}
             </ToggleableComponent>
 
 
             <ToggleableComponent isVisible={visibleComponents[33]}>
               <h2>Todos OW EM REPARO COMPLETO X09 </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_RC.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_CI_Complete_OW_X09.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_RC))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_CI_Complete_OW_X09, columnsToShow_RC, renderRow)}
             </ToggleableComponent>
 
 
             <ToggleableComponent isVisible={visibleComponents[34]}>
               <h2>Todos OW EM REPARO COMPLETO </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_RC.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_CI_Complete_OW_NOT_X09.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_RC))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_CI_Complete_OW_NOT_X09, columnsToShow_RC, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[21]}>
               <h2>EM EX LTP DTV </h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_EX_LTP_IH_VD_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_EX_LTP_IH_VD_LP, columnsToShow, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[2]}>
               <h2> EM LTP RAC/REF</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_LTP_IH_RAC_REF_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[20]}>
               <h2> EM EX-LTP RAC/REF</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_EX_LTP_IH_RAC_REF_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_EX_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[3]}>
               <h2>EM LTP WSM</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_LTP_IH_WSM_LP.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_LTP_IH_WSM_LP, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[4]}>
               <h2>EM LTP DTV CI</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData9.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData9, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[5]}>
               <h2>EM LTP MX CI</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData10.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData10, columnsToShow, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[6]}>
               <h2>DA OW e LP sem peças</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData4.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData4, columnsToShow_intoogle, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[7]}>
               <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData5.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData5, columnsToShow_intoogle, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[8]}>
               <h2>Consumidor fora do prazo de todos os serviços</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_type_service.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData11.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_type_service))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData11, columnsToShow_type_service, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[9]}>
               <h2>Reparo completo fora do prazo de todos os serviços</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData12.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData12, columnsToShow_complete_repair, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[11]}>
               <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData15.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData15, columnsToShow_complete_repair, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[10]}>
               <h2>Effect Appointment</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData6.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData6, columnsToShow_intoogle, renderRow)}
               <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData13.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData13, columnsToShow_intoogle, renderRow)}
               <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_intoogle.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData14.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_intoogle))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData14, columnsToShow_intoogle, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[12]}>
               <h2>Agenda do Dia</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData16.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData16, columnsToShow_complete_repair, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[13]}>
               <h2>Agenda de amanhã</h2>
-              <table>
-                <thead>
-                  <tr>
-                    {columnsToShow_complete_repair.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData17.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_complete_repair))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData17, columnsToShow_complete_repair, renderRow)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[60]}>
               <h2>FTF — Status Code ST025</h2>
 
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_FTF.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_FTF.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow_FTF))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_FTF, columnsToShow_FTF, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[80]}>
               <h2>D+3 — Todos os casos LP com até 3 dias</h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_LP_up_to_3_days.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_LP_up_to_3_days, columnsToShow, renderRow)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[81]}>
               <h2>Ordens Desatualizadas — Todas as ordens com data passada</h2>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow.map((colIndex) => (
-                      <th key={colIndex}>{combinedData[0][colIndex]}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_all_outdated_orders.map((row, rowIndex) => renderRow(row, rowIndex, columnsToShow))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_all_outdated_orders, columnsToShow, renderRow)}
             </ToggleableComponent>
 
             {/* Card 91 - DA LP com marcação LTP/EX-LTP e Rota/Previsão */}
@@ -1661,18 +1404,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
                   Em Rota (Finalizado)
                 </span>
               </div>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_ltp_analysis.map((colIndex) => (
-                      <th key={colIndex}>{colIndex === 38 ? 'Técnico / Rota' : colIndex === 24 ? 'Previsão Atend.' : (combinedData[0][colIndex] || colIndex)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAndSortedData8.map((row, rowIndex) => renderRowLTP(row, rowIndex, columnsToShow_ltp_analysis, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD))}
-                </tbody>
-              </table>
+              {planilhaTable(filteredAndSortedData8, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD), ltpAnalysisHeader)}
             </ToggleableComponent>
 
             {/* Card 92 - DTV LP com marcação LTP/EX-LTP e Rota/Previsão */}
@@ -1696,18 +1428,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
                   Em Rota (Finalizado)
                 </span>
               </div>
-              <table className="toggleDiv">
-                <thead>
-                  <tr>
-                    {columnsToShow_ltp_analysis.map((colIndex) => (
-                      <th key={colIndex}>{colIndex === 38 ? 'Técnico / Rota' : colIndex === 24 ? 'Previsão Atend.' : (combinedData[0][colIndex] || colIndex)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {planilha_all_DTV_LP.map((row, rowIndex) => renderRowLTP(row, rowIndex, columnsToShow_ltp_analysis, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD))}
-                </tbody>
-              </table>
+              {planilhaTable(planilha_all_DTV_LP, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD), ltpAnalysisHeader)}
             </ToggleableComponent>
           </>
         )

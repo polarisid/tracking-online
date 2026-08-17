@@ -17,6 +17,10 @@ const DataTable = ({
   exportable = true,
   activeOrderIds = new Set(),
   orderIdColumnIndex = 1,
+  // Renderizador de linha opcional: (row, rowIndex, columns) => <tr/>. Permite
+  // preservar a coloração/badges das planilhas (em rota, LTP/EX-LTP, rota) que o
+  // <tr> padrão não conhece. Quando ausente, usa o render padrão.
+  renderRow = null,
 }) => {
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState(initialPageSize);
@@ -131,22 +135,24 @@ const DataTable = ({
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((row, ri) => {
-              const orderId1 = String(row[1] || '').trim();
-              const orderId2 = String(row[2] || '').trim();
-              const isInRoute = activeOrderIds.has(orderId1) || activeOrderIds.has(orderId2);
+            {renderRow
+              ? paginatedData.map((row, ri) => renderRow(row, ri, columns))
+              : paginatedData.map((row, ri) => {
+                  const orderId1 = String(row[1] || '').trim();
+                  const orderId2 = String(row[2] || '').trim();
+                  const isInRoute = activeOrderIds.has(orderId1) || activeOrderIds.has(orderId2);
 
-              return (
-                <tr
-                  key={ri}
-                  className={isInRoute ? 'bg-green-100 hover:bg-green-200' : ''}
-                >
-                  {columns.map((colIdx) => (
-                    <td key={colIdx}>{row[colIdx] ?? ''}</td>
-                  ))}
-                </tr>
-              );
-            })}
+                  return (
+                    <tr
+                      key={ri}
+                      className={isInRoute ? 'bg-green-100 hover:bg-green-200' : ''}
+                    >
+                      {columns.map((colIdx) => (
+                        <td key={colIdx}>{row[colIdx] ?? ''}</td>
+                      ))}
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
       </div>
