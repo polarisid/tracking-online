@@ -40,10 +40,10 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
     <div
       onClick={onClick}
       className={`
-        relative flex flex-col justify-between rounded-xl border
-        transition-all duration-300 ease-in-out cursor-pointer group
+        relative flex flex-col justify-between rounded-2xl border
+        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer group
         ${getThemeClasses()}
-        hover:-translate-y-1 hover:shadow-lg
+        hover:-translate-y-1 hover:shadow-[0_14px_30px_-12px_rgba(15,23,42,0.25)]
         ${isLg ? 'p-6 h-[140px]' : isSm ? 'p-3 h-[75px]' : 'p-3.5 min-w-[130px] h-[104px]'}
         flex-1 w-full
       `}

@@ -1036,7 +1036,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
       {/* Topo: uma tese só. Com dados → resumo executivo (a fileira herói, com os
           dois RTAT integrados). Sem dados → convite a carregar a planilha. */}
-      <div className="max-w-screen-2xl mx-auto w-full px-4 pt-3 pb-4">
+      <div className="max-w-screen-2xl mx-auto w-full px-4 pt-3 pb-4 enter-up">
         {hasData ? (
           <ExecutiveSummary
             metrics={{
@@ -1767,6 +1767,20 @@ const Dashboard = styled.div`
   max-width: 1536px;
   margin: 1.25rem auto;
   padding: 0 1rem;
+
+  /* Entrada em cascata dos cards — dá um toque moderno sem exagero. */
+  & > * {
+    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  & > *:nth-child(1)  { animation-delay: 0.02s; }
+  & > *:nth-child(2)  { animation-delay: 0.05s; }
+  & > *:nth-child(3)  { animation-delay: 0.08s; }
+  & > *:nth-child(4)  { animation-delay: 0.11s; }
+  & > *:nth-child(5)  { animation-delay: 0.14s; }
+  & > *:nth-child(6)  { animation-delay: 0.17s; }
+  & > *:nth-child(7)  { animation-delay: 0.20s; }
+  & > *:nth-child(8)  { animation-delay: 0.23s; }
+  & > *:nth-child(n+9) { animation-delay: 0.26s; }
 `;
 const MainContainer = styled.div`
   display: flex;
