@@ -73,18 +73,37 @@ export const COLUMN_MAP = [
 ];
 
 /**
- * Formata uma string de data para DD/MM/YYYY se necessário.
- * O Supabase pode retornar datas em ISO (2026-06-19) ou no formato já legível.
+ * Formata uma string de data para DD/MM/YYYY (com zero à esquerda e ano de
+ * 4 dígitos) — o app inteiro depende desse formato exato para comparações
+ * de string tipo "isso é hoje?" (filters.js, IntelligencePanel.jsx). O
+ * Supabase pode retornar datas em ISO (2026-06-19), já no formato legível
+ * (19/06/2026), ou — dependendo da origem/sincronização da tabela —
+ * sem zero à esquerda e/ou com ano de 2 dígitos (3/8/26). Sem normalizar
+ * esse último caso, "3/8/26" nunca bate com "03/08/2026" (o formato que
+ * today_Form usa), quebrando silenciosamente todo filtro de "hoje"/"amanhã"
+ * pras linhas vindas de tabelas que sincronizam datas nesse formato curto.
  */
 const formatDate = (value) => {
   if (!value || value === '00/00/0000') return value;
+  const str = String(value).trim();
 
   // ISO format: 2026-06-19 → 19/06/2026
-  const isoMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
   }
-  return value;
+
+  // D/M/YY, DD/M/YYYY, D/MM/YY etc → sempre DD/MM/YYYY com zero à esquerda
+  const brMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (brMatch) {
+    const day = brMatch[1].padStart(2, '0');
+    const month = brMatch[2].padStart(2, '0');
+    let year = parseInt(brMatch[3], 10);
+    if (year < 100) year += 2000;
+    return `${day}/${month}/${year}`;
+  }
+
+  return str;
 };
 
 const DATE_INDICES = new Set([16, 22, 24, 27]);
