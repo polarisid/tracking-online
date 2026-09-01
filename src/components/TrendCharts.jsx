@@ -100,8 +100,18 @@ function MiniTrend({ metric, history }) {
  * Evolução no Tempo — transforma os snapshots já persistidos (localStorage +
  * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
  */
+const TREND_WINDOW_DAYS = 3;
+const TREND_WINDOW_MS = TREND_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
 export default function TrendCharts({ history = [] }) {
-  const recent = useMemo(() => (Array.isArray(history) ? history.slice(-30) : []), [history]);
+  // Janela por período (últimos N dias), não por contagem fixa de registros —
+  // um dia bem movimentado podia sozinho preencher os "últimos 30 registros"
+  // e esconder qualquer tendência de dias anteriores.
+  const recent = useMemo(() => {
+    if (!Array.isArray(history)) return [];
+    const cutoff = Date.now() - TREND_WINDOW_MS;
+    return history.filter((h) => h.timestamp >= cutoff);
+  }, [history]);
 
   return (
     <div className="max-w-screen-2xl mx-auto w-full px-4 py-2">
@@ -110,7 +120,7 @@ export default function TrendCharts({ history = [] }) {
         <h2 className="text-lg font-bold text-slate-800">Evolução no Tempo</h2>
         {recent.length >= 2 && (
           <span className="text-[11px] font-semibold text-slate-400">
-            últimos {recent.length} registros
+            últimos {TREND_WINDOW_DAYS} dias · {recent.length} registros
           </span>
         )}
       </div>
