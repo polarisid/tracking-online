@@ -1,5 +1,6 @@
 // src/components/LoadingScreen.jsx
 import React, { useEffect, useState } from "react";
+import { LogoMark } from "./Logo";
 import "./LoadingScreen.css";
 
 const LoadingScreen = () => {
@@ -22,7 +23,7 @@ const LoadingScreen = () => {
           <div className="ld-orbit" />
           <div className="ld-pulse" />
           <div className="ld-logo">
-            <span>TO</span>
+            <LogoMark size={40} />
           </div>
         </div>
 

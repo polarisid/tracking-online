@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
 import { exportStyledCloudReport } from '../utils/cloudReportExporter';
+import Logo from './Logo';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', tab: 0 },
@@ -59,9 +60,7 @@ const Sidebar = ({
     >
       {/* Brand */}
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-4'} h-16 border-b border-slate-800/60`}>
-        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25 shrink-0 transition-transform duration-300 hover:scale-105">
-          <span className="text-white font-black text-sm">TO</span>
-        </div>
+        <Logo size={36} radius={10} className="shrink-0 transition-transform duration-300 hover:scale-105" />
         {!collapsed && (
           <div className="overflow-hidden">
             <p className="text-white font-bold text-sm tracking-tight leading-none">Tracking</p>

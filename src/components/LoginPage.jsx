@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, AlertCircle, Eye, EyeOff, Loader2, Cloud, FileSpreadsheet } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
+import Logo from './Logo';
 
 export default function LoginPage() {
   const { signIn, signUp, setIsLocalMode } = useHomeContext();
@@ -50,9 +51,7 @@ export default function LoginPage() {
         
         {/* Brand Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mb-3">
-            <span className="text-white font-black text-lg">TO</span>
-          </div>
+          <Logo size={48} radius={13} className="mb-3" />
           <h1 className="text-white font-extrabold text-2xl tracking-tight leading-none">
             Tracking <span className="text-blue-400">Online</span>
           </h1>
