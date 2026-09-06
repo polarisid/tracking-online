@@ -404,184 +404,137 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   // Colunas da tabela enriquecida: OS, Nome, Cidade, Modelo, Reason, LTP, Previsão, Peça, Garantia, Técnico (Rota)
   const columnsToShow_ltp_analysis = [1, 3, 4, 9, 14, 15, 24, 61, 37, 38];
 
-  // Helper para analisar e converter valores de data (string formatada ou serial Excel)
-  const parseDateVal = (val) => {
-    if (val === null || val === undefined) return 0;
-    const valStr = String(val).trim();
-    if (!valStr || valStr === '00/00/0000' || valStr === 'null' || valStr === 'undefined') {
+  // ===== Métricas do dashboard — uma passada, memoizada =====
+  // Antes: 31 varreduras + sorts do dataset inteiro recomputadas a CADA render
+  // (cada tecla na busca, cada hover, cada toggle). Agora recomputa só quando os
+  // dados (combinedData) ou o status de rota (inRouteByStatus) mudam.
+  const dash = React.useMemo(() => {
+    const rows = combinedData.slice(1);
+
+    const parseDateVal = (val) => {
+      if (val === null || val === undefined) return 0;
+      const valStr = String(val).trim();
+      if (!valStr || valStr === '00/00/0000' || valStr === 'null' || valStr === 'undefined') {
+        return 0;
+      }
+      const num = Number(valStr);
+      if (!isNaN(num) && num > 30000 && num < 60000) {
+        return (num - 25569) * 86400 * 1000;
+      }
+      if (valStr.includes('/')) {
+        const parts = valStr.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0], 10);
+          const month = parseInt(parts[1], 10) - 1;
+          let year = parseInt(parts[2], 10);
+          if (year < 100) year += 2000;
+          return new Date(year, month, day).getTime();
+        }
+      }
+      const t = Date.parse(valStr);
+      return isNaN(t) ? 0 : t;
+    };
+
+    const getRowDate = (row) => {
+      // Prioridade: agendamento (24), abertura (16), primeira visita (22), entrega (27)
+      for (const idx of [24, 16, 22, 27]) {
+        const val = row[idx];
+        if (val && val !== '00/00/0000' && val !== 'null') {
+          const t = parseDateVal(val);
+          if (t > 0) return t;
+        }
+      }
       return 0;
-    }
-    const num = Number(valStr);
-    if (!isNaN(num) && num > 30000 && num < 60000) {
-      return (num - 25569) * 86400 * 1000;
-    }
-    if (valStr.includes('/')) {
-      const parts = valStr.split('/');
-      if (parts.length === 3) {
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        let year = parseInt(parts[2], 10);
-        if (year < 100) year += 2000;
-        return new Date(year, month, day).getTime();
-      }
-    }
-    const t = Date.parse(valStr);
-    return isNaN(t) ? 0 : t;
-  };
+    };
 
-  // Helper para obter o timestamp da data mais relevante da linha
-  const getRowDate = (row) => {
-    // Prioridade das colunas de data:
-    // 1. Data do agendamento (24)
-    // 2. Data de abertura (16)
-    // 3. Data da primeira visita (22)
-    // 4. Data de entrega (27)
-    for (const idx of [24, 16, 22, 27]) {
-      const val = row[idx];
-      if (val && val !== '00/00/0000' && val !== 'null') {
-        const t = parseDateVal(val);
-        if (t > 0) return t;
-      }
-    }
-    return 0;
-  };
+    const isRowMarked = (row) => {
+      const os1 = String(row[0] || "").trim();
+      const os2 = String(row[1] || "").trim();
+      const os3 = String(row[2] || "").trim();
+      const inSet = (set) => {
+        if (!set || !Array.isArray(set)) return false;
+        return set.some(r => {
+          const id = String(r[1] || r[2] || '').trim();
+          return id === os1 || id === os2 || id === os3;
+        });
+      };
+      return inSet(inRouteByStatus.finalizadas) ||
+             inSet(inRouteByStatus.pendentes) ||
+             inSet(inRouteByStatus.a_fazer);
+    };
 
-  const isRowMarked = (row) => {
-    const os1 = String(row[0] || "").trim();
-    const os2 = String(row[1] || "").trim();
-    const os3 = String(row[2] || "").trim();
-
-    const inSet = (set) => {
-      if (!set || !Array.isArray(set)) return false;
-      return set.some(r => {
-        const id = String(r[1] || r[2] || '').trim();
-        return id === os1 || id === os2 || id === os3;
+    // Marcados (em rota) no topo, do maior aging; os demais, cronológico crescente.
+    const sortData = (filteredData) => {
+      return filteredData.sort((a, b) => {
+        const markedA = isRowMarked(a);
+        const markedB = isRowMarked(b);
+        if (markedA && !markedB) return -1;
+        if (!markedA && markedB) return 1;
+        if (markedA && markedB) {
+          const valA = Number(a[15]) || 0;
+          const valB = Number(b[15]) || 0;
+          return valB - valA;
+        }
+        const tA = getRowDate(a);
+        const tB = getRowDate(b);
+        if (tA === 0 && tB === 0) return 0;
+        if (tA === 0) return 1;
+        if (tB === 0) return -1;
+        return tA - tB;
       });
     };
 
-    return inSet(inRouteByStatus.finalizadas) ||
-           inSet(inRouteByStatus.pendentes) ||
-           inSet(inRouteByStatus.a_fazer);
-  };
+    return {
+      planilha_LTP_IH_VD_LP: sortData(rows.filter(filters.filter_VD_LTP_LP)),
+      planilha_EX_LTP_IH_VD_LP: sortData(rows.filter(filters.filter_VD_EX_LTP_LP)),
+      planilha_LTP_IH_RAC_REF_LP: sortData(rows.filter(filters.filter_REF_RAC_LTP_LP)),
+      planilha_EX_LTP_IH_RAC_REF_LP: sortData(rows.filter(filters.filter_REF_RAC_EX_LTP_LP)),
+      planilha_LTP_IH_WSM_LP: sortData(rows.filter(filters.filter_WSM_LP_LTP)),
+      filteredAndSortedData4: sortData(rows.filter(filters.filter_DA_noParts)),
+      filteredAndSortedData5: sortData(rows.filter(filters.filter_allNext_LTP)),
+      filteredAndSortedData6: sortData(rows.filter(filters.filter_isEffect_LP)),
+      filteredAndSortedData9: sortData(rows.filter(filters.filter_CI_VD_LTP_LP)),
+      filteredAndSortedData10: sortData(rows.filter(filters.filter_CI_MX_LTP_LP)),
+      filteredAndSortedData11: sortData(rows.filter(filters.filter_Customer_outdated)),
+      filteredAndSortedData12: sortData(rows.filter(filters.filter_repair_complete_outdated)),
+      filteredAndSortedData13: sortData(rows.filter(filters.filter_near_isEffect_LP)),
+      filteredAndSortedData14: sortData(rows.filter(filters.filter_next_isEffect_LP)),
+      filteredAndSortedData15: sortData(rows.filter(filters.filter_potential_first_visit)),
+      filteredAndSortedData16: sortData(rows.filter(filters.filter_agenda_today)),
+      filteredAndSortedData17: sortData(rows.filter(filters.filter_agenda_tomorrow)),
+      filteredAndSortedData7: sortData(rows.filter(filters.all_lp_vd)),
+      filteredAndSortedData8: sortData(rows.filter(filters.all_lp_DA)),
+      planilha_CI_Complete_LP: sortData(rows.filter(filters.filter_CI_COMPLETE_LP)),
+      planilha_CI_Complete_OW_X09: sortData(rows.filter(filters.filter_CI_COMPLETE_OW_X09)),
+      planilha_CI_Complete_OW_NOT_X09: sortData(rows.filter(filters.filter_CI_COMPLETE_OW_NOT_X09)),
+      planilha_ALL_DA_OW: sortData(rows.filter(filters.all_DA_OW)),
+      planilha_FTF: sortData(rows.filter(filters.filter_FTF)),
+      planilha_LP_up_to_3_days: sortData(rows.filter(filters.filter_LP_up_to_3_days)),
+      planilha_all_outdated_orders: sortData(rows.filter(filters.filter_all_outdated_orders)),
+      planilha_all_DTV_LP: sortData(rows.filter(filters.all_lp_DTV)),
+      planilha_FTF_Backlog_IH: rows.filter(filters.filter_FTF_Backlog_IH),
+      midVar: rows.filter(filters.all_lp_vd),
+      midVar2: rows.filter(filters.all_lp_DA),
+      baseVD: rows.filter(filters.all_lp_AV).length,
+    };
+  }, [combinedData, inRouteByStatus]);
 
-  // Ordena prioritariamente os marcados (em rota) no topo, do maior para o menor aging days.
-  // Os não marcados ficam abaixo, ordenados cronologicamente do mais antigo para o mais novo.
-  const sortData = (filteredData) => {
-    return filteredData.sort((a, b) => {
-      const markedA = isRowMarked(a);
-      const markedB = isRowMarked(b);
+  const {
+    planilha_LTP_IH_VD_LP, planilha_EX_LTP_IH_VD_LP, planilha_LTP_IH_RAC_REF_LP,
+    planilha_EX_LTP_IH_RAC_REF_LP, planilha_LTP_IH_WSM_LP,
+    filteredAndSortedData4, filteredAndSortedData5, filteredAndSortedData6,
+    filteredAndSortedData9, filteredAndSortedData10, filteredAndSortedData11,
+    filteredAndSortedData12, filteredAndSortedData13, filteredAndSortedData14,
+    filteredAndSortedData15, filteredAndSortedData16, filteredAndSortedData17,
+    filteredAndSortedData7, filteredAndSortedData8,
+    planilha_CI_Complete_LP, planilha_CI_Complete_OW_X09, planilha_CI_Complete_OW_NOT_X09,
+    planilha_ALL_DA_OW, planilha_FTF, planilha_LP_up_to_3_days,
+    planilha_all_outdated_orders, planilha_all_DTV_LP, planilha_FTF_Backlog_IH,
+    midVar, midVar2, baseVD,
+  } = dash;
 
-      if (markedA && !markedB) return -1; // a vai para cima
-      if (!markedA && markedB) return 1;  // b vai para cima
-
-      if (markedA && markedB) {
-        // Ambos marcados: do maior para o menor based on pending_aging_days (coluna 15)
-        const valA = Number(a[15]) || 0;
-        const valB = Number(b[15]) || 0;
-        return valB - valA;
-      }
-
-      // Ambos não marcados: do mais antigo para o mais novo
-      const tA = getRowDate(a);
-      const tB = getRowDate(b);
-      if (tA === 0 && tB === 0) return 0;
-      if (tA === 0) return 1;
-      if (tB === 0) return -1;
-      return tA - tB;
-    });
-  };
-
-  const planilha_LTP_IH_VD_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_VD_LTP_LP)
-  );
-  const planilha_EX_LTP_IH_VD_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_VD_EX_LTP_LP)
-  );
-  const planilha_LTP_IH_RAC_REF_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_REF_RAC_LTP_LP)
-  );
-  const planilha_EX_LTP_IH_RAC_REF_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_REF_RAC_EX_LTP_LP)
-  );
-  const planilha_LTP_IH_WSM_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_WSM_LP_LTP)
-  );
-  const filteredAndSortedData4 = sortData(
-    combinedData.slice(1).filter(filters.filter_DA_noParts)
-  );
-  const filteredAndSortedData5 = sortData(
-    combinedData.slice(1).filter(filters.filter_allNext_LTP)
-  );
-  const filteredAndSortedData6 = sortData(
-    combinedData.slice(1).filter(filters.filter_isEffect_LP)
-  );
-  const filteredAndSortedData9 = sortData(
-    combinedData.slice(1).filter(filters.filter_CI_VD_LTP_LP)
-  );
-  const filteredAndSortedData10 = sortData(
-    combinedData.slice(1).filter(filters.filter_CI_MX_LTP_LP)
-  );
-  const filteredAndSortedData11 = sortData(
-    combinedData.slice(1).filter(filters.filter_Customer_outdated)
-  );
-  const filteredAndSortedData12 = sortData(
-    combinedData.slice(1).filter(filters.filter_repair_complete_outdated)
-  );
-  const filteredAndSortedData13 = sortData(
-    combinedData.slice(1).filter(filters.filter_near_isEffect_LP)
-  );
-  const filteredAndSortedData14 = sortData(
-    combinedData.slice(1).filter(filters.filter_next_isEffect_LP)
-  );
-  const filteredAndSortedData15 = sortData(
-    combinedData.slice(1).filter(filters.filter_potential_first_visit)
-  );
-  const filteredAndSortedData16 = sortData(
-    combinedData.slice(1).filter(filters.filter_agenda_today)
-  );
-  const filteredAndSortedData17 = sortData(
-    combinedData.slice(1).filter(filters.filter_agenda_tomorrow)
-  );
-  const filteredAndSortedData7 = sortData(
-    combinedData.slice(1).filter(filters.all_lp_vd)
-  );
-  const filteredAndSortedData8 = sortData(
-    combinedData.slice(1).filter(filters.all_lp_DA)
-  );
-
-  const planilha_CI_Complete_LP = sortData(
-    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_LP)
-  );
-
-  const planilha_CI_Complete_OW_X09 = sortData(
-    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_X09)
-  );
-
-  const planilha_CI_Complete_OW_NOT_X09 = sortData(
-    combinedData.slice(1).filter(filters.filter_CI_COMPLETE_OW_NOT_X09)
-  );
-
-  const planilha_ALL_DA_OW = sortData(
-    combinedData.slice(1).filter(filters.all_DA_OW)
-  );
-
-  const planilha_FTF = sortData(
-    combinedData.slice(1).filter(filters.filter_FTF)
-  );
-
-  const planilha_LP_up_to_3_days = sortData(
-    combinedData.slice(1).filter(filters.filter_LP_up_to_3_days)
-  );
   const quantity_LP_up_to_3_days = planilha_LP_up_to_3_days.length;
-
-  const planilha_all_outdated_orders = sortData(
-    combinedData.slice(1).filter(filters.filter_all_outdated_orders)
-  );
   const quantity_all_outdated_orders = planilha_all_outdated_orders.length;
-
-  const planilha_all_DTV_LP = sortData(
-    combinedData.slice(1).filter(filters.all_lp_DTV)
-  );
   const quantity_all_DTV_LP = planilha_all_DTV_LP.length;
 
   // Mapa OS/AscJob → nome da rota (ex: "Rota Breno - Aracaju")
@@ -610,7 +563,6 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     return map;
   }, [activeRoutes]);
 
-  const planilha_FTF_Backlog_IH = combinedData.slice(1).filter(filters.filter_FTF_Backlog_IH);
   const ftfBacklogReasonCounts = planilha_FTF_Backlog_IH.reduce((acc, row) => {
     const reason = row[14] || "N/A";
     acc[reason] = (acc[reason] || 0) + 1;
@@ -638,8 +590,6 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const quantity_agenda_today = filteredAndSortedData16.length;
   const quantity_agenda_tomorrow = filteredAndSortedData17.length;
   const quantityDa = filteredAndSortedData8.length;
-  const midVar = combinedData.slice(1).filter(filters.all_lp_vd);
-  const midVar2 = combinedData.slice(1).filter(filters.all_lp_DA);
 
   const matches = filteredAndSortedData7.length;
   const sum = midVar.reduce((acc, row) => acc + parseFloat(row[15]) || 0, 0);
@@ -654,8 +604,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const rtatVdStatus = average.toFixed(2) > 3.8 ? "high" : (average.toFixed(2) > 3 ? "mid" : "normal");
   const rtatDaStatus = average2.toFixed(2) > 4.5 ? "high" : (average2.toFixed(2) > 3.8 ? "mid" : "normal");
 
-  // Base totals for percentage calculations (IH + LP only)
-  const baseVD = combinedData.slice(1).filter(filters.all_lp_AV).length;
+  // Base totals for percentage calculations (IH + LP only). baseVD vem da memo `dash`.
   const baseDA = matches2; // all_lp_DA already computed
   const pctLtpVd = baseVD > 0 ? ((quantity_LTP_VD / baseVD) * 100).toFixed(1) : null;
   const pctExLtpVd = baseVD > 0 ? ((quantity_EX_LTP_VD / baseVD) * 100).toFixed(1) : null;
