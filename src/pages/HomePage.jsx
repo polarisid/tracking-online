@@ -24,6 +24,7 @@ import UserManagement from "../components/UserManagement";
 import EmptyState from "../components/EmptyState";
 import TrendCharts from "../components/TrendCharts";
 import DataTable from "../components/DataTable";
+import { computeWeeklyRtat } from "../utils/weeklyRtat";
 import { getCleanSourceName } from "../utils/dataSource";
 
 import * as React from "react";
@@ -536,6 +537,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const quantity_LP_up_to_3_days = planilha_LP_up_to_3_days.length;
   const quantity_all_outdated_orders = planilha_all_outdated_orders.length;
   const quantity_all_DTV_LP = planilha_all_DTV_LP.length;
+
+  // RTAT real (abertura → conclusão) das OS concluídas nesta semana, por categoria.
+  const weeklyRtat = React.useMemo(() => computeWeeklyRtat(combinedData), [combinedData]);
 
   // Mapa OS/AscJob → nome da rota (ex: "Rota Breno - Aracaju")
   const orderRouteMap = React.useMemo(() => {
@@ -1093,7 +1097,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         </Dashboard>
 
       <div className="enter-up">
-      <TrendCharts history={history} />
+      <TrendCharts history={history} weeklyRtat={weeklyRtat} />
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -19,6 +19,15 @@ const METRICS = [
   { key: "quantity_all_outdated_orders", label: "Ordens Desatualizadas", decimals: 0, betterWhenLower: true },
   { key: "average", label: "RTAT VD", decimals: 2, betterWhenLower: true },
   { key: "average2", label: "RTAT DA", decimals: 2, betterWhenLower: true },
+];
+
+// Janelas de tempo do gráfico. Baseado em TEMPO (não em nº de registros): assim,
+// sincronizar muito no mesmo dia não "empurra" os dias anteriores para fora.
+const WINDOWS = [
+  { key: "3d", label: "3 dias", days: 3 },
+  { key: "7d", label: "7 dias", days: 7 },
+  { key: "30d", label: "30 dias", days: 30 },
+  { key: "all", label: "Tudo", days: null },
 ];
 
 const PRIMARY = "#6366f1"; // indigo-500 (mesma primária do app)
@@ -96,24 +105,93 @@ function MiniTrend({ metric, history }) {
   );
 }
 
+function fmtDays(v) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  return `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+}
+
+// RTAT real (turnaround) das OS concluídas na semana, por categoria (DA/DTV).
+function WeeklyRtatCard({ label, data }) {
+  const has = data && data.count > 0;
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+          {(data?.count || 0)} {(data?.count || 0) === 1 ? "OS" : "OS"}
+        </span>
+      </div>
+      <p className="text-3xl font-extrabold text-slate-800 leading-tight mt-1">
+        {has ? fmtDays(data.avg) : "—"}
+        {has && <span className="text-base font-bold text-slate-400 ml-1">dias</span>}
+      </p>
+      <p className="text-[11px] text-slate-400 mt-0.5">
+        {has ? "média das concluídas esta semana" : "nenhuma OS concluída nesta semana"}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Evolução no Tempo — transforma os snapshots já persistidos (localStorage +
  * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
+ * Também mostra o RTAT real (turnaround) das OS concluídas na semana (DA/DTV).
  */
-export default function TrendCharts({ history = [] }) {
-  const recent = useMemo(() => (Array.isArray(history) ? history.slice(-30) : []), [history]);
+export default function TrendCharts({ history = [], weeklyRtat = null }) {
+  const [windowKey, setWindowKey] = useState("3d");
+  const win = WINDOWS.find((w) => w.key === windowKey) || WINDOWS[0];
+
+  const recent = useMemo(() => {
+    const arr = Array.isArray(history) ? history : [];
+    if (arr.length === 0 || win.days == null) return arr;
+    // Janela relativa ao snapshot MAIS RECENTE (robusto a dados antigos/lacunas):
+    // "últimos N dias de dados", não N dias a partir de agora.
+    const latest = arr[arr.length - 1]?.timestamp ?? Date.now();
+    const cutoff = latest - win.days * 24 * 60 * 60 * 1000;
+    return arr.filter((h) => (h.timestamp ?? 0) >= cutoff);
+  }, [history, win.days]);
 
   return (
     <div className="max-w-screen-2xl mx-auto w-full px-4 py-2">
-      <div className="flex items-center gap-2 mb-3">
-        <LineChartIcon className="h-5 w-5 text-indigo-500" />
-        <h2 className="text-lg font-bold text-slate-800">Evolução no Tempo</h2>
-        {recent.length >= 2 && (
-          <span className="text-[11px] font-semibold text-slate-400">
-            últimos {recent.length} registros
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <LineChartIcon className="h-5 w-5 text-indigo-500" />
+          <h2 className="text-lg font-bold text-slate-800">Evolução no Tempo</h2>
+          {recent.length >= 2 && (
+            <span className="text-[11px] font-semibold text-slate-400">
+              {recent.length} {recent.length === 1 ? "registro" : "registros"}
+              {win.days ? ` · últimos ${win.days} dias` : " · tudo"}
+            </span>
+          )}
+        </div>
+        <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
+          {WINDOWS.map((w) => (
+            <button
+              key={w.key}
+              onClick={() => setWindowKey(w.key)}
+              className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                windowKey === w.key
+                  ? "bg-indigo-500 text-white"
+                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              }`}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {weeklyRtat && (
+        <div className="mb-5">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+            RTAT médio da semana · OS concluídas (abertura → conclusão)
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+            <WeeklyRtatCard label="DA" data={weeklyRtat.da} />
+            <WeeklyRtatCard label="DTV" data={weeklyRtat.dtv} />
+          </div>
+        </div>
+      )}
 
       {recent.length < 2 ? (
         <div className="bg-white border border-slate-200 rounded-2xl text-center text-slate-400 text-sm py-10 px-4">
