@@ -1,136 +1,184 @@
-/* src/components/LoadingScreen.css */
-.loading-container {
+/* src/components/LoadingScreen.css — loader moderno, on-brand (navy + indigo).
+   Signature: o logo "TO" com um anel de varredura em gradiente cônico (radar/
+   tracking). Movimento orquestrado; entrada suave; some com fade. */
+
+.ld-root {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  z-index: 9999;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background-color: rgb(255, 255, 255); /* Fundo semitransparente */
-  z-index: 9999; /* Certifique-se de que o carregamento esteja acima de outros conteúdos */
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 600px at 50% 38%, #16213b 0%, #0b1120 62%, #080d18 100%);
   opacity: 1;
-  transition: opacity 0.5s ease-in-out, visibility 0.5s ease-in-out;
+  transition: opacity 0.55s ease-in-out, visibility 0.55s ease-in-out;
 }
 
-.loading-container.hidden {
+.ld-root.ld-hidden {
   opacity: 0;
   visibility: hidden;
 }
 
-.loading-image {
-  width: 20%;
-  border-radius: 50%; /* Bordas arredondadas */
-  transform: scale(0); /* Tamanho inicial menor */
-  opacity: 0; /* Invisível inicialmente */
-  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
-}
-
-.loading-container.visible .loading-image {
-  transform: scale(1); /* Escala para o tamanho original */
-  opacity: 1; /* Torna visível */
-}
-
-.loading-container.hidden .loading-image {
-  transform: scale(0.8); /* Tamanho menor na saída */
-  opacity: 0; /* Invisível na saída */
-}
-
-.spinner {
+/* Glows ambiente desfocados */
+.ld-glow {
   position: absolute;
-  width: 9px;
-  height: 9px;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.ld-glow-1 { top: -12%; left: -10%; background: rgba(59, 130, 246, 0.30); }   /* blue-500 */
+.ld-glow-2 { bottom: -14%; right: -10%; background: rgba(99, 102, 241, 0.28); } /* indigo-500 */
+
+.ld-stack {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
 }
 
-.spinner div {
+/* ---- Logo + anéis ---- */
+.ld-logo-wrap {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Trilha fixa (o "gauge") */
+.ld-track {
   position: absolute;
-  width: 50%;
-  height: 100%;
-  /* height: 150%; */
-  background: #000000;
-  transform: rotate(calc(var(--rotation) * 1deg))
-    translate(0, calc(var(--translation) * 1%));
-  animation: spinner-fzua35 1s calc(var(--delay) * 1s) infinite ease;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(148, 163, 184, 0.12);
 }
 
-.spinner div:nth-child(1) {
-  --delay: 0.1;
-  --rotation: 36;
-  --translation: 150;
+/* Anel de varredura (conic) — a assinatura "tracking/radar" */
+.ld-orbit {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(59, 130, 246, 0) 0%,
+    rgba(59, 130, 246, 0) 55%,
+    rgba(59, 130, 246, 0.85) 88%,
+    #818cf8 100%
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  animation: ld-spin 1.15s linear infinite;
 }
 
-.spinner div:nth-child(2) {
-  --delay: 0.2;
-  --rotation: 72;
-  --translation: 150;
+/* Anel de pulso que expande e some */
+.ld-pulse {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  animation: ld-pulse 2.2s ease-out infinite;
 }
 
-.spinner div:nth-child(3) {
-  --delay: 0.3;
-  --rotation: 108;
-  --translation: 150;
+/* Marca "TO" */
+.ld-logo {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, #3b82f6 0%, #6366f1 100%);
+  box-shadow:
+    0 10px 30px -8px rgba(59, 130, 246, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  animation:
+    ld-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both,
+    ld-breathe 2.6s 0.6s ease-in-out infinite;
+}
+.ld-logo span {
+  color: #fff;
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: 0.5px;
+  font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.spinner div:nth-child(4) {
-  --delay: 0.4;
-  --rotation: 144;
-  --translation: 150;
+/* ---- Wordmark ---- */
+.ld-word {
+  display: flex;
+  gap: 7px;
+  font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: ld-rise 0.6s 0.25s ease-out forwards;
+}
+.ld-word-1 { color: #f1f5f9; }
+.ld-word-2 { color: #60a5fa; }
+
+/* ---- Dots ---- */
+.ld-dots {
+  display: flex;
+  gap: 7px;
+  opacity: 0;
+  animation: ld-rise 0.6s 0.45s ease-out forwards;
+}
+.ld-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: ld-dot 1.4s infinite ease-in-out;
+}
+.ld-dots span:nth-child(2) { animation-delay: 0.18s; }
+.ld-dots span:nth-child(3) { animation-delay: 0.36s; }
+
+/* ---- Keyframes ---- */
+@keyframes ld-spin { to { transform: rotate(360deg); } }
+
+@keyframes ld-pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  70% { opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
 
-.spinner div:nth-child(5) {
-  --delay: 0.5;
-  --rotation: 180;
-  --translation: 150;
+@keyframes ld-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-.spinner div:nth-child(6) {
-  --delay: 0.6;
-  --rotation: 216;
-  --translation: 150;
+@keyframes ld-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
 }
 
-.spinner div:nth-child(7) {
-  --delay: 0.7;
-  --rotation: 252;
-  --translation: 150;
+@keyframes ld-rise {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.spinner div:nth-child(8) {
-  --delay: 0.8;
-  --rotation: 288;
-  --translation: 150;
+@keyframes ld-dot {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-4px); }
 }
 
-.spinner div:nth-child(9) {
-  --delay: 0.9;
-  --rotation: 324;
-  --translation: 150;
-}
-
-.spinner div:nth-child(10) {
-  --delay: 1;
-  --rotation: 360;
-  --translation: 150;
-}
-
-@keyframes spinner-fzua35 {
-  0%,
-  10%,
-  20%,
-  30%,
-  50%,
-  60%,
-  70%,
-  80%,
-  90%,
-  100% {
-    transform: rotate(calc(var(--rotation) * 1deg))
-      translate(0, calc(var(--translation) * 1%));
+/* Acessibilidade: menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .ld-orbit, .ld-pulse, .ld-logo, .ld-word, .ld-dots, .ld-dots span {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
   }
-
-  50% {
-    transform: rotate(calc(var(--rotation) * 1deg))
-      translate(0, calc(var(--translation) * 1.5%));
+  .ld-word, .ld-dots { opacity: 1; transform: none; }
+  .ld-orbit {
+    background: conic-gradient(from 0deg, rgba(59,130,246,0) 65%, #60a5fa 100%);
   }
 }

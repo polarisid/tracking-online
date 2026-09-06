@@ -1,36 +1,43 @@
-// src/components/LoadingScreen.js
+// src/components/LoadingScreen.jsx
 import React, { useEffect, useState } from "react";
-import "./LoadingScreen.css"; // Estilos CSS para o componente
+import "./LoadingScreen.css";
 
 const LoadingScreen = () => {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false);
-    }, 2000); // 2 segundos
-
+    const timer = setTimeout(() => setIsVisible(false), 2000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <>
-      <div className={`loading-container ${isVisible ? "visible" : "hidden"}`}>
-        <img src="/logo.webp" alt="Loading" className="loading-image" />
-        <div class="spinner">
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
-          <div></div>
+    <div className={`ld-root ${isVisible ? "ld-visible" : "ld-hidden"}`} aria-hidden={!isVisible}>
+      {/* Glows ambiente (mesma linguagem da tela de login) */}
+      <div className="ld-glow ld-glow-1" />
+      <div className="ld-glow ld-glow-2" />
+
+      <div className="ld-stack">
+        <div className="ld-logo-wrap">
+          <div className="ld-track" />
+          <div className="ld-orbit" />
+          <div className="ld-pulse" />
+          <div className="ld-logo">
+            <span>TO</span>
+          </div>
+        </div>
+
+        <div className="ld-word">
+          <span className="ld-word-1">Tracking</span>
+          <span className="ld-word-2">Online</span>
+        </div>
+
+        <div className="ld-dots" role="status" aria-label="Carregando">
+          <span />
+          <span />
+          <span />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
