@@ -677,6 +677,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     return diff;
   };
 
+  // Timer do debounce da gravação de histórico (evita snapshots de estados
+  // transitórios durante o carregamento em etapas — ver effect abaixo).
+  const historySaveTimer = React.useRef(null);
+
   useEffect(() => {
     if (combinedData.length <= 1) return;
 
@@ -713,21 +717,27 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     const isDifferent = !lastEntry || Object.keys(currentMetrics).some(
       key => currentMetrics[key] !== lastEntry[key]
     );
+    if (!isDifferent) return;
 
-    if (isDifferent) {
-      // Extrai um identificador limpo para a tabela/arquivo
+    // DEBOUNCE: só persiste depois que as métricas ficam ESTÁVEIS por 15s.
+    // Durante o carregamento em etapas (data1 -> rotas assíncronas -> cidades), os
+    // valores passam por estados intermediários (ex: "Em Rota" = 0 antes das rotas
+    // chegarem) que eram gravados como snapshots e viravam PICOS FALSOS no gráfico.
+    // Esperando assentar, grava-se apenas o valor final estável de cada carga.
+    clearTimeout(historySaveTimer.current);
+    historySaveTimer.current = setTimeout(() => {
       const cleanSource = getCleanSourceName(dataSource);
+      const newEntry = { timestamp: Date.now(), ...currentMetrics };
 
-      const newEntry = {
-        timestamp: Date.now(),
-        ...currentMetrics
-      };
-      const newHistory = [...history, newEntry];
-      setHistory(newHistory);
-      localStorage.setItem(`tracking_metrics_history_${cleanSource}`, JSON.stringify(newHistory));
+      setHistory(prev => {
+        const next = [...prev, newEntry];
+        try {
+          localStorage.setItem(`tracking_metrics_history_${cleanSource}`, JSON.stringify(next));
+        } catch (e) { /* localStorage cheio/indisponível — segue só com o Supabase */ }
+        return next;
+      });
 
-      // Grava no Supabase de forma assíncrona
-      const saveToSupabase = async () => {
+      (async () => {
         try {
           const { error } = await supabase
             .from('asc_metrics_history')
@@ -761,18 +771,16 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
           if (error) throw error;
           console.log('[Supabase History] ✅ Snapshot salvo em asc_metrics_history (table_name=' + cleanSource + ').');
         } catch (err) {
-          // Falha de gravação não pode ser silenciosa: se a tabela não existir ou
-          // o RLS bloquear o INSERT, o histórico nunca cresce. Surface completo.
           console.error(
             '[Supabase History] ❌ FALHA ao salvar snapshot em asc_metrics_history. ' +
-            'O histórico (Evolução no Tempo / Comparar Evolução) não vai crescer até resolver. ' +
             'Verifique se a tabela existe e o RLS permite INSERT (rode supabase/migrations/asc_metrics_history.sql).',
             err
           );
         }
-      };
-      saveToSupabase();
-    }
+      })();
+    }, 15000);
+
+    return () => clearTimeout(historySaveTimer.current);
   }, [
     combinedData,
     quantity_LTP_VD,
