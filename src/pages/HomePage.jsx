@@ -25,6 +25,8 @@ import EmptyState from "../components/EmptyState";
 import TrendCharts from "../components/TrendCharts";
 import DataTable from "../components/DataTable";
 import { computeWeeklyRtat } from "../utils/weeklyRtat";
+import { buildInsights } from "../utils/insights";
+import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
 
 import * as React from "react";
@@ -677,6 +679,23 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     return diff;
   };
 
+  // Leitura do dia (faixa de insights): status + o que mais se moveu vs comparação.
+  const comparisonLabelMap = { last: "últimos dados", day: "ontem", week: "semana passada", month: "mês passado" };
+  const insights = buildInsights({
+    rtatVd: parseFloat(average.toFixed(2)) || 0,
+    rtatDa: parseFloat(average2.toFixed(2)) || 0,
+    overdue: quantity_Oudated_IH || 0,
+    daNoParts: quantity_DA_noParts || 0,
+    comparisonLabel: compSnapshot ? (comparisonLabelMap[comparisonMode] || null) : null,
+    movers: [
+      { label: "LTP VD", diff: calcDiff(quantity_LTP_VD, "quantity_LTP_VD"), betterWhenLower: true },
+      { label: "EX-LTP VD", diff: calcDiff(quantity_EX_LTP_VD, "quantity_EX_LTP_VD"), betterWhenLower: true },
+      { label: "Em Rota", diff: calcDiff(inRouteOrders.length || 0, "inRoute"), betterWhenLower: false },
+      { label: "Desatualizadas", diff: calcDiff(quantity_all_outdated_orders, "quantity_all_outdated_orders"), betterWhenLower: true },
+      { label: "RTAT DA", diff: calcDiff(parseFloat(average2.toFixed(2)) || 0, "average2", true), betterWhenLower: true },
+    ],
+  });
+
   // Timer do debounce da gravação de histórico (evita snapshots de estados
   // transitórios durante o carregamento em etapas — ver effect abaixo).
   const historySaveTimer = React.useRef(null);
@@ -1037,6 +1056,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         ) : (
           <EmptyState onUpload={onUploadPending} />
         )}
+        {hasData && <InsightsBar insights={insights} />}
       </div>
 
       {combinedData.length > 1 && (
