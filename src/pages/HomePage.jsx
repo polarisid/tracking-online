@@ -46,6 +46,14 @@ function cleanCustomerName(name) {
   return String(name || "").replace(/^\s*consumidor\s*,?\s*/i, "").trim();
 }
 
+// Mesma paleta de src/index.css (.ii-event/.ih-event/.sh-event) — usada nos
+// chips clicáveis de filtro por Service Type do Calendário.
+const CALENDAR_TYPE_META = [
+  { key: "II", background: "#faf5ff", border: "#a855f7", text: "#6b21a8" },
+  { key: "IH", background: "#eff6ff", border: "#3b82f6", text: "#1e40af" },
+  { key: "SH", background: "#f0fdfa", border: "#14b8a6", text: "#115e59" },
+];
+
 // Chip de legenda de cor (fundo + borda) usado nas tabelas "Análise de Rota e
 // LTP" — evita repetir o mesmo objeto de estilo 4x por tabela.
 function LegendDot({ background, border, label }) {
@@ -64,13 +72,26 @@ const CustomEvent = ({ event }) => {
     alert(`OS ${event.os} copiada com sucesso!`);
   };
 
+  // O clique no ícone de copiar às vezes dispara um "arrastar" nativo do
+  // navegador (mousedown + leve movimento antes do mouseup é o suficiente).
+  // A própria react-big-calendar tenta tratar esse dragstart internamente
+  // (handleDragStart) mesmo sem drag-and-drop habilitado nesta versão, e
+  // quebra com "handleDragStart is not a function". select-none + bloquear
+  // o dragstart aqui, antes dele borbulhar até o wrapper da lib, evita isso.
+  const stopDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <div className="flex items-center justify-between text-xs overflow-hidden">
+    <div className="flex items-center justify-between text-xs overflow-hidden select-none" draggable={false} onDragStart={stopDrag}>
       <span className="truncate pr-1 font-semibold">{event.title}</span>
       <div
         onClick={handleCopy}
         className="cursor-pointer flex items-center p-0.5 rounded hover:bg-white/30 text-white/90 hover:text-white transition-colors"
         title="Copiar OS"
+        draggable={false}
+        onDragStart={stopDrag}
       >
         <ContentCopyIcon sx={{ fontSize: 13 }} />
       </div>
@@ -108,6 +129,11 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   const [events, setEvents] = useState([]);
   const [cityData] = useState({});
+
+  // Filtros do Calendário — Service Type (chips clicáveis na legenda) e
+  // Status (dropdown, valores extraídos dos próprios eventos carregados).
+  const [calendarTypeFilter, setCalendarTypeFilter] = useState({ II: true, IH: true, SH: true });
+  const [calendarStatusFilter, setCalendarStatusFilter] = useState("all");
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -263,6 +289,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              status: row[8] || null, // Status bruto da OS (ex: "Engineer Assigned") — usado no filtro do calendário
               os: row[0],
               allDay: true,
             };
@@ -310,6 +337,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              status: row[8] || null,
               os: row[1],
               allDay: true,
             };
@@ -863,14 +891,29 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     dataSource
   ]);
 
+  // Status distintos presentes nos eventos carregados — popula o dropdown
+  // sem precisar de uma lista fixa (a planilha decide os valores possíveis).
+  const calendarStatusOptions = React.useMemo(() => {
+    const set = new Set();
+    events.forEach((e) => { if (e.status) set.add(e.status); });
+    return Array.from(set).sort();
+  }, [events]);
+
+  const filteredCalendarEvents = React.useMemo(() => {
+    return events.filter((e) =>
+      calendarTypeFilter[e.type] !== false &&
+      (calendarStatusFilter === "all" || e.status === calendarStatusFilter)
+    );
+  }, [events, calendarTypeFilter, calendarStatusFilter]);
+
   const eventCounts = React.useMemo(() => {
     const counts = {};
-    events.forEach((event) => {
+    filteredCalendarEvents.forEach((event) => {
       const dateKey = moment(event.start).format("YYYY-MM-DD");
       counts[dateKey] = (counts[dateKey] || 0) + 1;
     });
     return counts;
-  }, [events]);
+  }, [filteredCalendarEvents]);
 
   const components = React.useMemo(
     () => ({
@@ -1193,18 +1236,50 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-800 leading-tight">Calendário de Atendimentos</h2>
-                <p className="text-[11px] text-slate-400">{events.length} {events.length === 1 ? "evento" : "eventos"} no total</p>
+                <p className="text-[11px] text-slate-400">
+                  {filteredCalendarEvents.length}
+                  {filteredCalendarEvents.length !== events.length ? ` de ${events.length}` : ""}
+                  {" "}{events.length === 1 ? "evento" : "eventos"}
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <LegendDot background="#faf5ff" border="#a855f7" label="II" />
-              <LegendDot background="#eff6ff" border="#3b82f6" label="IH" />
-              <LegendDot background="#f0fdfa" border="#14b8a6" label="SH" />
+              <select
+                value={calendarStatusFilter}
+                onChange={(e) => setCalendarStatusFilter(e.target.value)}
+                className="text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 max-w-[180px]"
+                title="Filtrar por status"
+              >
+                <option value="all">Todos os status</option>
+                {calendarStatusOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1.5">
+                {CALENDAR_TYPE_META.map(({ key, background, border, text }) => {
+                  const active = calendarTypeFilter[key] !== false;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setCalendarTypeFilter((prev) => ({ ...prev, [key]: !active }))}
+                      className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full border transition-all"
+                      style={active
+                        ? { background, borderColor: border, color: text }
+                        : { background: "#f8fafc", borderColor: "#e2e8f0", color: "#94a3b8" }}
+                      title={active ? `Ocultar ${key}` : `Mostrar ${key}`}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: active ? border : "#cbd5e1" }} />
+                      {key}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <Calendar
             localizer={localizer}
-            events={events}
+            events={filteredCalendarEvents}
             startAccessor="start"
             endAccessor="end"
             style={{ height: 650 }}
