@@ -29,6 +29,7 @@ import { getWeekAccumulated } from "../utils/ltpQuantityService";
 import { buildInsights } from "../utils/insights";
 import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
+import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock } from "lucide-react";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -43,6 +44,17 @@ const localizer = momentLocalizer(moment);
 // já que a própria coluna se chama "Nome do Cliente". Limpa só o prefixo.
 function cleanCustomerName(name) {
   return String(name || "").replace(/^\s*consumidor\s*,?\s*/i, "").trim();
+}
+
+// Chip de legenda de cor (fundo + borda) usado nas tabelas "Análise de Rota e
+// LTP" — evita repetir o mesmo objeto de estilo 4x por tabela.
+function LegendDot({ background, border, label }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-slate-600">
+      <span className="w-3 h-3 rounded-sm inline-block" style={{ background, border: `1px solid ${border}` }} />
+      {label}
+    </span>
+  );
 }
 
 const CustomEvent = ({ event }) => {
@@ -361,7 +373,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data1, data2, cityData, events, activeRoutes]);
+  }, [data1, data2, cityData, activeRoutes]);
 
   /////////////////////////////////
 
@@ -1009,9 +1021,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   // Envolve uma planilha togglável no DataTable — busca por OS, ordenação por
   // coluna, paginação e export — preservando a coloração das linhas (em rota,
-  // LTP/EX-LTP) via o renderRow/renderRowLTP passado.
-  const planilhaTable = (data, cols, rowRenderer, header = combinedData[0]) => (
-    <DataTable data={data} columns={cols} headerRow={header} renderRow={rowRenderer} />
+  // LTP/EX-LTP) via o renderRow/renderRowLTP passado. title/icon/legend dão à
+  // seção o mesmo acabamento de card do resto do dashboard (substituem o <h2> cru).
+  const planilhaTable = (data, cols, rowRenderer, header = combinedData[0], title = '', icon = null, legend = null) => (
+    <DataTable data={data} columns={cols} headerRow={header} renderRow={rowRenderer} title={title} icon={icon} legend={legend} />
   );
 
   // Header das tabelas de análise LTP: rótulos customizados nas colunas 38 e 24.
@@ -1197,250 +1210,131 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               <div className="divider"></div>
             </SubMenuSection>
             <ToggleableComponent isVisible={visibleComponents[1]}>
-              <h2>EM LTP DTV </h2>
-              {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow, undefined, "EM LTP DTV", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[40]}>
-              <h2>ORDENS EM ROTA</h2>
-
-              {/* A FAZER — azul */}
-              {inRouteByStatus.a_fazer.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
-                    <strong style={{ color: '#1d4ed8', fontSize: 13 }}>A FAZER ({inRouteByStatus.a_fazer.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.a_fazer.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#eff6ff' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* PENDENTES — vermelho */}
-              {inRouteByStatus.pendentes.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-                    <strong style={{ color: '#b91c1c', fontSize: 13 }}>PENDENTES ({inRouteByStatus.pendentes.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.pendentes.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#fef2f2' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* FINALIZADAS — verde */}
-              {inRouteByStatus.finalizadas.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                    <strong style={{ color: '#15803d', fontSize: 13 }}>FINALIZADAS ({inRouteByStatus.finalizadas.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.finalizadas.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#f0fdf4' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {inRouteOrders.length === 0 && (
-                <p style={{ color: '#94a3b8', fontSize: 13, padding: '12px 0' }}>Nenhuma ordem em rota no momento.</p>
-              )}
+              <div className="flex flex-col gap-4">
+                {inRouteByStatus.a_fazer.length > 0 && (
+                  <DataTable data={inRouteByStatus.a_fazer} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — A Fazer" icon={Truck} />
+                )}
+                {inRouteByStatus.pendentes.length > 0 && (
+                  <DataTable data={inRouteByStatus.pendentes} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — Pendentes" icon={AlertCircle} />
+                )}
+                {inRouteByStatus.finalizadas.length > 0 && (
+                  <DataTable data={inRouteByStatus.finalizadas} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — Finalizadas" icon={CheckCircle} />
+                )}
+                {inRouteOrders.length === 0 && (
+                  <p className="text-center text-slate-400 text-sm py-6">Nenhuma ordem em rota no momento.</p>
+                )}
+              </div>
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[31]}>
-              <h2>Todos DA LP </h2>
-              {planilhaTable(filteredAndSortedData8, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData8, columnsToShow, renderRow, undefined, "Todos DA LP", Layers)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[51]}>
-              <h2>Todos DA OW</h2>
-              {planilhaTable(planilha_ALL_DA_OW, columnsToShow, renderRow)}
+              {planilhaTable(planilha_ALL_DA_OW, columnsToShow, renderRow, undefined, "Todos DA OW", Layers)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[32]}>
-              <h2>Todos LP EM REPARO COMPLETO </h2>
-              {planilhaTable(planilha_CI_Complete_LP, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_LP, columnsToShow_RC, renderRow, undefined, "Todos LP em Reparo Completo", CheckCircle)}
             </ToggleableComponent>
-
 
             <ToggleableComponent isVisible={visibleComponents[33]}>
-              <h2>Todos OW EM REPARO COMPLETO X09 </h2>
-              {planilhaTable(planilha_CI_Complete_OW_X09, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_OW_X09, columnsToShow_RC, renderRow, undefined, "Todos OW em Reparo Completo — X09", CheckCircle)}
             </ToggleableComponent>
 
-
             <ToggleableComponent isVisible={visibleComponents[34]}>
-              <h2>Todos OW EM REPARO COMPLETO </h2>
-              {planilhaTable(planilha_CI_Complete_OW_NOT_X09, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_OW_NOT_X09, columnsToShow_RC, renderRow, undefined, "Todos OW em Reparo Completo", CheckCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[21]}>
-              <h2>EM EX LTP DTV </h2>
-              {planilhaTable(planilha_EX_LTP_IH_VD_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_EX_LTP_IH_VD_LP, columnsToShow, renderRow, undefined, "EM EX-LTP DTV", AlertCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[2]}>
-              <h2> EM LTP RAC/REF</h2>
-              {planilhaTable(planilha_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_RAC_REF_LP, columnsToShow, renderRow, undefined, "EM LTP RAC/REF", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[20]}>
-              <h2> EM EX-LTP RAC/REF</h2>
-              {planilhaTable(planilha_EX_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_EX_LTP_IH_RAC_REF_LP, columnsToShow, renderRow, undefined, "EM EX-LTP RAC/REF", AlertCircle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[3]}>
-              <h2>EM LTP WSM</h2>
-              {planilhaTable(planilha_LTP_IH_WSM_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_WSM_LP, columnsToShow, renderRow, undefined, "EM LTP WSM", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[4]}>
-              <h2>EM LTP DTV CI</h2>
-              {planilhaTable(filteredAndSortedData9, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData9, columnsToShow, renderRow, undefined, "EM LTP DTV CI", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[5]}>
-              <h2>EM LTP MX CI</h2>
-              {planilhaTable(filteredAndSortedData10, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData10, columnsToShow, renderRow, undefined, "EM LTP MX CI", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[6]}>
-              <h2>DA OW e LP sem peças</h2>
-              {planilhaTable(filteredAndSortedData4, columnsToShow_intoogle, renderRow)}
+              {planilhaTable(filteredAndSortedData4, columnsToShow_intoogle, renderRow, undefined, "DA OW e LP sem peças", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[7]}>
-              <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
-              {planilhaTable(filteredAndSortedData5, columnsToShow_intoogle, renderRow)}
+              {planilhaTable(filteredAndSortedData5, columnsToShow_intoogle, renderRow, undefined, "Próximos casos a entrar em LTP — superior a 3 dias", Clock)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[8]}>
-              <h2>Consumidor fora do prazo de todos os serviços</h2>
-              {planilhaTable(filteredAndSortedData11, columnsToShow_type_service, renderRow)}
+              {planilhaTable(filteredAndSortedData11, columnsToShow_type_service, renderRow, undefined, "Consumidor fora do prazo de todos os serviços", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[9]}>
-              <h2>Reparo completo fora do prazo de todos os serviços</h2>
-              {planilhaTable(filteredAndSortedData12, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData12, columnsToShow_complete_repair, renderRow, undefined, "Reparo completo fora do prazo de todos os serviços", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[11]}>
-              <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
-              {planilhaTable(filteredAndSortedData15, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData15, columnsToShow_complete_repair, renderRow, undefined, "Reparo completo do dia que deu entrada hoje mesmo", CheckCircle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[10]}>
-              <h2>Effect Appointment</h2>
-              {planilhaTable(filteredAndSortedData6, columnsToShow_intoogle, renderRow)}
-              <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              {planilhaTable(filteredAndSortedData13, columnsToShow_intoogle, renderRow)}
-              <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              {planilhaTable(filteredAndSortedData14, columnsToShow_intoogle, renderRow)}
+              <div className="flex flex-col gap-4">
+                {planilhaTable(filteredAndSortedData6, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment", CalendarIcon)}
+                {planilhaTable(filteredAndSortedData13, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment — corrija estas datas para bater", CalendarIcon)}
+                {planilhaTable(filteredAndSortedData14, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment — corrija estas datas para bater", CalendarIcon)}
+              </div>
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[12]}>
-              <h2>Agenda do Dia</h2>
-              {planilhaTable(filteredAndSortedData16, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData16, columnsToShow_complete_repair, renderRow, undefined, "Agenda do Dia", CalendarIcon)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[13]}>
-              <h2>Agenda de amanhã</h2>
-              {planilhaTable(filteredAndSortedData17, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData17, columnsToShow_complete_repair, renderRow, undefined, "Agenda de Amanhã", CalendarIcon)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[60]}>
-              <h2>FTF — Status Code ST025</h2>
-
-              {planilhaTable(planilha_FTF, columnsToShow_FTF, renderRow)}
+              {planilhaTable(planilha_FTF, columnsToShow_FTF, renderRow, undefined, "FTF — Status Code ST025", CheckCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[80]}>
-              <h2>D+3 — Todos os casos LP com até 3 dias</h2>
-              {planilhaTable(planilha_LP_up_to_3_days, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LP_up_to_3_days, columnsToShow, renderRow, undefined, "D+3 — Todos os casos LP com até 3 dias", Clock)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[81]}>
-              <h2>Ordens Desatualizadas — Todas as ordens com data passada</h2>
-              {planilhaTable(planilha_all_outdated_orders, columnsToShow, renderRow)}
+              {planilhaTable(planilha_all_outdated_orders, columnsToShow, renderRow, undefined, "Ordens Desatualizadas — todas as ordens com data passada", AlertTriangle)}
             </ToggleableComponent>
 
             {/* Card 91 - DA LP com marcação LTP/EX-LTP e Rota/Previsão */}
             <ToggleableComponent isVisible={visibleComponents[91]}>
-              <h2>Todos DA LP — Análise de Rota e LTP</h2>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef3c7', border:'1px solid #f59e0b', display:'inline-block' }} />
-                  LTP (≥{LTP_DA_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#ffe4e6', border:'1px solid #f43f5e', display:'inline-block' }} />
-                  EX-LTP (≥{EX_LTP_DA_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#dbeafe', border:'1px solid #2563eb', display:'inline-block' }} />
-                  Em Rota (A Fazer)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#dcfce7', border:'1px solid #16a34a', display:'inline-block' }} />
-                  Em Rota (Finalizado)
-                </span>
-              </div>
-              {planilhaTable(filteredAndSortedData8, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD), ltpAnalysisHeader)}
+              {planilhaTable(
+                filteredAndSortedData8, columnsToShow_ltp_analysis,
+                (row, i, c) => renderRowLTP(row, i, c, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD),
+                ltpAnalysisHeader, "Todos DA LP — Análise de Rota e LTP", Route,
+                <>
+                  <LegendDot background="#fef3c7" border="#f59e0b" label={`LTP (≥${LTP_DA_THRESHOLD} dias)`} />
+                  <LegendDot background="#ffe4e6" border="#f43f5e" label={`EX-LTP (≥${EX_LTP_DA_THRESHOLD} dias)`} />
+                  <LegendDot background="#dbeafe" border="#2563eb" label="Em Rota (A Fazer)" />
+                  <LegendDot background="#dcfce7" border="#16a34a" label="Em Rota (Finalizado)" />
+                </>
+              )}
             </ToggleableComponent>
 
             {/* Card 92 - DTV LP com marcação LTP/EX-LTP e Rota/Previsão */}
             <ToggleableComponent isVisible={visibleComponents[92]}>
-              <h2>Todos DTV LP — Análise de Rota e LTP</h2>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef3c7', border:'1px solid #f59e0b', display:'inline-block' }} />
-                  LTP (≥{LTP_DTV_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#ffe4e6', border:'1px solid #f43f5e', display:'inline-block' }} />
-                  EX-LTP (≥{EX_LTP_DTV_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#dbeafe', border:'1px solid #2563eb', display:'inline-block' }} />
-                  Em Rota (A Fazer)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#dcfce7', border:'1px solid #16a34a', display:'inline-block' }} />
-                  Em Rota (Finalizado)
-                </span>
-              </div>
-              {planilhaTable(planilha_all_DTV_LP, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD), ltpAnalysisHeader)}
+              {planilhaTable(
+                planilha_all_DTV_LP, columnsToShow_ltp_analysis,
+                (row, i, c) => renderRowLTP(row, i, c, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD),
+                ltpAnalysisHeader, "Todos DTV LP — Análise de Rota e LTP", Route,
+                <>
+                  <LegendDot background="#fef3c7" border="#f59e0b" label={`LTP (≥${LTP_DTV_THRESHOLD} dias)`} />
+                  <LegendDot background="#ffe4e6" border="#f43f5e" label={`EX-LTP (≥${EX_LTP_DTV_THRESHOLD} dias)`} />
+                  <LegendDot background="#dbeafe" border="#2563eb" label="Em Rota (A Fazer)" />
+                  <LegendDot background="#dcfce7" border="#16a34a" label="Em Rota (Finalizado)" />
+                </>
+              )}
             </ToggleableComponent>
           </>
         )
