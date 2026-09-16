@@ -23,6 +23,7 @@ import IndicatorsPanel from "../components/IndicatorsPanel";
 import UserManagement from "../components/UserManagement";
 import EmptyState from "../components/EmptyState";
 import TrendCharts from "../components/TrendCharts";
+import LtpAccumulatorCard from "../components/LtpAccumulatorCard";
 import DataTable from "../components/DataTable";
 import { computeWeeklyRtat } from "../utils/weeklyRtat";
 import { buildInsights } from "../utils/insights";
@@ -1126,6 +1127,11 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
       <div className="enter-up">
       <TrendCharts history={history} weeklyRtat={weeklyRtat} />
+      <div className="max-w-screen-2xl mx-auto w-full px-4 py-2">
+        <div className="max-w-xl">
+          <LtpAccumulatorCard dataSource={dataSource} />
+        </div>
+      </div>
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}
