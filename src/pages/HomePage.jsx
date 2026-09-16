@@ -39,6 +39,12 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 const localizer = momentLocalizer(moment);
 
+// A planilha da fonte já traz o nome como "Consumidor, Fulano de Tal" — redundante,
+// já que a própria coluna se chama "Nome do Cliente". Limpa só o prefixo.
+function cleanCustomerName(name) {
+  return String(name || "").replace(/^\s*consumidor\s*,?\s*/i, "").trim();
+}
+
 const CustomEvent = ({ event }) => {
   const handleCopy = (e) => {
     e.stopPropagation();
@@ -187,7 +193,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       const combined = data1SelectedCols.slice(1).map((row, rowIndex) => {
         const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
         const additionalData = dataMapping[orderId] || {};
-        const finalNome = additionalData.nome || data1[rowIndex + 1][3] || "";
+        const finalNome = cleanCustomerName(additionalData.nome || data1[rowIndex + 1][3] || "");
         const finalCidade = additionalData.cidade || data1[rowIndex + 1][4] || "";
         return [
           row[0], // Número da Ordem de Serviço
@@ -923,13 +929,13 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     let borderClass = '';
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#bbf7d0' };
+      rowStyle = { background: '#f0fdf4' };
       borderClass = 'border-l-4 border-green-600';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fecaca' };
+      rowStyle = { background: '#fef2f2' };
       borderClass = 'border-l-4 border-red-600';
     } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#bfdbfe' };
+      rowStyle = { background: '#eff6ff' };
       borderClass = 'border-l-4 border-blue-600';
     }
 
@@ -967,20 +973,20 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     let borderClass = '';
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#bbf7d0' };
+      rowStyle = { background: '#f0fdf4' };
       borderClass = 'border-l-4 border-green-600';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fecaca' };
+      rowStyle = { background: '#fef2f2' };
       borderClass = 'border-l-4 border-red-600';
     } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#bfdbfe' };
+      rowStyle = { background: '#eff6ff' };
       borderClass = 'border-l-4 border-blue-600';
     } else if (aging >= exLtpThreshold) {
-      rowStyle = { background: '#fee2e2' };
-      borderClass = 'border-l-4 border-red-500';
+      rowStyle = { background: '#fff1f2' };
+      borderClass = 'border-l-4 border-rose-400';
     } else if (aging >= ltpThreshold) {
-      rowStyle = { background: '#fef9c3' };
-      borderClass = 'border-l-4 border-yellow-400';
+      rowStyle = { background: '#fffbeb' };
+      borderClass = 'border-l-4 border-amber-400';
     }
 
     return (
