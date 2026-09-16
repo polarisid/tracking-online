@@ -80,18 +80,21 @@ BEGIN
                         WHERE in_out_warranty_flag = 'LP'
                           AND service_type = 'IH'
                           AND service_product_code = ANY(%L)
-                          AND pending_aging_days > 6
+                          AND aging > 6
                     ),
                     count(*) FILTER (
                         WHERE in_out_warranty_flag = 'LP'
                           AND service_type = 'IH'
                           AND (
-                            (service_product_code = ANY(%L) AND pending_aging_days > 4)
-                            OR (service_product_code = ANY(%L) AND pending_aging_days > 6)
+                            (service_product_code = ANY(%L) AND aging > 4)
+                            OR (service_product_code = ANY(%L) AND aging > 6)
                           )
                     )
-                FROM public.%I
-                WHERE removido_em IS NULL
+                FROM (
+                    SELECT *, COALESCE(NULLIF(pending_aging_days, '')::numeric, 0) AS aging
+                    FROM public.%I
+                    WHERE removido_em IS NULL
+                ) t
                 $q$,
                 av_codes,
                 (rac_codes || ref_codes),

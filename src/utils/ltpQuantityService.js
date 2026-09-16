@@ -58,6 +58,7 @@ export async function getWeekAccumulated(tableName) {
       label: WEEKDAY_LABELS[d.getDay()],
       vd: row ? row.vd_count : null,
       da: row ? row.da_count : null,
+      isToday: key === toDateKey(today),
     });
   }
 

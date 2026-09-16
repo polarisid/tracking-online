@@ -23,9 +23,9 @@ import IndicatorsPanel from "../components/IndicatorsPanel";
 import UserManagement from "../components/UserManagement";
 import EmptyState from "../components/EmptyState";
 import TrendCharts from "../components/TrendCharts";
-import LtpAccumulatorCard from "../components/LtpAccumulatorCard";
 import DataTable from "../components/DataTable";
 import { computeWeeklyRtat } from "../utils/weeklyRtat";
+import { getWeekAccumulated } from "../utils/ltpQuantityService";
 import { buildInsights } from "../utils/insights";
 import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
@@ -544,6 +544,19 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   // RTAT real (abertura → conclusão) das OS concluídas nesta semana, por categoria.
   const weeklyRtat = React.useMemo(() => computeWeeklyRtat(combinedData), [combinedData]);
 
+  // Qtty LTP acumulado da semana (VD/DA) — busca única aqui (não em cada componente
+  // consumidor), pois BasicTabs desmonta/remonta a aba "Gráficos" a cada troca e um
+  // fetch por componente refaria a consulta ao Supabase toda vez que a aba reabrisse.
+  const [ltpAccumulated, setLtpAccumulated] = useState({ data: null, loading: true, error: null });
+  useEffect(() => {
+    let cancelled = false;
+    setLtpAccumulated((prev) => ({ ...prev, loading: true, error: null }));
+    getWeekAccumulated(getCleanSourceName(dataSource))
+      .then((data) => { if (!cancelled) setLtpAccumulated({ data, loading: false, error: null }); })
+      .catch((error) => { if (!cancelled) setLtpAccumulated({ data: null, loading: false, error }); });
+    return () => { cancelled = true; };
+  }, [dataSource]);
+
   // Mapa OS/AscJob → nome da rota (ex: "Rota Breno - Aracaju")
   const orderRouteMap = React.useMemo(() => {
     const map = {};
@@ -1052,6 +1065,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               overdueCount: quantity_Oudated_IH || 0,
               daNoParts: quantity_DA_noParts || 0,
               agendaToday: quantity_agenda_today || 0,
+              ltpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.vd : null,
+              ltpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.da : null,
             }}
           />
         ) : (
@@ -1126,12 +1141,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         </Dashboard>
 
       <div className="enter-up">
-      <TrendCharts history={history} weeklyRtat={weeklyRtat} />
-      <div className="max-w-screen-2xl mx-auto w-full px-4 py-2">
-        <div className="max-w-xl">
-          <LtpAccumulatorCard dataSource={dataSource} />
-        </div>
-      </div>
+      <TrendCharts history={history} weeklyRtat={weeklyRtat} ltpAccumulated={ltpAccumulated} />
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}

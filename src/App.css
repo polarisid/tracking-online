@@ -10,12 +10,8 @@
   overflow-x: hidden;
 }
 
-/* App.css */
-body {
-  font-family: "Roboto", sans-serif;
-}
-
-h2 {
-  font-family: "Roboto", sans-serif;
-  font-weight: 500;
-}
+/* App.css não define mais font-family: como este arquivo é importado (via
+   App.js) depois de index.css em src/index.js, uma regra "body"/"h2" aqui
+   sempre vencia a cascata e derrubava a fonte Inter (importada de propósito
+   em index.css) pro fallback do sistema — Roboto nunca foi carregada em
+   lugar nenhum. Deixa o Inter de index.css cascatear normalmente. */
