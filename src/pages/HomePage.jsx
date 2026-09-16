@@ -883,10 +883,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
             <div className="flex items-center justify-between mx-2 mt-1 pb-1">
               {count > 0 ? (
                 <div
-                  className="flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md shadow-sm"
+                  className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md"
                   title="Quantidade de eventos"
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-blue-400">Qtd:</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-400">Qtd:</span>
                   <span className="text-xs font-bold">{count}</span>
                 </div>
               ) : (
@@ -894,7 +894,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               )}
               <button
                 onClick={onDrillDown}
-                className="text-sm font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 px-2 py-0.5 rounded transition-all"
+                className="text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-slate-50 px-2 py-0.5 rounded transition-all"
                 title="Ver dia"
               >
                 {label}
@@ -1186,6 +1186,22 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       />
       </div>
       <CalendarContainer>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="shrink-0 w-9 h-9 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
+                <CalendarIcon size={18} className="text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800 leading-tight">Calendário de Atendimentos</h2>
+                <p className="text-[11px] text-slate-400">{events.length} {events.length === 1 ? "evento" : "eventos"} no total</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <LegendDot background="#faf5ff" border="#a855f7" label="II" />
+              <LegendDot background="#eff6ff" border="#3b82f6" label="IH" />
+              <LegendDot background="#f0fdfa" border="#14b8a6" label="SH" />
+            </div>
+          </div>
           <Calendar
             localizer={localizer}
             events={events}
@@ -1349,8 +1365,9 @@ const CalendarContainer = styled.div`
   max-width: 1600px;
   margin: 20px auto;
   background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  /* box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); */
+  box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.05);
 `;
 const UploadBox = styled.div`
   display: flex;

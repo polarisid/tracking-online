@@ -204,39 +204,131 @@ table tbody tr.hover\:bg-green-200:hover {
   background: #94a3b8;
 }
 
-/* ===== Calendar Premium ===== */
+/* ===== Calendar Premium =====
+   Cores de evento alinhadas com o mapeamento de service_type já usado em
+   IntelligencePanel.jsx (SERVICE_TYPE_META) — mesma sigla, mesma cor em todo
+   o app (antes IH era verde só aqui e azul lá, confundindo quem lê os dois
+   lugares). */
 .rbc-calendar {
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
 }
 
 .rbc-toolbar {
-  padding: 0.75rem 1rem;
-  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  padding: 0;
+  margin-bottom: 1.125rem;
+  background: transparent;
+}
+
+.rbc-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .rbc-toolbar button {
+  border: none !important;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  color: var(--color-text-muted) !important;
+  background-color: transparent;
+  padding: 0.375rem 0.875rem !important;
+  font-weight: 700;
   font-size: 0.75rem;
-  transition: all 0.2s;
+  margin: 0 !important;
+  transition: all 0.15s ease;
+}
+
+.rbc-toolbar button:hover {
+  background-color: #f1f5f9 !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #6366f1 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px -1px rgba(99, 102, 241, 0.4);
+}
+
+.rbc-toolbar-label {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--color-text-primary);
 }
 
 .rbc-header {
   font-weight: 700;
   font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.5rem;
-  color: #475569;
+  letter-spacing: 0.08em;
+  padding: 0.625rem 0.5rem;
+  color: var(--color-text-muted);
+  background-color: #f8fafc;
+  border-bottom: 1px solid var(--color-border);
 }
 
-/* Calendar event colors */
-.ii-event { background-color: #3b82f6 !important; border: none !important; border-radius: 4px !important; }
-.ih-event { background-color: #10b981 !important; border: none !important; border-radius: 4px !important; }
-.sh-event { background-color: #f59e0b !important; border: none !important; border-radius: 4px !important; }
+.rbc-today {
+  background-color: #eef2ff !important;
+}
+
+.rbc-off-range-bg {
+  background-color: #f8fafc !important;
+}
+
+/* "+N mais" — chip indigo em vez do link azul cru padrão do navegador */
+.rbc-show-more {
+  color: #6366f1 !important;
+  font-weight: 700 !important;
+  font-size: 0.65rem !important;
+  background-color: #eef2ff !important;
+  padding: 1px 6px !important;
+  border-radius: 999px !important;
+  display: inline-block;
+}
+
+.rbc-show-more:hover {
+  background-color: #e0e7ff !important;
+}
+
+/* Calendar event colors — II=roxo, IH=azul, SH=teal (mesma paleta do
+   SERVICE_TYPE_META de IntelligencePanel.jsx) */
+.ii-event {
+  background-color: #faf5ff !important;
+  border-left: 3px solid #a855f7 !important;
+  color: #6b21a8 !important;
+  border-radius: 6px !important;
+  font-weight: 600;
+  font-size: 11px;
+}
+.ih-event {
+  background-color: #eff6ff !important;
+  border-left: 3px solid #3b82f6 !important;
+  color: #1e40af !important;
+  border-radius: 6px !important;
+  font-weight: 600;
+  font-size: 11px;
+}
+.sh-event {
+  background-color: #f0fdfa !important;
+  border-left: 3px solid #14b8a6 !important;
+  color: #115e59 !important;
+  border-radius: 6px !important;
+  font-weight: 600;
+  font-size: 11px;
+}
+.ii-event:hover, .ih-event:hover, .sh-event:hover {
+  filter: brightness(0.97);
+}
 
 /* ===== Animations ===== */
 @keyframes fadeIn {
