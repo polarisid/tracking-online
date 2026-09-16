@@ -926,23 +926,25 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     });
 
     let rowStyle = {};
-    let borderClass = '';
+    let accentColor = null;
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#f0fdf4' };
-      borderClass = 'border-l-4 border-green-600';
+      rowStyle = { background: '#dcfce7' };
+      accentColor = '#16a34a';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fef2f2' };
-      borderClass = 'border-l-4 border-red-600';
+      rowStyle = { background: '#fee2e2' };
+      accentColor = '#dc2626';
     } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#eff6ff' };
-      borderClass = 'border-l-4 border-blue-600';
+      rowStyle = { background: '#dbeafe' };
+      accentColor = '#2563eb';
     }
 
     return (
-      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
-        {columns.map((colIndex) => (
-          <td key={colIndex}>{renderBadge(row[colIndex])}</td>
+      <tr key={rowIndex} style={rowStyle} className="transition-colors">
+        {columns.map((colIndex, i) => (
+          <td key={colIndex} style={i === 0 && accentColor ? { borderLeft: `4px solid ${accentColor}` } : undefined}>
+            {renderBadge(row[colIndex])}
+          </td>
         ))}
       </tr>
     );
@@ -970,29 +972,29 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     const routeName = orderRouteMap[os2] || orderRouteMap[os3] || orderRouteMap[os1] || null;
 
     let rowStyle = {};
-    let borderClass = '';
+    let accentColor = null;
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#f0fdf4' };
-      borderClass = 'border-l-4 border-green-600';
+      rowStyle = { background: '#dcfce7' };
+      accentColor = '#16a34a';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fef2f2' };
-      borderClass = 'border-l-4 border-red-600';
+      rowStyle = { background: '#fee2e2' };
+      accentColor = '#dc2626';
     } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#eff6ff' };
-      borderClass = 'border-l-4 border-blue-600';
+      rowStyle = { background: '#dbeafe' };
+      accentColor = '#2563eb';
     } else if (aging >= exLtpThreshold) {
-      rowStyle = { background: '#fff1f2' };
-      borderClass = 'border-l-4 border-rose-400';
+      rowStyle = { background: '#ffe4e6' };
+      accentColor = '#f43f5e';
     } else if (aging >= ltpThreshold) {
-      rowStyle = { background: '#fffbeb' };
-      borderClass = 'border-l-4 border-amber-400';
+      rowStyle = { background: '#fef3c7' };
+      accentColor = '#f59e0b';
     }
 
     return (
-      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
-        {columns.map((colIndex) => (
-          <td key={colIndex}>
+      <tr key={rowIndex} style={rowStyle} className="transition-colors">
+        {columns.map((colIndex, i) => (
+          <td key={colIndex} style={i === 0 && accentColor ? { borderLeft: `4px solid ${accentColor}` } : undefined}>
             {colIndex === 38
               ? (routeName
                   ? <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{routeName}</span>
@@ -1398,19 +1400,19 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               <h2>Todos DA LP — Análise de Rota e LTP</h2>
               <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef3c7', border:'1px solid #f59e0b', display:'inline-block' }} />
                   LTP (≥{LTP_DA_THRESHOLD} dias)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#ffe4e6', border:'1px solid #f43f5e', display:'inline-block' }} />
                   EX-LTP (≥{EX_LTP_DA_THRESHOLD} dias)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#dbeafe', border:'1px solid #2563eb', display:'inline-block' }} />
                   Em Rota (A Fazer)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#dcfce7', border:'1px solid #16a34a', display:'inline-block' }} />
                   Em Rota (Finalizado)
                 </span>
               </div>
@@ -1422,19 +1424,19 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               <h2>Todos DTV LP — Análise de Rota e LTP</h2>
               <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef3c7', border:'1px solid #f59e0b', display:'inline-block' }} />
                   LTP (≥{LTP_DTV_THRESHOLD} dias)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#ffe4e6', border:'1px solid #f43f5e', display:'inline-block' }} />
                   EX-LTP (≥{EX_LTP_DTV_THRESHOLD} dias)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#dbeafe', border:'1px solid #2563eb', display:'inline-block' }} />
                   Em Rota (A Fazer)
                 </span>
                 <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
+                  <span style={{ width:12, height:12, borderRadius:2, background:'#dcfce7', border:'1px solid #16a34a', display:'inline-block' }} />
                   Em Rota (Finalizado)
                 </span>
               </div>
