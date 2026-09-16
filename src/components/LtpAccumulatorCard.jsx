@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -10,7 +10,8 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Layers } from "lucide-react";
+import { Layers, X } from "lucide-react";
+import { getSnapshotOrders } from "../utils/ltpQuantityService";
 
 const PRIMARY = "#6366f1";   // indigo-500 — LTP VD (mesma primária do app)
 const SECONDARY = "#f59e0b"; // amber-500 — LTP DA (distinta da primária)
@@ -62,6 +63,30 @@ function SkeletonBlock() {
  * componente nunca escreve, só lê o que já foi persistido.
  */
 export default function LtpAccumulatorCard({ data, loading, error }) {
+  const [selected, setSelected] = useState(null); // { date, label, category }
+  const [orders, setOrders] = useState({ loading: false, error: null, list: [] });
+
+  // Troca de ASC (unidade) invalida a seleção — dia/categoria de uma unidade
+  // não fazem sentido pra outra.
+  useEffect(() => {
+    setSelected(null);
+  }, [data?.tableName]);
+
+  function handleBarClick(day, category) {
+    const value = category === "VD" ? day.vd : day.da;
+    if (value === null || value === undefined) return; // dia sem captura, nada a mostrar
+
+    if (selected && selected.date === day.date && selected.category === category) {
+      setSelected(null);
+      return;
+    }
+    setSelected({ date: day.date, label: day.label, category });
+    setOrders({ loading: true, error: null, list: [] });
+    getSnapshotOrders(data.tableName, day.date, category)
+      .then((list) => setOrders({ loading: false, error: null, list }))
+      .catch((err) => setOrders({ loading: false, error: err, list: [] }));
+  }
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -110,12 +135,12 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
                 <YAxis tick={{ fontSize: 10 }} width={30} allowDecimals={false} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="vd" name="LTP VD" fill={PRIMARY} radius={[4, 4, 0, 0]}>
+                <Bar dataKey="vd" name="LTP VD" fill={PRIMARY} radius={[4, 4, 0, 0]} onClick={(entry) => handleBarClick(entry, "VD")} cursor="pointer">
                   {data.days.map((d, i) => (
                     <Cell key={i} stroke={d.isToday ? TODAY_STROKE : "none"} strokeWidth={d.isToday ? 2 : 0} />
                   ))}
                 </Bar>
-                <Bar dataKey="da" name="LTP DA" fill={SECONDARY} radius={[4, 4, 0, 0]}>
+                <Bar dataKey="da" name="LTP DA" fill={SECONDARY} radius={[4, 4, 0, 0]} onClick={(entry) => handleBarClick(entry, "DA")} cursor="pointer">
                   {data.days.map((d, i) => (
                     <Cell key={i} stroke={d.isToday ? TODAY_STROKE : "none"} strokeWidth={d.isToday ? 2 : 0} />
                   ))}
@@ -123,6 +148,57 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">Clique numa barra pra ver as OS do dia.</p>
+
+          {selected && (
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                  OS em LTP {selected.category} · {selected.label}
+                </p>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label="Fechar"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {orders.loading ? (
+                <p className="text-xs text-slate-400 py-2">Carregando...</p>
+              ) : orders.error ? (
+                <p className="text-xs text-slate-400 py-2">Não foi possível carregar as OS deste dia.</p>
+              ) : orders.list.length === 0 ? (
+                <p className="text-xs text-slate-400 py-2">
+                  Nenhuma OS registrada pra este dia — captura anterior a este detalhe (só dias capturados depois do detalhamento têm essa lista).
+                </p>
+              ) : (
+                <div className="max-h-48 overflow-y-auto">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="text-left text-slate-400">
+                        <th className="font-semibold pb-1">OS</th>
+                        <th className="font-semibold pb-1">Modelo</th>
+                        <th className="font-semibold pb-1">Motivo</th>
+                        <th className="font-semibold pb-1 text-right">Dias</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders.list.map((o, i) => (
+                        <tr key={i} className="border-t border-slate-50">
+                          <td className="py-1 font-semibold text-slate-700">{o.service_order_no || o.asc_job_no || "—"}</td>
+                          <td className="py-1 text-slate-500">{o.model || "—"}</td>
+                          <td className="py-1 text-slate-500">{o.reason || "—"}</td>
+                          <td className="py-1 text-right text-slate-500">{o.pending_aging_days ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

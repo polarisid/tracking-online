@@ -72,5 +72,25 @@ export async function getWeekAccumulated(tableName) {
     daysCaptured: rows.length,
     daysExpected: days.length,
     weekStart: toDateKey(start),
+    tableName,
   };
+}
+
+/**
+ * Detalhe das OS que formaram o número de um dia/categoria específicos —
+ * usado quando o usuário clica numa barra do gráfico semanal. Só existe pra
+ * dias já capturados pelo cron (ver `ltp_quantity_snapshot_orders` na
+ * migration); dias sem captura retornam lista vazia.
+ */
+export async function getSnapshotOrders(tableName, dateKey, category) {
+  const { data, error } = await supabase
+    .from("ltp_quantity_snapshot_orders")
+    .select("service_order_no, asc_job_no, nome_cliente, cidade, model, reason, pending_aging_days")
+    .eq("table_name", tableName)
+    .eq("snapshot_date", dateKey)
+    .eq("category", category)
+    .order("pending_aging_days", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
 }

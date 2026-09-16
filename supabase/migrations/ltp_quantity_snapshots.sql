@@ -4,9 +4,13 @@
 --
 -- Mecânica: todo dia às 16h, a function `capture_ltp_snapshot()` conta quantas
 -- OS estão em LTP (VD e DA) em cada unidade, e grava 1 linha por
--- (unidade, dia). O front-end só LÊ esta tabela e soma os dias da semana
--- corrente (domingo→sábado) — a soma intencionalmente NÃO deduplica ordens
--- repetidas entre dias (ex: 3 hoje + 5 amanhã = 8 acumulado).
+-- (unidade, dia) em `ltp_quantity_snapshots` (só a contagem, pro acumulado
+-- semanal) e 1 linha por (unidade, dia, categoria, OS) em
+-- `ltp_quantity_snapshot_orders` (o detalhe, pra listar "quais ordens" formam
+-- aquele número quando o usuário clica num dia do gráfico). O front-end só LÊ
+-- essas tabelas e soma os dias da semana corrente (domingo→sábado) — a soma
+-- intencionalmente NÃO deduplica ordens repetidas entre dias (ex: 3 hoje + 5
+-- amanhã = 8 acumulado).
 --
 -- Definição de LTP replicada de src/utils/filters.js (nenhum desses filtros
 -- exclui ST035 — o acumulado bate com "LTP VD IH"/"Todos DA LP" do dashboard):
@@ -42,6 +46,37 @@ CREATE POLICY "Enable read for ltp_quantity_snapshots" ON public.ltp_quantity_sn
     FOR SELECT USING (true);
 
 -- ---------------------------------------------------------------------------
+-- Detalhe por OS de cada dia — sem isso, o front não tem como listar "quais
+-- ordens formaram esse número" pra um dia já capturado (a contagem sozinha
+-- não guarda o rastro). 1 linha por (unidade, dia, categoria, OS); a captura
+-- de cada dia sempre DELETE + INSERT o próprio dia, então rodar de novo no
+-- mesmo dia atualiza em vez de duplicar/acumular lixo de reprocessamento.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.ltp_quantity_snapshot_orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS table_name TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS snapshot_date DATE;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS category TEXT; -- 'VD' ou 'DA'
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS service_order_no TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS asc_job_no TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS nome_cliente TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS cidade TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS model TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS reason TEXT;
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS pending_aging_days NUMERIC;
+
+CREATE INDEX IF NOT EXISTS idx_ltp_quantity_snapshot_orders_lookup
+    ON public.ltp_quantity_snapshot_orders (table_name, snapshot_date, category);
+
+ALTER TABLE public.ltp_quantity_snapshot_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Enable read for ltp_quantity_snapshot_orders" ON public.ltp_quantity_snapshot_orders;
+CREATE POLICY "Enable read for ltp_quantity_snapshot_orders" ON public.ltp_quantity_snapshot_orders
+    FOR SELECT USING (true);
+
+-- ---------------------------------------------------------------------------
 -- Function de captura — conta LTP VD/DA em cada unidade e grava o snapshot do
 -- dia. SECURITY DEFINER pra poder gravar mesmo sem policy de INSERT pro anon.
 -- ---------------------------------------------------------------------------
@@ -59,6 +94,8 @@ DECLARE
     today_brt DATE := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
     vd_count INTEGER;
     da_count INTEGER;
+    vd_orders JSONB;
+    da_orders JSONB;
 
     av_codes TEXT[] := ARRAY['CTV99','DTV02','LED01','LED02','LED03','LED85','LTV01','LTV02','LTV99','PDP01','AUD01','AUD04',
         'AUD05','AUD06','AUD99','BDP01','BTV01','CTV01','CTV02','CTV97','CTV98','CTV99','DLB01','DPT01','DTV01','DTV02','DVD01',
@@ -75,37 +112,56 @@ BEGIN
         BEGIN
             EXECUTE format(
                 $q$
-                SELECT
-                    count(*) FILTER (
-                        WHERE in_out_warranty_flag = 'LP'
-                          AND service_type = 'IH'
-                          AND service_product_code = ANY(%L)
-                          AND aging > 6
-                    ),
-                    count(*) FILTER (
-                        WHERE in_out_warranty_flag = 'LP'
-                          AND service_type = 'IH'
-                          AND (
-                            (service_product_code = ANY(%L) AND aging > 4)
-                            OR (service_product_code = ANY(%L) AND aging > 6)
-                          )
-                    )
-                FROM (
+                WITH base AS (
                     SELECT *, COALESCE(NULLIF(pending_aging_days, '')::numeric, 0) AS aging
                     FROM public.%I
                     WHERE removido_em IS NULL
-                ) t
+                ),
+                vd_rows AS (
+                    SELECT service_order_no, asc_job_no, nome_cliente, cidade, model, reason, aging
+                    FROM base
+                    WHERE in_out_warranty_flag = 'LP'
+                      AND service_type = 'IH'
+                      AND service_product_code = ANY(%L)
+                      AND aging > 6
+                ),
+                da_rows AS (
+                    SELECT service_order_no, asc_job_no, nome_cliente, cidade, model, reason, aging
+                    FROM base
+                    WHERE in_out_warranty_flag = 'LP'
+                      AND service_type = 'IH'
+                      AND (
+                        (service_product_code = ANY(%L) AND aging > 4)
+                        OR (service_product_code = ANY(%L) AND aging > 6)
+                      )
+                )
+                SELECT
+                    (SELECT count(*) FROM vd_rows),
+                    (SELECT count(*) FROM da_rows),
+                    (SELECT jsonb_agg(row_to_json(vd_rows)) FROM vd_rows),
+                    (SELECT jsonb_agg(row_to_json(da_rows)) FROM da_rows)
                 $q$,
+                tbl,
                 av_codes,
                 (rac_codes || ref_codes),
-                (swm_codes || hke_codes),
-                tbl
-            ) INTO vd_count, da_count;
+                (swm_codes || hke_codes)
+            ) INTO vd_count, da_count, vd_orders, da_orders;
 
             INSERT INTO public.ltp_quantity_snapshots (table_name, snapshot_date, vd_count, da_count, captured_at)
             VALUES (tbl, today_brt, vd_count, da_count, now())
             ON CONFLICT (table_name, snapshot_date)
             DO UPDATE SET vd_count = EXCLUDED.vd_count, da_count = EXCLUDED.da_count, captured_at = now();
+
+            -- DELETE + INSERT do dia inteiro (idempotente a re-execuções no mesmo dia).
+            DELETE FROM public.ltp_quantity_snapshot_orders WHERE table_name = tbl AND snapshot_date = today_brt;
+
+            INSERT INTO public.ltp_quantity_snapshot_orders
+                (table_name, snapshot_date, category, service_order_no, asc_job_no, nome_cliente, cidade, model, reason, pending_aging_days)
+            SELECT tbl, today_brt, 'VD', x->>'service_order_no', x->>'asc_job_no', x->>'nome_cliente', x->>'cidade', x->>'model', x->>'reason', (x->>'aging')::numeric
+            FROM jsonb_array_elements(COALESCE(vd_orders, '[]'::jsonb)) x
+            UNION ALL
+            SELECT tbl, today_brt, 'DA', x->>'service_order_no', x->>'asc_job_no', x->>'nome_cliente', x->>'cidade', x->>'model', x->>'reason', (x->>'aging')::numeric
+            FROM jsonb_array_elements(COALESCE(da_orders, '[]'::jsonb)) x;
         EXCEPTION WHEN undefined_table THEN
             -- Unidade da lista fixa ainda não existe como tabela no banco — pula.
             CONTINUE;
