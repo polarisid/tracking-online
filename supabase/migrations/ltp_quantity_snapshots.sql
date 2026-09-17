@@ -12,12 +12,15 @@
 -- intencionalmente NÃO deduplica ordens repetidas entre dias (ex: 3 hoje + 5
 -- amanhã = 8 acumulado).
 --
--- Definição de LTP replicada de src/utils/filters.js (nenhum desses filtros
--- exclui ST035 — o acumulado bate com "LTP VD IH"/"Todos DA LP" do dashboard):
---   LTP VD = in_out_warranty_flag='LP' + service_type='IH' + service_product_code
---            em AV_CODES + pending_aging_days > 6           (filter_VD_LTP_LP)
---   LTP DA = (RAC_CODES∪REF_CODES + pending_aging_days > 4)  (filter_REF_RAC_LTP_LP)
---            OU (SWM_CODES∪HKE_CODE + pending_aging_days > 6) (filter_WSM_LP_LTP)
+-- Definição de LTP/EX-LTP replicada de src/utils/filters.js (nenhum desses
+-- filtros exclui ST035 — o acumulado bate com os StatCards do dashboard):
+--   LTP VD    = in_out_warranty_flag='LP' + service_type='IH' + service_product_code
+--               em AV_CODES + pending_aging_days > 6            (filter_VD_LTP_LP)
+--   LTP DA    = (RAC_CODES∪REF_CODES + pending_aging_days > 4)   (filter_REF_RAC_LTP_LP)
+--               OU (SWM_CODES∪HKE_CODE + pending_aging_days > 6) (filter_WSM_LP_LTP)
+--   EX-LTP VD = igual à LTP VD, pending_aging_days > 13          (filter_VD_EX_LTP_LP)
+--   EX-LTP DA = RAC_CODES∪REF_CODES + pending_aging_days > 9     (filter_REF_RAC_EX_LTP_LP)
+--               (não existe versão EX-LTP do filtro WSM/HKE no app — só RAC/REF)
 --
 -- IDEMPOTENTE E ADITIVO (mesma convenção de asc_metrics_history.sql):
 -- CREATE TABLE IF NOT EXISTS + ADD COLUMN IF NOT EXISTS, re-executável.
@@ -31,6 +34,8 @@ ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS table_name TE
 ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS snapshot_date DATE;
 ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS vd_count INTEGER DEFAULT 0;
 ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS da_count INTEGER DEFAULT 0;
+ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS ex_vd_count INTEGER DEFAULT 0;
+ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS ex_da_count INTEGER DEFAULT 0;
 ALTER TABLE public.ltp_quantity_snapshots ADD COLUMN IF NOT EXISTS captured_at TIMESTAMP WITH TIME ZONE;
 
 -- Chave do upsert: 1 linha por (unidade, dia). Rodar a function de novo no
@@ -59,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.ltp_quantity_snapshot_orders (
 
 ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS table_name TEXT;
 ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS snapshot_date DATE;
-ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS category TEXT; -- 'VD' ou 'DA'
+ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS category TEXT; -- 'VD', 'DA', 'EX_VD' ou 'EX_DA'
 ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS service_order_no TEXT;
 ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS asc_job_no TEXT;
 ALTER TABLE public.ltp_quantity_snapshot_orders ADD COLUMN IF NOT EXISTS nome_cliente TEXT;
@@ -94,8 +99,12 @@ DECLARE
     today_brt DATE := (now() AT TIME ZONE 'America/Sao_Paulo')::date;
     vd_count INTEGER;
     da_count INTEGER;
+    ex_vd_count INTEGER;
+    ex_da_count INTEGER;
     vd_orders JSONB;
     da_orders JSONB;
+    ex_vd_orders JSONB;
+    ex_da_orders JSONB;
 
     av_codes TEXT[] := ARRAY['CTV99','DTV02','LED01','LED02','LED03','LED85','LTV01','LTV02','LTV99','PDP01','AUD01','AUD04',
         'AUD05','AUD06','AUD99','BDP01','BTV01','CTV01','CTV02','CTV97','CTV98','CTV99','DLB01','DPT01','DTV01','DTV02','DVD01',
@@ -134,23 +143,46 @@ BEGIN
                         (service_product_code = ANY(%L) AND aging > 4)
                         OR (service_product_code = ANY(%L) AND aging > 6)
                       )
+                ),
+                ex_vd_rows AS (
+                    SELECT service_order_no, asc_job_no, nome_cliente, cidade, model, reason, aging
+                    FROM base
+                    WHERE in_out_warranty_flag = 'LP'
+                      AND service_type = 'IH'
+                      AND service_product_code = ANY(%L)
+                      AND aging > 13
+                ),
+                ex_da_rows AS (
+                    SELECT service_order_no, asc_job_no, nome_cliente, cidade, model, reason, aging
+                    FROM base
+                    WHERE in_out_warranty_flag = 'LP'
+                      AND service_type = 'IH'
+                      AND service_product_code = ANY(%L)
+                      AND aging > 9
                 )
                 SELECT
                     (SELECT count(*) FROM vd_rows),
                     (SELECT count(*) FROM da_rows),
+                    (SELECT count(*) FROM ex_vd_rows),
+                    (SELECT count(*) FROM ex_da_rows),
                     (SELECT jsonb_agg(row_to_json(vd_rows)) FROM vd_rows),
-                    (SELECT jsonb_agg(row_to_json(da_rows)) FROM da_rows)
+                    (SELECT jsonb_agg(row_to_json(da_rows)) FROM da_rows),
+                    (SELECT jsonb_agg(row_to_json(ex_vd_rows)) FROM ex_vd_rows),
+                    (SELECT jsonb_agg(row_to_json(ex_da_rows)) FROM ex_da_rows)
                 $q$,
                 tbl,
                 av_codes,
                 (rac_codes || ref_codes),
-                (swm_codes || hke_codes)
-            ) INTO vd_count, da_count, vd_orders, da_orders;
+                (swm_codes || hke_codes),
+                av_codes,
+                (rac_codes || ref_codes)
+            ) INTO vd_count, da_count, ex_vd_count, ex_da_count, vd_orders, da_orders, ex_vd_orders, ex_da_orders;
 
-            INSERT INTO public.ltp_quantity_snapshots (table_name, snapshot_date, vd_count, da_count, captured_at)
-            VALUES (tbl, today_brt, vd_count, da_count, now())
+            INSERT INTO public.ltp_quantity_snapshots (table_name, snapshot_date, vd_count, da_count, ex_vd_count, ex_da_count, captured_at)
+            VALUES (tbl, today_brt, vd_count, da_count, ex_vd_count, ex_da_count, now())
             ON CONFLICT (table_name, snapshot_date)
-            DO UPDATE SET vd_count = EXCLUDED.vd_count, da_count = EXCLUDED.da_count, captured_at = now();
+            DO UPDATE SET vd_count = EXCLUDED.vd_count, da_count = EXCLUDED.da_count,
+                ex_vd_count = EXCLUDED.ex_vd_count, ex_da_count = EXCLUDED.ex_da_count, captured_at = now();
 
             -- DELETE + INSERT do dia inteiro (idempotente a re-execuções no mesmo dia).
             DELETE FROM public.ltp_quantity_snapshot_orders WHERE table_name = tbl AND snapshot_date = today_brt;
@@ -161,7 +193,13 @@ BEGIN
             FROM jsonb_array_elements(COALESCE(vd_orders, '[]'::jsonb)) x
             UNION ALL
             SELECT tbl, today_brt, 'DA', x->>'service_order_no', x->>'asc_job_no', x->>'nome_cliente', x->>'cidade', x->>'model', x->>'reason', (x->>'aging')::numeric
-            FROM jsonb_array_elements(COALESCE(da_orders, '[]'::jsonb)) x;
+            FROM jsonb_array_elements(COALESCE(da_orders, '[]'::jsonb)) x
+            UNION ALL
+            SELECT tbl, today_brt, 'EX_VD', x->>'service_order_no', x->>'asc_job_no', x->>'nome_cliente', x->>'cidade', x->>'model', x->>'reason', (x->>'aging')::numeric
+            FROM jsonb_array_elements(COALESCE(ex_vd_orders, '[]'::jsonb)) x
+            UNION ALL
+            SELECT tbl, today_brt, 'EX_DA', x->>'service_order_no', x->>'asc_job_no', x->>'nome_cliente', x->>'cidade', x->>'model', x->>'reason', (x->>'aging')::numeric
+            FROM jsonb_array_elements(COALESCE(ex_da_orders, '[]'::jsonb)) x;
         EXCEPTION WHEN undefined_table THEN
             -- Unidade da lista fixa ainda não existe como tabela no banco — pula.
             CONTINUE;

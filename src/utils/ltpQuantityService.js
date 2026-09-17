@@ -33,7 +33,7 @@ export async function getWeekAccumulated(tableName) {
 
   const { data, error } = await supabase
     .from("ltp_quantity_snapshots")
-    .select("snapshot_date, vd_count, da_count")
+    .select("snapshot_date, vd_count, da_count, ex_vd_count, ex_da_count")
     .eq("table_name", tableName)
     .gte("snapshot_date", toDateKey(start))
     .lte("snapshot_date", toDateKey(today))
@@ -58,16 +58,22 @@ export async function getWeekAccumulated(tableName) {
       label: WEEKDAY_LABELS[d.getDay()],
       vd: row ? row.vd_count : null,
       da: row ? row.da_count : null,
+      exVd: row ? row.ex_vd_count : null,
+      exDa: row ? row.ex_da_count : null,
       isToday: key === toDateKey(today),
     });
   }
 
   const vd = rows.reduce((sum, r) => sum + (r.vd_count || 0), 0);
   const da = rows.reduce((sum, r) => sum + (r.da_count || 0), 0);
+  const exVd = rows.reduce((sum, r) => sum + (r.ex_vd_count || 0), 0);
+  const exDa = rows.reduce((sum, r) => sum + (r.ex_da_count || 0), 0);
 
   return {
     vd,
     da,
+    exVd,
+    exDa,
     days,
     daysCaptured: rows.length,
     daysExpected: days.length,

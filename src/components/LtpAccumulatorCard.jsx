@@ -13,9 +13,13 @@ import {
 import { Layers, X } from "lucide-react";
 import { getSnapshotOrders } from "../utils/ltpQuantityService";
 
-const PRIMARY = "#6366f1";   // indigo-500 — LTP VD (mesma primária do app)
-const SECONDARY = "#f59e0b"; // amber-500 — LTP DA (distinta da primária)
+const PRIMARY = "#6366f1";    // indigo-500 — LTP VD (mesma primária do app)
+const SECONDARY = "#f59e0b";  // amber-500 — LTP DA (distinta da primária)
+const TERTIARY = "#f43f5e";   // rose-500 — EX-LTP VD (mesma família "urgente" das EX-LTP no resto do app)
+const QUATERNARY = "#8b5cf6"; // violet-500 — EX-LTP DA
 const TODAY_STROKE = "#1e293b"; // slate-800 — mesmo destaque de "selecionado" usado em DashboardCharts
+
+const CATEGORY_LABELS = { VD: "LTP VD", DA: "LTP DA", EX_VD: "EX-LTP VD", EX_DA: "EX-LTP DA" };
 
 const tooltipStyle = {
   borderRadius: "8px",
@@ -38,15 +42,13 @@ function BigNumber({ label, value, color }) {
 function SkeletonBlock() {
   return (
     <div className="animate-pulse">
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div className="space-y-2">
-          <div className="h-2.5 w-20 bg-slate-200 rounded-full" />
-          <div className="h-7 w-14 bg-slate-200 rounded-md" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-2.5 w-20 bg-slate-200 rounded-full" />
-          <div className="h-7 w-14 bg-slate-200 rounded-md" />
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="space-y-2">
+            <div className="h-2.5 w-16 bg-slate-200 rounded-full" />
+            <div className="h-7 w-12 bg-slate-200 rounded-md" />
+          </div>
+        ))}
       </div>
       <div className="h-[160px] bg-slate-100 rounded-lg" />
     </div>
@@ -54,7 +56,7 @@ function SkeletonBlock() {
 }
 
 /**
- * Qtty LTP acumulado da semana (domingo → hoje), VD e DA.
+ * Qtty LTP/EX-LTP acumulado da semana (domingo → hoje), VD e DA.
  * Componente de apresentação puro — a busca dos dados (getWeekAccumulated)
  * roda uma vez em HomePage.jsx e desce como prop `data`, pra não refazer a
  * consulta toda vez que a aba "Gráficos" é reaberta (BasicTabs desmonta/
@@ -73,7 +75,7 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
   }, [data?.tableName]);
 
   function handleBarClick(day, category) {
-    const value = category === "VD" ? day.vd : day.da;
+    const value = { VD: day.vd, DA: day.da, EX_VD: day.exVd, EX_DA: day.exDa }[category];
     if (value === null || value === undefined) return; // dia sem captura, nada a mostrar
 
     if (selected && selected.date === day.date && selected.category === category) {
@@ -96,7 +98,7 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
           </div>
           <div>
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Qtty LTP acumulado da semana
+              Qtty LTP/EX-LTP acumulado da semana
             </p>
             <p className="text-[10px] text-slate-400 mt-0.5">
               domingo → hoje · soma diária às 16h, sem deduplicar ordens repetidas entre dias
@@ -123,9 +125,11 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
             <BigNumber label="LTP VD acumulado" value={data.vd} color={PRIMARY} />
             <BigNumber label="LTP DA acumulado" value={data.da} color={SECONDARY} />
+            <BigNumber label="EX-LTP VD acumulado" value={data.exVd} color={TERTIARY} />
+            <BigNumber label="EX-LTP DA acumulado" value={data.exDa} color={QUATERNARY} />
           </div>
           <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -145,6 +149,16 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
                     <Cell key={i} stroke={d.isToday ? TODAY_STROKE : "none"} strokeWidth={d.isToday ? 2 : 0} />
                   ))}
                 </Bar>
+                <Bar dataKey="exVd" name="EX-LTP VD" fill={TERTIARY} radius={[4, 4, 0, 0]} onClick={(entry) => handleBarClick(entry, "EX_VD")} cursor="pointer">
+                  {data.days.map((d, i) => (
+                    <Cell key={i} stroke={d.isToday ? TODAY_STROKE : "none"} strokeWidth={d.isToday ? 2 : 0} />
+                  ))}
+                </Bar>
+                <Bar dataKey="exDa" name="EX-LTP DA" fill={QUATERNARY} radius={[4, 4, 0, 0]} onClick={(entry) => handleBarClick(entry, "EX_DA")} cursor="pointer">
+                  {data.days.map((d, i) => (
+                    <Cell key={i} stroke={d.isToday ? TODAY_STROKE : "none"} strokeWidth={d.isToday ? 2 : 0} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -154,7 +168,7 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
             <div className="mt-3 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                  OS em LTP {selected.category} · {selected.label}
+                  OS em {CATEGORY_LABELS[selected.category] || selected.category} · {selected.label}
                 </p>
                 <button
                   onClick={() => setSelected(null)}
