@@ -1154,6 +1154,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               agendaToday: quantity_agenda_today || 0,
               ltpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.vd : null,
               ltpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.da : null,
+              exLtpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.exVd : null,
+              exLtpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.exDa : null,
             }}
           />
         ) : (

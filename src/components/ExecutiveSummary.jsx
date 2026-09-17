@@ -18,6 +18,8 @@ const ExecutiveSummary = ({ metrics = {} }) => {
     agendaToday = 0,
     ltpVdAccum = null,
     ltpDaAccum = null,
+    exLtpVdAccum = null,
+    exLtpDaAccum = null,
   } = metrics;
 
   // Health indicator calc
@@ -64,14 +66,16 @@ const ExecutiveSummary = ({ metrics = {} }) => {
         </div>
       </div>
 
-      {/* KPI Grid — a fileira herói: as métricas de topo num relance, incluindo os dois RTAT */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-px bg-slate-100">
+      {/* KPI Grid — a fileira herói: as métricas de topo num relance, incluindo os dois RTAT.
+          LTP/EX-LTP acumulado vira 1 tile só (mini-grid 2x2) em vez de 4 tiles
+          separados — são a mesma família de métrica, agrupar comunica isso e
+          evita diluir a fileira. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-px bg-slate-100">
         <MiniKpi icon={TrendingUp} label="Impacto LTP" value={`${pctPenetration}%`} sub={`${totalLtpAll} de ${totalBase}`} color="blue" />
         <MiniKpi icon={Truck} label="Em Rota" value={inRouteCount} sub="ordens ativas" color="cyan" />
         <MiniKpi icon={Clock} label="RTAT VD" value={`${rtatVd} dias`} sub={parseFloat(rtatVd) > 4 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatVd) > 4 ? 'red' : 'emerald'} />
         <MiniKpi icon={Clock} label="RTAT DA" value={`${rtatDa} dias`} sub={parseFloat(rtatDa) > 5 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatDa) > 5 ? 'red' : 'emerald'} />
-        <MiniKpi icon={Layers} label="LTP VD acum." value={ltpVdAccum ?? '—'} sub="semana · dom-hoje" color="blue" />
-        <MiniKpi icon={Layers} label="LTP DA acum." value={ltpDaAccum ?? '—'} sub="semana · dom-hoje" color="amber" />
+        <LtpAccumGroup vd={ltpVdAccum} da={ltpDaAccum} exVd={exLtpVdAccum} exDa={exLtpDaAccum} />
         <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />
       </div>
 
@@ -95,7 +99,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
 const MiniKpi = ({ icon: Icon, label, value, sub, color }) => {
   const textColors = {
     blue: 'text-blue-600', cyan: 'text-cyan-600', emerald: 'text-emerald-600',
-    red: 'text-red-600', violet: 'text-violet-600', amber: 'text-amber-600',
+    red: 'text-red-600', violet: 'text-violet-600', amber: 'text-amber-600', rose: 'text-rose-600',
   };
   return (
     <div className="bg-white p-4 flex flex-col gap-1">
@@ -105,6 +109,33 @@ const MiniKpi = ({ icon: Icon, label, value, sub, color }) => {
       </div>
       <p className={`text-2xl font-black tracking-tight ${textColors[color] || 'text-slate-900'}`}>{value}</p>
       <p className="text-[11px] text-slate-400 font-medium">{sub}</p>
+    </div>
+  );
+};
+
+// LTP/EX-LTP acumulado da semana — 1 tile, 4 números num mini-grid 2x2, em vez
+// de 4 MiniKpi separados. col-span-2 pra caber as 4 sub-métricas sem espremer.
+const LtpAccumGroup = ({ vd, da, exVd, exDa }) => {
+  const items = [
+    { label: 'VD', value: vd, color: 'text-blue-600' },
+    { label: 'DA', value: da, color: 'text-amber-600' },
+    { label: 'EX-VD', value: exVd, color: 'text-rose-600' },
+    { label: 'EX-DA', value: exDa, color: 'text-violet-600' },
+  ];
+  return (
+    <div className="bg-white p-4 flex flex-col gap-1.5 col-span-2">
+      <div className="flex items-center gap-2">
+        <Layers size={14} className="text-slate-400" />
+        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">LTP acumulado · semana</span>
+      </div>
+      <div className="grid grid-cols-4 gap-x-2">
+        {items.map(({ label, value, color }) => (
+          <div key={label} className="flex flex-col">
+            <span className={`text-xl font-black tracking-tight leading-tight ${color}`}>{value ?? '—'}</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
