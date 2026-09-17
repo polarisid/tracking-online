@@ -28,13 +28,20 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-function BigNumber({ label, value, color }) {
+function BigNumber({ label, value, color, percent }) {
   return (
     <div>
       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-      <p className="text-3xl font-extrabold leading-tight mt-1" style={{ color }}>
-        {value}
-      </p>
+      <div className="flex items-baseline gap-1.5 mt-1">
+        <p className="text-3xl font-extrabold leading-tight" style={{ color }}>
+          {value}
+        </p>
+        {percent !== null && percent !== undefined && (
+          <span className="text-xs font-bold" style={{ color }}>
+            {percent}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -64,7 +71,7 @@ function SkeletonBlock() {
  * (pg_cron, ver supabase/migrations/ltp_quantity_snapshots.sql) — este
  * componente nunca escreve, só lê o que já foi persistido.
  */
-export default function LtpAccumulatorCard({ data, loading, error }) {
+export default function LtpAccumulatorCard({ data, loading, error, percent }) {
   const [selected, setSelected] = useState(null); // { date, label, category }
   const [orders, setOrders] = useState({ loading: false, error: null, list: [] });
 
@@ -126,8 +133,8 @@ export default function LtpAccumulatorCard({ data, loading, error }) {
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-            <BigNumber label="LTP VD acumulado" value={data.vd} color={PRIMARY} />
-            <BigNumber label="LTP DA acumulado" value={data.da} color={SECONDARY} />
+            <BigNumber label="LTP VD acumulado" value={data.vd} color={PRIMARY} percent={percent?.vd} />
+            <BigNumber label="LTP DA acumulado" value={data.da} color={SECONDARY} percent={percent?.da} />
             <BigNumber label="EX-LTP VD acumulado" value={data.exVd} color={TERTIARY} />
             <BigNumber label="EX-LTP DA acumulado" value={data.exDa} color={QUATERNARY} />
           </div>

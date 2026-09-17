@@ -688,6 +688,14 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const pctExLtpRacRef = baseDA > 0 ? ((quantity_EX_LTP_RAC_REF / baseDA) * 100).toFixed(1) : null;
   const pctLtpWsm = baseDA > 0 ? ((quantity_LTP_WSM / baseDA) * 100).toFixed(1) : null;
 
+  // % LTP semanal = qtty LTP ACUMULADA da semana (VD/DA) / total de pendências
+  // + reparo completo daquela linha (baseVD/baseDA — mesma base usada acima
+  // pro % ao vivo, mas aqui o numerador é o acumulado dom-hoje, não o do dia).
+  const weeklyLtpPercent = {
+    vd: baseVD > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.vd / baseVD) * 100).toFixed(1) : null,
+    da: baseDA > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.da / baseDA) * 100).toFixed(1) : null,
+  };
+
   const quantity_complete_CI_LP = planilha_CI_Complete_LP.length;
   const quantity_complete_CI_OW_X09 = planilha_CI_Complete_OW_X09.length;
   const quantity_complete_CI_OW_NOT_X09 = planilha_CI_Complete_OW_NOT_X09.length;
@@ -1230,7 +1238,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         </Dashboard>
 
       <div className="enter-up">
-      <TrendCharts history={history} weeklyRtat={weeklyRtat} ltpAccumulated={ltpAccumulated} />
+      <TrendCharts history={history} weeklyRtat={weeklyRtat} ltpAccumulated={ltpAccumulated} ltpPercent={weeklyLtpPercent} />
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}

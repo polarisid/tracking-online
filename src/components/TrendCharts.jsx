@@ -143,7 +143,7 @@ function WeeklyRtatCard({ label, data }) {
  * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
  * Também mostra o RTAT real (turnaround) das OS concluídas na semana (DA/DTV).
  */
-export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumulated = null }) {
+export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumulated = null, ltpPercent = null }) {
   const [windowKey, setWindowKey] = useState("3d");
   const win = WINDOWS.find((w) => w.key === windowKey) || WINDOWS[0];
 
@@ -200,7 +200,7 @@ export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumu
       )}
 
       <div className="mb-5 max-w-xl">
-        <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} />
+        <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} percent={ltpPercent} />
       </div>
 
       {recent.length < 2 ? (
