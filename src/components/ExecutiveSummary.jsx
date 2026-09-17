@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle, AlertCircle, TrendingUp, Truck, Clock, Package } from 'lucide-react';
+import { AlertTriangle, CheckCircle, AlertCircle, TrendingUp, Truck, Clock, Package, Layers } from 'lucide-react';
 
 /**
  * Executive Summary panel — designed for director-level at-a-glance view.
@@ -16,6 +16,8 @@ const ExecutiveSummary = ({ metrics = {} }) => {
     overdueCount = 0,
     daNoParts = 0,
     agendaToday = 0,
+    ltpVdAccum = null,
+    ltpDaAccum = null,
   } = metrics;
 
   // Health indicator calc
@@ -63,11 +65,13 @@ const ExecutiveSummary = ({ metrics = {} }) => {
       </div>
 
       {/* KPI Grid — a fileira herói: as métricas de topo num relance, incluindo os dois RTAT */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-slate-100">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-px bg-slate-100">
         <MiniKpi icon={TrendingUp} label="Impacto LTP" value={`${pctPenetration}%`} sub={`${totalLtpAll} de ${totalBase}`} color="blue" />
         <MiniKpi icon={Truck} label="Em Rota" value={inRouteCount} sub="ordens ativas" color="cyan" />
         <MiniKpi icon={Clock} label="RTAT VD" value={`${rtatVd} dias`} sub={parseFloat(rtatVd) > 4 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatVd) > 4 ? 'red' : 'emerald'} />
         <MiniKpi icon={Clock} label="RTAT DA" value={`${rtatDa} dias`} sub={parseFloat(rtatDa) > 5 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatDa) > 5 ? 'red' : 'emerald'} />
+        <MiniKpi icon={Layers} label="LTP VD acum." value={ltpVdAccum ?? '—'} sub="semana · dom-hoje" color="blue" />
+        <MiniKpi icon={Layers} label="LTP DA acum." value={ltpDaAccum ?? '—'} sub="semana · dom-hoje" color="amber" />
         <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />
       </div>
 

@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import filters from "../utils/filters";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
+import "moment/locale/pt-br";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import handleFileUpload from "../utils/fileUploader";
 import { UploadButton } from "../components/UploadButton";
@@ -25,9 +26,11 @@ import EmptyState from "../components/EmptyState";
 import TrendCharts from "../components/TrendCharts";
 import DataTable from "../components/DataTable";
 import { computeWeeklyRtat } from "../utils/weeklyRtat";
+import { getWeekAccumulated } from "../utils/ltpQuantityService";
 import { buildInsights } from "../utils/insights";
 import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
+import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock, X } from "lucide-react";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -36,7 +39,33 @@ import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
 
 
+moment.locale("pt-br");
 const localizer = momentLocalizer(moment);
+
+// A planilha da fonte já traz o nome como "Consumidor, Fulano de Tal" — redundante,
+// já que a própria coluna se chama "Nome do Cliente". Limpa só o prefixo.
+function cleanCustomerName(name) {
+  return String(name || "").replace(/^\s*consumidor\s*,?\s*/i, "").trim();
+}
+
+// Mesma paleta de src/index.css (.ii-event/.ih-event/.sh-event) — usada nos
+// chips clicáveis de filtro por Service Type do Calendário.
+const CALENDAR_TYPE_META = [
+  { key: "II", background: "#faf5ff", border: "#a855f7", text: "#6b21a8" },
+  { key: "IH", background: "#eff6ff", border: "#3b82f6", text: "#1e40af" },
+  { key: "SH", background: "#f0fdfa", border: "#14b8a6", text: "#115e59" },
+];
+
+// Chip de legenda de cor (fundo + borda) usado nas tabelas "Análise de Rota e
+// LTP" — evita repetir o mesmo objeto de estilo 4x por tabela.
+function LegendDot({ background, border, label }) {
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-slate-600">
+      <span className="w-3 h-3 rounded-sm inline-block" style={{ background, border: `1px solid ${border}` }} />
+      {label}
+    </span>
+  );
+}
 
 const CustomEvent = ({ event }) => {
   const handleCopy = (e) => {
@@ -45,13 +74,26 @@ const CustomEvent = ({ event }) => {
     alert(`OS ${event.os} copiada com sucesso!`);
   };
 
+  // O clique no ícone de copiar às vezes dispara um "arrastar" nativo do
+  // navegador (mousedown + leve movimento antes do mouseup é o suficiente).
+  // A própria react-big-calendar tenta tratar esse dragstart internamente
+  // (handleDragStart) mesmo sem drag-and-drop habilitado nesta versão, e
+  // quebra com "handleDragStart is not a function". select-none + bloquear
+  // o dragstart aqui, antes dele borbulhar até o wrapper da lib, evita isso.
+  const stopDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <div className="flex items-center justify-between text-xs overflow-hidden">
+    <div className="flex items-center justify-between text-xs overflow-hidden select-none" draggable={false} onDragStart={stopDrag}>
       <span className="truncate pr-1 font-semibold">{event.title}</span>
       <div
         onClick={handleCopy}
         className="cursor-pointer flex items-center p-0.5 rounded hover:bg-white/30 text-white/90 hover:text-white transition-colors"
         title="Copiar OS"
+        draggable={false}
+        onDragStart={stopDrag}
       >
         <ContentCopyIcon sx={{ fontSize: 13 }} />
       </div>
@@ -89,6 +131,15 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   const [events, setEvents] = useState([]);
   const [cityData] = useState({});
+
+  // Filtros do Calendário — Service Type (chips clicáveis na legenda) e
+  // Status (dropdown, valores extraídos dos próprios eventos carregados).
+  const [calendarTypeFilter, setCalendarTypeFilter] = useState({ II: true, IH: true, SH: true });
+  const [calendarStatusFilter, setCalendarStatusFilter] = useState("all");
+  // Painel próprio pro "+N mais" — substitui o popup padrão da react-big-calendar
+  // (que herda a largura estreita da célula do dia, cortando cidade/botão de
+  // copiar) por um modal que agrupa os atendimentos por Reason.
+  const [calendarDayDetail, setCalendarDayDetail] = useState(null); // { date, events }
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -186,7 +237,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       const combined = data1SelectedCols.slice(1).map((row, rowIndex) => {
         const orderId = data1[rowIndex + 1][1]; // Índice da coluna do número da ordem de serviço
         const additionalData = dataMapping[orderId] || {};
-        const finalNome = additionalData.nome || data1[rowIndex + 1][3] || "";
+        const finalNome = cleanCustomerName(additionalData.nome || data1[rowIndex + 1][3] || "");
         const finalCidade = additionalData.cidade || data1[rowIndex + 1][4] || "";
         return [
           row[0], // Número da Ordem de Serviço
@@ -244,6 +295,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              status: row[8] || null, // Status bruto da OS (ex: "Engineer Assigned") — usado no filtro do calendário
+              reason: row[14] || null, // Motivo (ex: "Repair in progress") — usado pra agrupar no painel do dia
+              city: row[2] || null,
               os: row[0],
               allDay: true,
             };
@@ -291,6 +345,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               start: startDate,
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
+              status: row[8] || null,
+              reason: row[14] || null,
+              city: cityInfo.city || null,
               os: row[1],
               allDay: true,
             };
@@ -354,7 +411,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data1, data2, cityData, events, activeRoutes]);
+  }, [data1, data2, cityData, activeRoutes]);
 
   /////////////////////////////////
 
@@ -542,6 +599,19 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   // RTAT real (abertura → conclusão) das OS concluídas nesta semana, por categoria.
   const weeklyRtat = React.useMemo(() => computeWeeklyRtat(combinedData), [combinedData]);
+
+  // Qtty LTP acumulado da semana (VD/DA) — busca única aqui (não em cada componente
+  // consumidor), pois BasicTabs desmonta/remonta a aba "Gráficos" a cada troca e um
+  // fetch por componente refaria a consulta ao Supabase toda vez que a aba reabrisse.
+  const [ltpAccumulated, setLtpAccumulated] = useState({ data: null, loading: true, error: null });
+  useEffect(() => {
+    let cancelled = false;
+    setLtpAccumulated((prev) => ({ ...prev, loading: true, error: null }));
+    getWeekAccumulated(getCleanSourceName(dataSource))
+      .then((data) => { if (!cancelled) setLtpAccumulated({ data, loading: false, error: null }); })
+      .catch((error) => { if (!cancelled) setLtpAccumulated({ data: null, loading: false, error }); });
+    return () => { cancelled = true; };
+  }, [dataSource]);
 
   // Mapa OS/AscJob → nome da rota (ex: "Rota Breno - Aracaju")
   const orderRouteMap = React.useMemo(() => {
@@ -831,14 +901,42 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     dataSource
   ]);
 
+  // Status distintos presentes nos eventos carregados — popula o dropdown
+  // sem precisar de uma lista fixa (a planilha decide os valores possíveis).
+  const calendarStatusOptions = React.useMemo(() => {
+    const set = new Set();
+    events.forEach((e) => { if (e.status) set.add(e.status); });
+    return Array.from(set).sort();
+  }, [events]);
+
+  const filteredCalendarEvents = React.useMemo(() => {
+    return events.filter((e) =>
+      calendarTypeFilter[e.type] !== false &&
+      (calendarStatusFilter === "all" || e.status === calendarStatusFilter)
+    );
+  }, [events, calendarTypeFilter, calendarStatusFilter]);
+
+  // Agrupa os eventos do dia selecionado por Reason (motivo) — grupos maiores
+  // primeiro, já que é o que mais provavelmente interessa numa lista longa.
+  const calendarDayGroups = React.useMemo(() => {
+    if (!calendarDayDetail) return [];
+    const map = new Map();
+    calendarDayDetail.events.forEach((e) => {
+      const key = e.reason || "Sem motivo";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [calendarDayDetail]);
+
   const eventCounts = React.useMemo(() => {
     const counts = {};
-    events.forEach((event) => {
+    filteredCalendarEvents.forEach((event) => {
       const dateKey = moment(event.start).format("YYYY-MM-DD");
       counts[dateKey] = (counts[dateKey] || 0) + 1;
     });
     return counts;
-  }, [events]);
+  }, [filteredCalendarEvents]);
 
   const components = React.useMemo(
     () => ({
@@ -851,10 +949,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
             <div className="flex items-center justify-between mx-2 mt-1 pb-1">
               {count > 0 ? (
                 <div
-                  className="flex items-center gap-1 bg-blue-50 border border-blue-100 text-blue-700 px-2 py-0.5 rounded-md shadow-sm"
+                  className="flex items-center gap-1 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2 py-0.5 rounded-md"
                   title="Quantidade de eventos"
                 >
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-blue-400">Qtd:</span>
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-indigo-400">Qtd:</span>
                   <span className="text-xs font-bold">{count}</span>
                 </div>
               ) : (
@@ -862,7 +960,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               )}
               <button
                 onClick={onDrillDown}
-                className="text-sm font-bold text-slate-700 hover:text-blue-600 hover:bg-slate-50 px-2 py-0.5 rounded transition-all"
+                className="text-sm font-bold text-slate-700 hover:text-indigo-600 hover:bg-slate-50 px-2 py-0.5 rounded transition-all"
                 title="Ver dia"
               >
                 {label}
@@ -906,23 +1004,25 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     });
 
     let rowStyle = {};
-    let borderClass = '';
+    let accentColor = null;
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#bbf7d0' };
-      borderClass = 'border-l-4 border-green-600';
+      rowStyle = { background: '#dcfce7' };
+      accentColor = '#16a34a';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fecaca' };
-      borderClass = 'border-l-4 border-red-600';
+      rowStyle = { background: '#fee2e2' };
+      accentColor = '#dc2626';
     } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#bfdbfe' };
-      borderClass = 'border-l-4 border-blue-600';
+      rowStyle = { background: '#dbeafe' };
+      accentColor = '#2563eb';
     }
 
     return (
-      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
-        {columns.map((colIndex) => (
-          <td key={colIndex}>{renderBadge(row[colIndex])}</td>
+      <tr key={rowIndex} style={rowStyle} className="transition-colors">
+        {columns.map((colIndex, i) => (
+          <td key={colIndex} style={i === 0 && accentColor ? { borderLeft: `4px solid ${accentColor}` } : undefined}>
+            {renderBadge(row[colIndex])}
+          </td>
         ))}
       </tr>
     );
@@ -950,29 +1050,29 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     const routeName = orderRouteMap[os2] || orderRouteMap[os3] || orderRouteMap[os1] || null;
 
     let rowStyle = {};
-    let borderClass = '';
+    let accentColor = null;
 
     if (inSet(inRouteByStatus.finalizadas)) {
-      rowStyle = { background: '#bbf7d0' };
-      borderClass = 'border-l-4 border-green-600';
+      rowStyle = { background: '#dcfce7' };
+      accentColor = '#16a34a';
     } else if (inSet(inRouteByStatus.pendentes)) {
-      rowStyle = { background: '#fecaca' };
-      borderClass = 'border-l-4 border-red-600';
-    } else if (inSet(inRouteByStatus.a_fazer)) {
-      rowStyle = { background: '#bfdbfe' };
-      borderClass = 'border-l-4 border-blue-600';
-    } else if (aging >= exLtpThreshold) {
       rowStyle = { background: '#fee2e2' };
-      borderClass = 'border-l-4 border-red-500';
+      accentColor = '#dc2626';
+    } else if (inSet(inRouteByStatus.a_fazer)) {
+      rowStyle = { background: '#dbeafe' };
+      accentColor = '#2563eb';
+    } else if (aging >= exLtpThreshold) {
+      rowStyle = { background: '#ffe4e6' };
+      accentColor = '#f43f5e';
     } else if (aging >= ltpThreshold) {
-      rowStyle = { background: '#fef9c3' };
-      borderClass = 'border-l-4 border-yellow-400';
+      rowStyle = { background: '#fef3c7' };
+      accentColor = '#f59e0b';
     }
 
     return (
-      <tr key={rowIndex} style={rowStyle} className={`transition-colors ${borderClass}`}>
-        {columns.map((colIndex) => (
-          <td key={colIndex}>
+      <tr key={rowIndex} style={rowStyle} className="transition-colors">
+        {columns.map((colIndex, i) => (
+          <td key={colIndex} style={i === 0 && accentColor ? { borderLeft: `4px solid ${accentColor}` } : undefined}>
             {colIndex === 38
               ? (routeName
                   ? <span style={{ fontWeight: 600, color: '#1d4ed8' }}>{routeName}</span>
@@ -987,9 +1087,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   // Envolve uma planilha togglável no DataTable — busca por OS, ordenação por
   // coluna, paginação e export — preservando a coloração das linhas (em rota,
-  // LTP/EX-LTP) via o renderRow/renderRowLTP passado.
-  const planilhaTable = (data, cols, rowRenderer, header = combinedData[0]) => (
-    <DataTable data={data} columns={cols} headerRow={header} renderRow={rowRenderer} />
+  // LTP/EX-LTP) via o renderRow/renderRowLTP passado. title/icon/legend dão à
+  // seção o mesmo acabamento de card do resto do dashboard (substituem o <h2> cru).
+  const planilhaTable = (data, cols, rowRenderer, header = combinedData[0], title = '', icon = null, legend = null) => (
+    <DataTable data={data} columns={cols} headerRow={header} renderRow={rowRenderer} title={title} icon={icon} legend={legend} />
   );
 
   // Header das tabelas de análise LTP: rótulos customizados nas colunas 38 e 24.
@@ -1051,6 +1152,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               overdueCount: quantity_Oudated_IH || 0,
               daNoParts: quantity_DA_noParts || 0,
               agendaToday: quantity_agenda_today || 0,
+              ltpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.vd : null,
+              ltpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.da : null,
             }}
           />
         ) : (
@@ -1125,7 +1228,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         </Dashboard>
 
       <div className="enter-up">
-      <TrendCharts history={history} weeklyRtat={weeklyRtat} />
+      <TrendCharts history={history} weeklyRtat={weeklyRtat} ltpAccumulated={ltpAccumulated} />
       <DashboardCharts
         dataLtpVd={quantity_LTP_VD || 0}
         dataExLtpVd={quantity_EX_LTP_VD || 0}
@@ -1149,16 +1252,129 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       />
       </div>
       <CalendarContainer>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="shrink-0 w-9 h-9 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
+                <CalendarIcon size={18} className="text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800 leading-tight">Calendário de Atendimentos</h2>
+                <p className="text-[11px] text-slate-400">
+                  {filteredCalendarEvents.length}
+                  {filteredCalendarEvents.length !== events.length ? ` de ${events.length}` : ""}
+                  {" "}{events.length === 1 ? "evento" : "eventos"}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <select
+                value={calendarStatusFilter}
+                onChange={(e) => setCalendarStatusFilter(e.target.value)}
+                className="text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/30 max-w-[180px]"
+                title="Filtrar por status"
+              >
+                <option value="all">Todos os status</option>
+                {calendarStatusOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1.5">
+                {CALENDAR_TYPE_META.map(({ key, background, border, text }) => {
+                  const active = calendarTypeFilter[key] !== false;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setCalendarTypeFilter((prev) => ({ ...prev, [key]: !active }))}
+                      className="flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded-full border transition-all"
+                      style={active
+                        ? { background, borderColor: border, color: text }
+                        : { background: "#f8fafc", borderColor: "#e2e8f0", color: "#94a3b8" }}
+                      title={active ? `Ocultar ${key}` : `Mostrar ${key}`}
+                    >
+                      <span className="w-2 h-2 rounded-full" style={{ background: active ? border : "#cbd5e1" }} />
+                      {key}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
           <Calendar
             localizer={localizer}
-            events={events}
+            events={filteredCalendarEvents}
             startAccessor="start"
             endAccessor="end"
             style={{ height: 650 }}
             eventPropGetter={eventPropGetter}
             components={components}
-            popup
+            popup={false}
+            onShowMore={(dayEvents, date) => setCalendarDayDetail({ date, events: dayEvents })}
+            doShowMoreDrillDown={false}
           />
+
+          {calendarDayDetail && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+              onClick={() => setCalendarDayDetail(null)}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg max-h-[80vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      {calendarDayDetail.events.length} atendimentos
+                    </p>
+                    <h3 className="text-base font-bold text-slate-800 leading-tight capitalize">
+                      {moment(calendarDayDetail.date).format("dddd, D [de] MMMM")}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setCalendarDayDetail(null)}
+                    className="shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors"
+                    aria-label="Fechar"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="overflow-y-auto px-5 py-4">
+                  {calendarDayGroups.map(([reason, evs]) => (
+                    <div key={reason} className="mb-4 last:mb-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">{reason}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{evs.length}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {evs.map((e, i) => {
+                          const meta = CALENDAR_TYPE_META.find((m) => m.key === e.type);
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between gap-2 text-xs px-2.5 py-2 rounded-lg"
+                              style={{ background: meta?.background, color: meta?.text }}
+                            >
+                              <span className="font-semibold truncate">
+                                {e.os}{e.city ? ` — ${e.city}` : ""}
+                              </span>
+                              <button
+                                onClick={() => navigator.clipboard.writeText(e.os)}
+                                className="shrink-0 p-1 rounded hover:bg-white/50 transition-colors"
+                                title="Copiar OS"
+                              >
+                                <ContentCopyIcon sx={{ fontSize: 14 }} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </CalendarContainer>
         <IntelligencePanel data1={data1} activeRoutes={activeRoutes} dataSource={dataSource} />
         <IndicatorsPanel />
@@ -1173,250 +1389,131 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               <div className="divider"></div>
             </SubMenuSection>
             <ToggleableComponent isVisible={visibleComponents[1]}>
-              <h2>EM LTP DTV </h2>
-              {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow, undefined, "EM LTP DTV", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[40]}>
-              <h2>ORDENS EM ROTA</h2>
-
-              {/* A FAZER — azul */}
-              {inRouteByStatus.a_fazer.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }} />
-                    <strong style={{ color: '#1d4ed8', fontSize: 13 }}>A FAZER ({inRouteByStatus.a_fazer.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.a_fazer.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#eff6ff' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* PENDENTES — vermelho */}
-              {inRouteByStatus.pendentes.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
-                    <strong style={{ color: '#b91c1c', fontSize: 13 }}>PENDENTES ({inRouteByStatus.pendentes.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.pendentes.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#fef2f2' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {/* FINALIZADAS — verde */}
-              {inRouteByStatus.finalizadas.length > 0 && (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '16px 0 6px' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-                    <strong style={{ color: '#15803d', fontSize: 13 }}>FINALIZADAS ({inRouteByStatus.finalizadas.length})</strong>
-                  </div>
-                  <table className="toggleDiv">
-                    <thead>
-                      <tr>
-                        {columnsToShow.map((colIndex) => (
-                          <th key={colIndex}>{data1[0][colIndex]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {inRouteByStatus.finalizadas.map((row, rowIndex) => (
-                        <tr key={rowIndex} style={{ background: '#f0fdf4' }}>
-                          {columnsToShow.map((colIndex) => (
-                            <td key={colIndex}>{row[colIndex]}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              {inRouteOrders.length === 0 && (
-                <p style={{ color: '#94a3b8', fontSize: 13, padding: '12px 0' }}>Nenhuma ordem em rota no momento.</p>
-              )}
+              <div className="flex flex-col gap-4">
+                {inRouteByStatus.a_fazer.length > 0 && (
+                  <DataTable data={inRouteByStatus.a_fazer} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — A Fazer" icon={Truck} />
+                )}
+                {inRouteByStatus.pendentes.length > 0 && (
+                  <DataTable data={inRouteByStatus.pendentes} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — Pendentes" icon={AlertCircle} />
+                )}
+                {inRouteByStatus.finalizadas.length > 0 && (
+                  <DataTable data={inRouteByStatus.finalizadas} columns={columnsToShow} headerRow={data1[0]} title="Em Rota — Finalizadas" icon={CheckCircle} />
+                )}
+                {inRouteOrders.length === 0 && (
+                  <p className="text-center text-slate-400 text-sm py-6">Nenhuma ordem em rota no momento.</p>
+                )}
+              </div>
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[31]}>
-              <h2>Todos DA LP </h2>
-              {planilhaTable(filteredAndSortedData8, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData8, columnsToShow, renderRow, undefined, "Todos DA LP", Layers)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[51]}>
-              <h2>Todos DA OW</h2>
-              {planilhaTable(planilha_ALL_DA_OW, columnsToShow, renderRow)}
+              {planilhaTable(planilha_ALL_DA_OW, columnsToShow, renderRow, undefined, "Todos DA OW", Layers)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[32]}>
-              <h2>Todos LP EM REPARO COMPLETO </h2>
-              {planilhaTable(planilha_CI_Complete_LP, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_LP, columnsToShow_RC, renderRow, undefined, "Todos LP em Reparo Completo", CheckCircle)}
             </ToggleableComponent>
-
 
             <ToggleableComponent isVisible={visibleComponents[33]}>
-              <h2>Todos OW EM REPARO COMPLETO X09 </h2>
-              {planilhaTable(planilha_CI_Complete_OW_X09, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_OW_X09, columnsToShow_RC, renderRow, undefined, "Todos OW em Reparo Completo — X09", CheckCircle)}
             </ToggleableComponent>
 
-
             <ToggleableComponent isVisible={visibleComponents[34]}>
-              <h2>Todos OW EM REPARO COMPLETO </h2>
-              {planilhaTable(planilha_CI_Complete_OW_NOT_X09, columnsToShow_RC, renderRow)}
+              {planilhaTable(planilha_CI_Complete_OW_NOT_X09, columnsToShow_RC, renderRow, undefined, "Todos OW em Reparo Completo", CheckCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[21]}>
-              <h2>EM EX LTP DTV </h2>
-              {planilhaTable(planilha_EX_LTP_IH_VD_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_EX_LTP_IH_VD_LP, columnsToShow, renderRow, undefined, "EM EX-LTP DTV", AlertCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[2]}>
-              <h2> EM LTP RAC/REF</h2>
-              {planilhaTable(planilha_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_RAC_REF_LP, columnsToShow, renderRow, undefined, "EM LTP RAC/REF", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[20]}>
-              <h2> EM EX-LTP RAC/REF</h2>
-              {planilhaTable(planilha_EX_LTP_IH_RAC_REF_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_EX_LTP_IH_RAC_REF_LP, columnsToShow, renderRow, undefined, "EM EX-LTP RAC/REF", AlertCircle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[3]}>
-              <h2>EM LTP WSM</h2>
-              {planilhaTable(planilha_LTP_IH_WSM_LP, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LTP_IH_WSM_LP, columnsToShow, renderRow, undefined, "EM LTP WSM", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[4]}>
-              <h2>EM LTP DTV CI</h2>
-              {planilhaTable(filteredAndSortedData9, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData9, columnsToShow, renderRow, undefined, "EM LTP DTV CI", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[5]}>
-              <h2>EM LTP MX CI</h2>
-              {planilhaTable(filteredAndSortedData10, columnsToShow, renderRow)}
+              {planilhaTable(filteredAndSortedData10, columnsToShow, renderRow, undefined, "EM LTP MX CI", Layers)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[6]}>
-              <h2>DA OW e LP sem peças</h2>
-              {planilhaTable(filteredAndSortedData4, columnsToShow_intoogle, renderRow)}
+              {planilhaTable(filteredAndSortedData4, columnsToShow_intoogle, renderRow, undefined, "DA OW e LP sem peças", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[7]}>
-              <h2>Próximos casos a entrar em LTP - superior a 3 dias</h2>
-              {planilhaTable(filteredAndSortedData5, columnsToShow_intoogle, renderRow)}
+              {planilhaTable(filteredAndSortedData5, columnsToShow_intoogle, renderRow, undefined, "Próximos casos a entrar em LTP — superior a 3 dias", Clock)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[8]}>
-              <h2>Consumidor fora do prazo de todos os serviços</h2>
-              {planilhaTable(filteredAndSortedData11, columnsToShow_type_service, renderRow)}
+              {planilhaTable(filteredAndSortedData11, columnsToShow_type_service, renderRow, undefined, "Consumidor fora do prazo de todos os serviços", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[9]}>
-              <h2>Reparo completo fora do prazo de todos os serviços</h2>
-              {planilhaTable(filteredAndSortedData12, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData12, columnsToShow_complete_repair, renderRow, undefined, "Reparo completo fora do prazo de todos os serviços", AlertTriangle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[11]}>
-              <h2>Reparo completo do dia que deu entrada hoje mesmo</h2>
-              {planilhaTable(filteredAndSortedData15, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData15, columnsToShow_complete_repair, renderRow, undefined, "Reparo completo do dia que deu entrada hoje mesmo", CheckCircle)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[10]}>
-              <h2>Effect Appointment</h2>
-              {planilhaTable(filteredAndSortedData6, columnsToShow_intoogle, renderRow)}
-              <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              {planilhaTable(filteredAndSortedData13, columnsToShow_intoogle, renderRow)}
-              <h2>Effect Appointment - Corrija estas datas para bater</h2>
-              {planilhaTable(filteredAndSortedData14, columnsToShow_intoogle, renderRow)}
+              <div className="flex flex-col gap-4">
+                {planilhaTable(filteredAndSortedData6, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment", CalendarIcon)}
+                {planilhaTable(filteredAndSortedData13, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment — corrija estas datas para bater", CalendarIcon)}
+                {planilhaTable(filteredAndSortedData14, columnsToShow_intoogle, renderRow, undefined, "Effect Appointment — corrija estas datas para bater", CalendarIcon)}
+              </div>
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[12]}>
-              <h2>Agenda do Dia</h2>
-              {planilhaTable(filteredAndSortedData16, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData16, columnsToShow_complete_repair, renderRow, undefined, "Agenda do Dia", CalendarIcon)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[13]}>
-              <h2>Agenda de amanhã</h2>
-              {planilhaTable(filteredAndSortedData17, columnsToShow_complete_repair, renderRow)}
+              {planilhaTable(filteredAndSortedData17, columnsToShow_complete_repair, renderRow, undefined, "Agenda de Amanhã", CalendarIcon)}
             </ToggleableComponent>
             <ToggleableComponent isVisible={visibleComponents[60]}>
-              <h2>FTF — Status Code ST025</h2>
-
-              {planilhaTable(planilha_FTF, columnsToShow_FTF, renderRow)}
+              {planilhaTable(planilha_FTF, columnsToShow_FTF, renderRow, undefined, "FTF — Status Code ST025", CheckCircle)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[80]}>
-              <h2>D+3 — Todos os casos LP com até 3 dias</h2>
-              {planilhaTable(planilha_LP_up_to_3_days, columnsToShow, renderRow)}
+              {planilhaTable(planilha_LP_up_to_3_days, columnsToShow, renderRow, undefined, "D+3 — Todos os casos LP com até 3 dias", Clock)}
             </ToggleableComponent>
 
             <ToggleableComponent isVisible={visibleComponents[81]}>
-              <h2>Ordens Desatualizadas — Todas as ordens com data passada</h2>
-              {planilhaTable(planilha_all_outdated_orders, columnsToShow, renderRow)}
+              {planilhaTable(planilha_all_outdated_orders, columnsToShow, renderRow, undefined, "Ordens Desatualizadas — todas as ordens com data passada", AlertTriangle)}
             </ToggleableComponent>
 
             {/* Card 91 - DA LP com marcação LTP/EX-LTP e Rota/Previsão */}
             <ToggleableComponent isVisible={visibleComponents[91]}>
-              <h2>Todos DA LP — Análise de Rota e LTP</h2>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
-                  LTP (≥{LTP_DA_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
-                  EX-LTP (≥{EX_LTP_DA_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
-                  Em Rota (A Fazer)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
-                  Em Rota (Finalizado)
-                </span>
-              </div>
-              {planilhaTable(filteredAndSortedData8, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD), ltpAnalysisHeader)}
+              {planilhaTable(
+                filteredAndSortedData8, columnsToShow_ltp_analysis,
+                (row, i, c) => renderRowLTP(row, i, c, LTP_DA_THRESHOLD, EX_LTP_DA_THRESHOLD),
+                ltpAnalysisHeader, "Todos DA LP — Análise de Rota e LTP", Route,
+                <>
+                  <LegendDot background="#fef3c7" border="#f59e0b" label={`LTP (≥${LTP_DA_THRESHOLD} dias)`} />
+                  <LegendDot background="#ffe4e6" border="#f43f5e" label={`EX-LTP (≥${EX_LTP_DA_THRESHOLD} dias)`} />
+                  <LegendDot background="#dbeafe" border="#2563eb" label="Em Rota (A Fazer)" />
+                  <LegendDot background="#dcfce7" border="#16a34a" label="Em Rota (Finalizado)" />
+                </>
+              )}
             </ToggleableComponent>
 
             {/* Card 92 - DTV LP com marcação LTP/EX-LTP e Rota/Previsão */}
             <ToggleableComponent isVisible={visibleComponents[92]}>
-              <h2>Todos DTV LP — Análise de Rota e LTP</h2>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fef9c3', border:'1px solid #ca8a04', display:'inline-block' }} />
-                  LTP (≥{LTP_DTV_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#fee2e2', border:'1px solid #ef4444', display:'inline-block' }} />
-                  EX-LTP (≥{EX_LTP_DTV_THRESHOLD} dias)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bfdbfe', border:'1px solid #3b82f6', display:'inline-block' }} />
-                  Em Rota (A Fazer)
-                </span>
-                <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12 }}>
-                  <span style={{ width:12, height:12, borderRadius:2, background:'#bbf7d0', border:'1px solid #22c55e', display:'inline-block' }} />
-                  Em Rota (Finalizado)
-                </span>
-              </div>
-              {planilhaTable(planilha_all_DTV_LP, columnsToShow_ltp_analysis, (row, i, c) => renderRowLTP(row, i, c, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD), ltpAnalysisHeader)}
+              {planilhaTable(
+                planilha_all_DTV_LP, columnsToShow_ltp_analysis,
+                (row, i, c) => renderRowLTP(row, i, c, LTP_DTV_THRESHOLD, EX_LTP_DTV_THRESHOLD),
+                ltpAnalysisHeader, "Todos DTV LP — Análise de Rota e LTP", Route,
+                <>
+                  <LegendDot background="#fef3c7" border="#f59e0b" label={`LTP (≥${LTP_DTV_THRESHOLD} dias)`} />
+                  <LegendDot background="#ffe4e6" border="#f43f5e" label={`EX-LTP (≥${EX_LTP_DTV_THRESHOLD} dias)`} />
+                  <LegendDot background="#dbeafe" border="#2563eb" label="Em Rota (A Fazer)" />
+                  <LegendDot background="#dcfce7" border="#16a34a" label="Em Rota (Finalizado)" />
+                </>
+              )}
             </ToggleableComponent>
           </>
         )
@@ -1431,8 +1528,9 @@ const CalendarContainer = styled.div`
   max-width: 1600px;
   margin: 20px auto;
   background-color: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  /* box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); */
+  box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.05);
 `;
 const UploadBox = styled.div`
   display: flex;

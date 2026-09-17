@@ -8,7 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon, Clock } from "lucide-react";
+import LtpAccumulatorCard from "./LtpAccumulatorCard";
 
 // Métricas do histórico que valem uma linha de evolução. Os snapshots diários já
 // são persistidos (asc_metrics_history); aqui a gente finalmente os visualiza.
@@ -114,9 +115,14 @@ function fmtDays(v) {
 function WeeklyRtatCard({ label, data }) {
   const has = data && data.count > 0;
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+        <div className="flex items-center gap-2">
+          <div className="shrink-0 w-8 h-8 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
+            <Clock size={16} className="text-indigo-600" />
+          </div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+        </div>
         <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
           {(data?.count || 0)} {(data?.count || 0) === 1 ? "OS" : "OS"}
         </span>
@@ -137,7 +143,7 @@ function WeeklyRtatCard({ label, data }) {
  * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
  * Também mostra o RTAT real (turnaround) das OS concluídas na semana (DA/DTV).
  */
-export default function TrendCharts({ history = [], weeklyRtat = null }) {
+export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumulated = null }) {
   const [windowKey, setWindowKey] = useState("3d");
   const win = WINDOWS.find((w) => w.key === windowKey) || WINDOWS[0];
 
@@ -192,6 +198,10 @@ export default function TrendCharts({ history = [], weeklyRtat = null }) {
           </div>
         </div>
       )}
+
+      <div className="mb-5 max-w-xl">
+        <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} />
+      </div>
 
       {recent.length < 2 ? (
         <div className="bg-white border border-slate-200 rounded-2xl text-center text-slate-400 text-sm py-10 px-4">
