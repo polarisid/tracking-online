@@ -12,6 +12,7 @@ import Button from "@mui/material/Button";
 import filters from "../utils/filters";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
+import "moment/locale/pt-br";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import handleFileUpload from "../utils/fileUploader";
 import { UploadButton } from "../components/UploadButton";
@@ -29,7 +30,7 @@ import { getWeekAccumulated } from "../utils/ltpQuantityService";
 import { buildInsights } from "../utils/insights";
 import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
-import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock } from "lucide-react";
+import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock, X } from "lucide-react";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -38,6 +39,7 @@ import { saveAs } from "file-saver";
 import DownloadIcon from "@mui/icons-material/Download";
 
 
+moment.locale("pt-br");
 const localizer = momentLocalizer(moment);
 
 // A planilha da fonte já traz o nome como "Consumidor, Fulano de Tal" — redundante,
@@ -134,6 +136,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   // Status (dropdown, valores extraídos dos próprios eventos carregados).
   const [calendarTypeFilter, setCalendarTypeFilter] = useState({ II: true, IH: true, SH: true });
   const [calendarStatusFilter, setCalendarStatusFilter] = useState("all");
+  // Painel próprio pro "+N mais" — substitui o popup padrão da react-big-calendar
+  // (que herda a largura estreita da célula do dia, cortando cidade/botão de
+  // copiar) por um modal que agrupa os atendimentos por Reason.
+  const [calendarDayDetail, setCalendarDayDetail] = useState(null); // { date, events }
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -290,6 +296,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
               status: row[8] || null, // Status bruto da OS (ex: "Engineer Assigned") — usado no filtro do calendário
+              reason: row[14] || null, // Motivo (ex: "Repair in progress") — usado pra agrupar no painel do dia
+              city: row[2] || null,
               os: row[0],
               allDay: true,
             };
@@ -338,6 +346,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               end: startDate,
               type: row[34], // Armazenar o tipo para usar no eventPropGetter
               status: row[8] || null,
+              reason: row[14] || null,
+              city: cityInfo.city || null,
               os: row[1],
               allDay: true,
             };
@@ -906,6 +916,19 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     );
   }, [events, calendarTypeFilter, calendarStatusFilter]);
 
+  // Agrupa os eventos do dia selecionado por Reason (motivo) — grupos maiores
+  // primeiro, já que é o que mais provavelmente interessa numa lista longa.
+  const calendarDayGroups = React.useMemo(() => {
+    if (!calendarDayDetail) return [];
+    const map = new Map();
+    calendarDayDetail.events.forEach((e) => {
+      const key = e.reason || "Sem motivo";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [calendarDayDetail]);
+
   const eventCounts = React.useMemo(() => {
     const counts = {};
     filteredCalendarEvents.forEach((event) => {
@@ -1285,8 +1308,73 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
             style={{ height: 650 }}
             eventPropGetter={eventPropGetter}
             components={components}
-            popup
+            popup={false}
+            onShowMore={(dayEvents, date) => setCalendarDayDetail({ date, events: dayEvents })}
+            doShowMoreDrillDown={false}
           />
+
+          {calendarDayDetail && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+              onClick={() => setCalendarDayDetail(null)}
+            >
+              <div
+                className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-lg max-h-[80vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+                  <div>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      {calendarDayDetail.events.length} atendimentos
+                    </p>
+                    <h3 className="text-base font-bold text-slate-800 leading-tight capitalize">
+                      {moment(calendarDayDetail.date).format("dddd, D [de] MMMM")}
+                    </h3>
+                  </div>
+                  <button
+                    onClick={() => setCalendarDayDetail(null)}
+                    className="shrink-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors"
+                    aria-label="Fechar"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="overflow-y-auto px-5 py-4">
+                  {calendarDayGroups.map(([reason, evs]) => (
+                    <div key={reason} className="mb-4 last:mb-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">{reason}</span>
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{evs.length}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {evs.map((e, i) => {
+                          const meta = CALENDAR_TYPE_META.find((m) => m.key === e.type);
+                          return (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between gap-2 text-xs px-2.5 py-2 rounded-lg"
+                              style={{ background: meta?.background, color: meta?.text }}
+                            >
+                              <span className="font-semibold truncate">
+                                {e.os}{e.city ? ` — ${e.city}` : ""}
+                              </span>
+                              <button
+                                onClick={() => navigator.clipboard.writeText(e.os)}
+                                className="shrink-0 p-1 rounded hover:bg-white/50 transition-colors"
+                                title="Copiar OS"
+                              >
+                                <ContentCopyIcon sx={{ fontSize: 14 }} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </CalendarContainer>
         <IntelligencePanel data1={data1} activeRoutes={activeRoutes} dataSource={dataSource} />
         <IndicatorsPanel />
