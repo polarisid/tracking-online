@@ -694,6 +694,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const weeklyLtpPercent = {
     vd: baseVD > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.vd / baseVD) * 100).toFixed(1) : null,
     da: baseDA > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.da / baseDA) * 100).toFixed(1) : null,
+    exVd: baseVD > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.exVd / baseVD) * 100).toFixed(1) : null,
+    exDa: baseDA > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.exDa / baseDA) * 100).toFixed(1) : null,
   };
 
   const quantity_complete_CI_LP = planilha_CI_Complete_LP.length;
@@ -1170,6 +1172,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               ltpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.da : null,
               exLtpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.exVd : null,
               exLtpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.exDa : null,
+              ltpAccumPercent: weeklyLtpPercent,
             }}
           />
         ) : (

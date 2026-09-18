@@ -20,6 +20,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
     ltpDaAccum = null,
     exLtpVdAccum = null,
     exLtpDaAccum = null,
+    ltpAccumPercent = {},
   } = metrics;
 
   // Health indicator calc
@@ -75,7 +76,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
         <MiniKpi icon={Truck} label="Em Rota" value={inRouteCount} sub="ordens ativas" color="cyan" />
         <MiniKpi icon={Clock} label="RTAT VD" value={`${rtatVd} dias`} sub={parseFloat(rtatVd) > 4 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatVd) > 4 ? 'red' : 'emerald'} />
         <MiniKpi icon={Clock} label="RTAT DA" value={`${rtatDa} dias`} sub={parseFloat(rtatDa) > 5 ? '⚠ acima da meta' : '✓ dentro da meta'} color={parseFloat(rtatDa) > 5 ? 'red' : 'emerald'} />
-        <LtpAccumGroup vd={ltpVdAccum} da={ltpDaAccum} exVd={exLtpVdAccum} exDa={exLtpDaAccum} />
+        <LtpAccumGroup vd={ltpVdAccum} da={ltpDaAccum} exVd={exLtpVdAccum} exDa={exLtpDaAccum} percent={ltpAccumPercent} />
         <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />
       </div>
 
@@ -115,12 +116,12 @@ const MiniKpi = ({ icon: Icon, label, value, sub, color }) => {
 
 // LTP/EX-LTP acumulado da semana — 1 tile, 4 números num mini-grid 2x2, em vez
 // de 4 MiniKpi separados. col-span-2 pra caber as 4 sub-métricas sem espremer.
-const LtpAccumGroup = ({ vd, da, exVd, exDa }) => {
+const LtpAccumGroup = ({ vd, da, exVd, exDa, percent = {} }) => {
   const items = [
-    { label: 'VD', value: vd, color: 'text-blue-600' },
-    { label: 'DA', value: da, color: 'text-amber-600' },
-    { label: 'EX-VD', value: exVd, color: 'text-rose-600' },
-    { label: 'EX-DA', value: exDa, color: 'text-violet-600' },
+    { label: 'VD', value: vd, pct: percent.vd, color: 'text-blue-600' },
+    { label: 'DA', value: da, pct: percent.da, color: 'text-amber-600' },
+    { label: 'EX-VD', value: exVd, pct: percent.exVd, color: 'text-rose-600' },
+    { label: 'EX-DA', value: exDa, pct: percent.exDa, color: 'text-violet-600' },
   ];
   return (
     <div className="bg-white p-4 flex flex-col gap-1.5 col-span-2">
@@ -129,10 +130,12 @@ const LtpAccumGroup = ({ vd, da, exVd, exDa }) => {
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">LTP acumulado · semana</span>
       </div>
       <div className="grid grid-cols-4 gap-x-2">
-        {items.map(({ label, value, color }) => (
+        {items.map(({ label, value, pct, color }) => (
           <div key={label} className="flex flex-col">
             <span className={`text-xl font-black tracking-tight leading-tight ${color}`}>{value ?? '—'}</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              {label}{pct !== null && pct !== undefined ? ` · ${pct}%` : ''}
+            </span>
           </div>
         ))}
       </div>
