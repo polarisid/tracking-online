@@ -20,6 +20,23 @@ const METRICS = [
   { key: "quantity_all_outdated_orders", label: "Ordens Desatualizadas", decimals: 0, betterWhenLower: true },
   { key: "average", label: "RTAT VD", decimals: 2, betterWhenLower: true },
   { key: "average2", label: "RTAT DA", decimals: 2, betterWhenLower: true },
+  // % LTP = qtty em LTP / total de OS daquela linha em LP (pendente + reparo
+  // completo) — derivado, não um campo gravado direto. Snapshots antigos (de
+  // antes de quantity_total_vd_lp/da_lp existirem) ficam sem ponto aqui.
+  {
+    key: "pctLtpVd",
+    label: "% LTP VD",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_vd_lp ? (h.quantity_LTP_VD / h.quantity_total_vd_lp) * 100 : null),
+  },
+  {
+    key: "pctLtpDa",
+    label: "% LTP DA",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_da_lp ? (h.quantity_LTP_RAC_REF / h.quantity_total_da_lp) * 100 : null),
+  },
 ];
 
 // Janelas de tempo do gráfico. Baseado em TEMPO (não em nº de registros): assim,
@@ -55,8 +72,11 @@ function formatWhen(ts) {
 
 function MiniTrend({ metric, history }) {
   const data = useMemo(
-    () => history.map((h) => ({ label: formatWhen(h.timestamp), value: typeof h[metric.key] === "number" ? h[metric.key] : null })),
-    [history, metric.key]
+    () => history.map((h) => {
+      const raw = metric.accessor ? metric.accessor(h) : h[metric.key];
+      return { label: formatWhen(h.timestamp), value: typeof raw === "number" && !isNaN(raw) ? raw : null };
+    }),
+    [history, metric]
   );
 
   const values = data.map((d) => d.value).filter((v) => v !== null);

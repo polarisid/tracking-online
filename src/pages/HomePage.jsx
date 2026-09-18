@@ -806,7 +806,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       quantity_agenda_today: quantity_agenda_today || 0,
       quantity_agenda_tomorrow: quantity_agenda_tomorrow || 0,
       average: parseFloat(average.toFixed(2)) || 0,
-      average2: parseFloat(average2.toFixed(2)) || 0
+      average2: parseFloat(average2.toFixed(2)) || 0,
+      quantity_total_vd_lp: baseVD || 0,
+      quantity_total_da_lp: baseDA || 0
     };
 
     // Só salva se for diferente do último registro no histórico
@@ -863,7 +865,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               quantity_agenda_today: currentMetrics.quantity_agenda_today,
               quantity_agenda_tomorrow: currentMetrics.quantity_agenda_tomorrow,
               average: currentMetrics.average,
-              average2: currentMetrics.average2
+              average2: currentMetrics.average2,
+              quantity_total_vd_lp: currentMetrics.quantity_total_vd_lp,
+              quantity_total_da_lp: currentMetrics.quantity_total_da_lp
             }]);
           if (error) throw error;
           console.log('[Supabase History] ✅ Snapshot salvo em asc_metrics_history (table_name=' + cleanSource + ').');
@@ -904,6 +908,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     quantity_agenda_tomorrow,
     average,
     average2,
+    baseVD,
+    baseDA,
     history,
     setHistory,
     dataSource

@@ -40,6 +40,11 @@ ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS quantity_agenda_
 ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS quantity_agenda_tomorrow INTEGER DEFAULT 0;
 ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS average NUMERIC DEFAULT 0;
 ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS average2 NUMERIC DEFAULT 0;
+-- Total de OS VD/DA em LP (pendente + reparo completo, sem filtro de prazo) —
+-- sem isso não dá pra reconstruir o % LTP histórico (só a contagem LTP era
+-- gravada; o % precisa do denominador do mesmo dia).
+ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS quantity_total_vd_lp INTEGER DEFAULT 0;
+ALTER TABLE public.asc_metrics_history ADD COLUMN IF NOT EXISTS quantity_total_da_lp INTEGER DEFAULT 0;
 
 -- Consulta principal: por unidade, ordenado no tempo.
 CREATE INDEX IF NOT EXISTS idx_asc_metrics_history_table_created

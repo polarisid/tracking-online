@@ -293,7 +293,9 @@ export function HomeProvider({ children }) {
             quantity_agenda_today: row.quantity_agenda_today,
             quantity_agenda_tomorrow: row.quantity_agenda_tomorrow,
             average: row.average,
-            average2: row.average2
+            average2: row.average2,
+            quantity_total_vd_lp: row.quantity_total_vd_lp,
+            quantity_total_da_lp: row.quantity_total_da_lp
           }));
           setHistory(mapped);
           return;
