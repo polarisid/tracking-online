@@ -35,7 +35,9 @@ const METRICS = [
     label: "% LTP DA",
     decimals: 1,
     betterWhenLower: true,
-    accessor: (h) => (h.quantity_total_da_lp ? (h.quantity_LTP_RAC_REF / h.quantity_total_da_lp) * 100 : null),
+    // LTP DA = RAC/REF + WSM/HKE somados — mesma definição do da_count do
+    // acumulado semanal (capture_ltp_snapshot()), não só RAC/REF sozinho.
+    accessor: (h) => (h.quantity_total_da_lp ? ((h.quantity_LTP_RAC_REF || 0) + (h.quantity_LTP_WSM || 0)) / h.quantity_total_da_lp * 100 : null),
   },
   {
     key: "pctExLtpVd",
