@@ -37,6 +37,20 @@ const METRICS = [
     betterWhenLower: true,
     accessor: (h) => (h.quantity_total_da_lp ? (h.quantity_LTP_RAC_REF / h.quantity_total_da_lp) * 100 : null),
   },
+  {
+    key: "pctExLtpVd",
+    label: "% EX-LTP VD",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_vd_lp ? (h.quantity_EX_LTP_VD / h.quantity_total_vd_lp) * 100 : null),
+  },
+  {
+    key: "pctExLtpDa",
+    label: "% EX-LTP DA",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_da_lp ? (h.quantity_EX_LTP_RAC_REF / h.quantity_total_da_lp) * 100 : null),
+  },
 ];
 
 // Janelas de tempo do gráfico. Baseado em TEMPO (não em nº de registros): assim,
