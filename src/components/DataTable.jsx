@@ -11,6 +11,14 @@ const DataTable = ({
   data = [],
   columns = [],
   title = '',
+  // Ícone lucide-react exibido num badge ao lado do título, mesma receita de
+  // ExecutiveSummary/LtpAccumulatorCard (w-8 h-8 rounded-xl bg-indigo-50 ring-2
+  // ring-indigo-500/20) — dá o mesmo acabamento "hero" pras ~28 seções de
+  // planilha da página, que antes eram um <h2> cru sem nenhum card em volta.
+  icon: Icon = null,
+  // Conteúdo opcional (ex: chips de legenda de cor) renderizado dentro do card,
+  // entre a toolbar e a tabela — evita legendas soltas fora do card.
+  legend = null,
   headerRow = null,
   pageSize: initialPageSize = 25,
   searchable = true,
@@ -79,10 +87,15 @@ const DataTable = ({
   if (!data.length) return null;
 
   return (
-    <div className="w-full bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-shadow hover:shadow-md">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          {Icon && (
+            <div className="shrink-0 w-8 h-8 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
+              <Icon size={16} className="text-indigo-600" />
+            </div>
+          )}
           {title && <h3 className="text-sm font-bold text-slate-700">{title}</h3>}
           <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
             {sortedData.length} registros
@@ -112,6 +125,12 @@ const DataTable = ({
           )}
         </div>
       </div>
+
+      {legend && (
+        <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 border-b border-slate-100 bg-white">
+          {legend}
+        </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto">

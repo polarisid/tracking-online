@@ -8,7 +8,8 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon, Clock } from "lucide-react";
+import LtpAccumulatorCard from "./LtpAccumulatorCard";
 
 // Métricas do histórico que valem uma linha de evolução. Os snapshots diários já
 // são persistidos (asc_metrics_history); aqui a gente finalmente os visualiza.
@@ -19,6 +20,39 @@ const METRICS = [
   { key: "quantity_all_outdated_orders", label: "Ordens Desatualizadas", decimals: 0, betterWhenLower: true },
   { key: "average", label: "RTAT VD", decimals: 2, betterWhenLower: true },
   { key: "average2", label: "RTAT DA", decimals: 2, betterWhenLower: true },
+  // % LTP = qtty em LTP / total de OS daquela linha em LP (pendente + reparo
+  // completo) — derivado, não um campo gravado direto. Snapshots antigos (de
+  // antes de quantity_total_vd_lp/da_lp existirem) ficam sem ponto aqui.
+  {
+    key: "pctLtpVd",
+    label: "% LTP VD",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_vd_lp ? (h.quantity_LTP_VD / h.quantity_total_vd_lp) * 100 : null),
+  },
+  {
+    key: "pctLtpDa",
+    label: "% LTP DA",
+    decimals: 1,
+    betterWhenLower: true,
+    // LTP DA = RAC/REF + WSM/HKE somados — mesma definição do da_count do
+    // acumulado semanal (capture_ltp_snapshot()), não só RAC/REF sozinho.
+    accessor: (h) => (h.quantity_total_da_lp ? ((h.quantity_LTP_RAC_REF || 0) + (h.quantity_LTP_WSM || 0)) / h.quantity_total_da_lp * 100 : null),
+  },
+  {
+    key: "pctExLtpVd",
+    label: "% EX-LTP VD",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_vd_lp ? (h.quantity_EX_LTP_VD / h.quantity_total_vd_lp) * 100 : null),
+  },
+  {
+    key: "pctExLtpDa",
+    label: "% EX-LTP DA",
+    decimals: 1,
+    betterWhenLower: true,
+    accessor: (h) => (h.quantity_total_da_lp ? (h.quantity_EX_LTP_RAC_REF / h.quantity_total_da_lp) * 100 : null),
+  },
 ];
 
 // Janelas de tempo do gráfico. Baseado em TEMPO (não em nº de registros): assim,
@@ -54,8 +88,11 @@ function formatWhen(ts) {
 
 function MiniTrend({ metric, history }) {
   const data = useMemo(
-    () => history.map((h) => ({ label: formatWhen(h.timestamp), value: typeof h[metric.key] === "number" ? h[metric.key] : null })),
-    [history, metric.key]
+    () => history.map((h) => {
+      const raw = metric.accessor ? metric.accessor(h) : h[metric.key];
+      return { label: formatWhen(h.timestamp), value: typeof raw === "number" && !isNaN(raw) ? raw : null };
+    }),
+    [history, metric]
   );
 
   const values = data.map((d) => d.value).filter((v) => v !== null);
@@ -114,9 +151,14 @@ function fmtDays(v) {
 function WeeklyRtatCard({ label, data }) {
   const has = data && data.count > 0;
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+        <div className="flex items-center gap-2">
+          <div className="shrink-0 w-8 h-8 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
+            <Clock size={16} className="text-indigo-600" />
+          </div>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+        </div>
         <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
           {(data?.count || 0)} {(data?.count || 0) === 1 ? "OS" : "OS"}
         </span>
@@ -137,7 +179,7 @@ function WeeklyRtatCard({ label, data }) {
  * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
  * Também mostra o RTAT real (turnaround) das OS concluídas na semana (DA/DTV).
  */
-export default function TrendCharts({ history = [], weeklyRtat = null }) {
+export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumulated = null, ltpPercent = null }) {
   const [windowKey, setWindowKey] = useState("3d");
   const win = WINDOWS.find((w) => w.key === windowKey) || WINDOWS[0];
 
@@ -192,6 +234,10 @@ export default function TrendCharts({ history = [], weeklyRtat = null }) {
           </div>
         </div>
       )}
+
+      <div className="mb-5 max-w-xl">
+        <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} percent={ltpPercent} />
+      </div>
 
       {recent.length < 2 ? (
         <div className="bg-white border border-slate-200 rounded-2xl text-center text-slate-400 text-sm py-10 px-4">
