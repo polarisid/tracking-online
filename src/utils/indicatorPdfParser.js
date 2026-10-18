@@ -15,11 +15,11 @@
 //    quantos meses aquela linha tem preenchidos. Isso corrige o erro comum da IA
 //    de trazer semanas nulas ou misturadas com meses.
 
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 // Worker servido pelo unpkg na versão EXATA do pacote instalado — evita a dor de
 // configurar worker no webpack do CRA e garante compatibilidade de versão.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/legacy/build/pdf.worker.min.mjs`;
 
 const PERIOD_RE = /^(\d{4})\.(\d{2})$/;
 const VALUE_RE = /^-$|^R\$\s?[\d.,]+$|^[\d.,]+%?$/;
