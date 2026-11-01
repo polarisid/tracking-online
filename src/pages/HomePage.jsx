@@ -1353,6 +1353,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         backlogReasonData={ftfBacklogReasonEntries}
         backlogRawData={planilha_FTF_Backlog_IH}
         backlogHeaders={combinedData[0] || []}
+        showSectionHeader
       />
       </div>
       <CalendarContainer>

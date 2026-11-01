@@ -97,7 +97,7 @@ export default function LtpAccumulatorCard({ data, loading, error, percent }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
+    <div className="h-full bg-white border border-slate-200/80 rounded-2xl p-4 shadow-panel transition-shadow duration-300 hover:shadow-panel-hover">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-start gap-2.5">
           <div className="shrink-0 w-8 h-8 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">

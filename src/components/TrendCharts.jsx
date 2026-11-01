@@ -7,9 +7,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from "recharts";
+import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Minus, LineChart as LineChartIcon, Clock } from "lucide-react";
 import LtpAccumulatorCard from "./LtpAccumulatorCard";
+import Panel from "./ui/Panel";
+import Sparkline from "./ui/Sparkline";
+import SectionHeader from "./ui/SectionHeader";
+import ChartTooltip from "./ui/ChartTooltip";
+import { AnimatedNumber, Stagger, StaggerItem } from "./ui/motion";
 
 // Métricas do histórico que valem uma linha de evolução. Os snapshots diários já
 // são persistidos (asc_metrics_history); aqui a gente finalmente os visualiza.
@@ -68,13 +75,6 @@ const PRIMARY = "#6366f1"; // indigo-500 (mesma primária do app)
 const UP = "#ef4444";      // vermelho = piora
 const DOWN = "#10b981";    // verde = melhora
 
-const tooltipStyle = {
-  borderRadius: "8px",
-  border: "none",
-  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
-  fontSize: 12,
-};
-
 function fmt(v, decimals) {
   if (v === null || v === undefined || isNaN(v)) return "-";
   return Number(v).toLocaleString("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -86,102 +86,206 @@ function formatWhen(ts) {
     " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function MiniTrend({ metric, history }) {
-  const data = useMemo(
-    () => history.map((h) => {
+// Leitura da série de uma métrica: valores, variação no período e se isso é
+// melhora ou piora (depende da direção: backlog cai = bom; em rota é neutro).
+function useMetricSeries(metric, history) {
+  return useMemo(() => {
+    const data = history.map((h) => {
       const raw = metric.accessor ? metric.accessor(h) : h[metric.key];
       return { label: formatWhen(h.timestamp), value: typeof raw === "number" && !isNaN(raw) ? raw : null };
-    }),
-    [history, metric]
-  );
+    });
+    const values = data.map((d) => d.value).filter((v) => v !== null);
+    const first = values[0];
+    const last = values[values.length - 1];
+    const delta = first !== undefined && last !== undefined ? +(last - first).toFixed(metric.decimals) : 0;
+    const isImproving = metric.betterWhenLower ? delta < 0 : delta > 0;
+    const color = delta === 0 ? "#94a3b8" : isImproving ? DOWN : UP;
+    const min = values.length ? Math.min(...values) : null;
+    const max = values.length ? Math.max(...values) : null;
+    const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+    return { data, values, last, delta, color, min, max, avg };
+  }, [history, metric]);
+}
 
-  const values = data.map((d) => d.value).filter((v) => v !== null);
-  const first = values[0];
-  const last = values[values.length - 1];
-  const delta = first !== undefined && last !== undefined ? +(last - first).toFixed(metric.decimals) : 0;
-  // "Melhora" depende da direção da métrica (backlog cai = bom; em rota é neutro).
-  const isImproving = metric.betterWhenLower ? delta < 0 : delta > 0;
-  const trendColor = delta === 0 ? "#94a3b8" : isImproving ? DOWN : UP;
-  const TrendIcon = delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
-  const gid = `grad-${metric.key}`;
+function DeltaChip({ delta, decimals, color }) {
+  const Icon = delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full"
+      style={{ color, backgroundColor: `${color}1a` }}
+      title="Variação no período disponível"
+    >
+      <Icon size={12} />
+      {delta > 0 ? `+${fmt(delta, decimals)}` : fmt(delta, decimals)}
+    </span>
+  );
+}
+
+// Tile pequeno (small multiple): número atual, variação e sparkline. Clicar
+// seleciona a métrica no gráfico grande — como um cross-filter do Power BI.
+function MetricTile({ metric, history, selected, onSelect }) {
+  const { values, last, delta, color } = useMetricSeries(metric, history);
+  return (
+    <StaggerItem>
+      <button
+        type="button"
+        onClick={() => onSelect(metric.key)}
+        aria-pressed={selected}
+        className={`group relative w-full text-left bg-white rounded-2xl border p-3.5 transition-all duration-300 ${
+          selected
+            ? "border-indigo-300 ring-2 ring-indigo-500/20 shadow-panel-hover"
+            : "border-slate-200/80 shadow-panel hover:shadow-panel-hover hover:-translate-y-0.5"
+        }`}
+      >
+        <span
+          className={`absolute inset-x-0 top-0 h-0.5 rounded-t-2xl bg-gradient-to-r from-transparent via-indigo-400 to-transparent transition-opacity duration-300 ${
+            selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        />
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">{metric.label}</p>
+          <DeltaChip delta={delta} decimals={metric.decimals} color={color} />
+        </div>
+        <p className="text-2xl font-black tracking-tight text-slate-800 leading-tight mt-1">
+          {last === undefined ? "—" : <AnimatedNumber value={last} decimals={metric.decimals} />}
+        </p>
+        <Sparkline data={values} color={color} height={26} className="w-full mt-1" />
+      </button>
+    </StaggerItem>
+  );
+}
+
+// O gráfico grande: a métrica selecionada em detalhe, com média do período,
+// mín/máx e tooltip. Os chips no topo trocam a métrica (slicer).
+function HeroChart({ metric, history, onSelect }) {
+  const { data, last, delta, color, min, max, avg } = useMetricSeries(metric, history);
+  const gid = `hero-${metric.key}`;
+  const stats = [
+    { label: "Mínimo", value: min },
+    { label: "Média", value: avg },
+    { label: "Máximo", value: max },
+  ];
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between mb-1">
-        <div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{metric.label}</p>
-          <p className="text-2xl font-extrabold text-slate-800 leading-tight">{fmt(last, metric.decimals)}</p>
-        </div>
-        <span
-          className="flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full"
-          style={{ color: trendColor, backgroundColor: `${trendColor}1a` }}
-          title="Variação no período disponível"
-        >
-          <TrendIcon size={12} />
-          {delta > 0 ? `+${fmt(delta, metric.decimals)}` : fmt(delta, metric.decimals)}
-        </span>
+    <Panel
+      icon={LineChartIcon}
+      title={metric.label}
+      subtitle="Evolução no período selecionado"
+      className="h-full"
+      bodyClassName="p-4 flex flex-col gap-3"
+    >
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Métrica do gráfico">
+        {METRICS.map((m) => (
+          <button
+            key={m.key}
+            type="button"
+            role="tab"
+            aria-selected={m.key === metric.key}
+            onClick={() => onSelect(m.key)}
+            className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+              m.key === metric.key
+                ? "bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/25"
+                : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
       </div>
-      <div className="h-[110px]">
+
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="flex items-baseline gap-3">
+          <span className="text-4xl font-black tracking-tight text-slate-800">
+            {last === undefined ? "—" : <AnimatedNumber value={last} decimals={metric.decimals} />}
+          </span>
+          <DeltaChip delta={delta} decimals={metric.decimals} color={color} />
+        </div>
+        <div className="flex items-center gap-5">
+          {stats.map((st) => (
+            <div key={st.label} className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">{st.label}</p>
+              <p className="text-sm font-bold text-slate-600 tabular-nums">{fmt(st.value, metric.decimals)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="h-[260px] -ml-2">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 6, right: 6, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.28} />
+                <stop offset="0%" stopColor={PRIMARY} stopOpacity={0.3} />
                 <stop offset="100%" stopColor={PRIMARY} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 9 }} interval="preserveStartEnd" minTickGap={24} />
-            <YAxis tick={{ fontSize: 9 }} width={30} allowDecimals={metric.decimals > 0} />
-            <Tooltip formatter={(v) => fmt(v, metric.decimals)} contentStyle={tooltipStyle} labelStyle={{ fontSize: 11, color: "#64748b" }} />
-            <Area type="monotone" dataKey="value" stroke={PRIMARY} strokeWidth={2} fill={`url(#${gid})`} dot={false} activeDot={{ r: 3 }} connectNulls />
+            <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={40} />
+            <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} width={36} allowDecimals={metric.decimals > 0} domain={["auto", "auto"]} />
+            <Tooltip
+              cursor={{ stroke: "#c7d2fe", strokeWidth: 1.5 }}
+              content={<ChartTooltip format={(v) => fmt(v, metric.decimals)} />}
+            />
+            {avg !== null && <ReferenceLine y={avg} stroke="#a5b4fc" strokeDasharray="4 4" />}
+            <Area
+              type="monotone"
+              dataKey="value"
+              name={metric.label}
+              stroke={PRIMARY}
+              strokeWidth={2.5}
+              fill={`url(#${gid})`}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "#fff", fill: PRIMARY }}
+              connectNulls
+              animationDuration={700}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+      <p className="text-[10px] text-slate-400 -mt-1">A linha tracejada é a média do período.</p>
+    </Panel>
   );
-}
-
-function fmtDays(v) {
-  if (v === null || v === undefined || isNaN(v)) return "—";
-  return `${Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
 }
 
 // RTAT real (turnaround) das OS concluídas na semana, por categoria (DA/DTV).
 function WeeklyRtatCard({ label, data }) {
   const has = data && data.count > 0;
+  const count = data?.count || 0;
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="shrink-0 w-8 h-8 rounded-xl bg-indigo-50 ring-2 ring-indigo-500/20 flex items-center justify-center">
-            <Clock size={16} className="text-indigo-600" />
+    <StaggerItem className="h-full">
+      <div className="h-full bg-white rounded-2xl border border-slate-200/80 shadow-panel p-3.5 transition-shadow duration-300 hover:shadow-panel-hover">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="shrink-0 w-6 h-6 rounded-lg bg-indigo-50 ring-1 ring-indigo-500/15 flex items-center justify-center">
+              <Clock size={12} className="text-indigo-600" />
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-tight">RTAT {label} · semana</p>
           </div>
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">RTAT {label} · semana</p>
+          <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full whitespace-nowrap">{count} OS</span>
         </div>
-        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-          {(data?.count || 0)} {(data?.count || 0) === 1 ? "OS" : "OS"}
-        </span>
+        <p className="text-2xl font-black tracking-tight text-slate-800 leading-tight mt-1.5 whitespace-nowrap">
+          {has ? <AnimatedNumber value={data.avg} decimals={1} /> : "—"}
+          {has && <span className="text-xs font-bold text-slate-400 ml-1">dias</span>}
+        </p>
+        <p className="text-[11px] text-slate-400 mt-0.5">
+          {has ? "média das concluídas na semana" : "nenhuma OS concluída na semana"}
+        </p>
       </div>
-      <p className="text-3xl font-extrabold text-slate-800 leading-tight mt-1">
-        {has ? fmtDays(data.avg) : "—"}
-        {has && <span className="text-base font-bold text-slate-400 ml-1">dias</span>}
-      </p>
-      <p className="text-[11px] text-slate-400 mt-0.5">
-        {has ? "média das concluídas esta semana" : "nenhuma OS concluída nesta semana"}
-      </p>
-    </div>
+    </StaggerItem>
   );
 }
 
 /**
  * Evolução no Tempo — transforma os snapshots já persistidos (localStorage +
- * asc_metrics_history no Supabase) em gráficos de tendência das métricas-chave.
+ * asc_metrics_history no Supabase) em um relatório de tendência: gráfico
+ * principal da métrica escolhida + painel de tiles (small multiples).
  * Também mostra o RTAT real (turnaround) das OS concluídas na semana (DA/DTV).
  */
 export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumulated = null, ltpPercent = null }) {
   const [windowKey, setWindowKey] = useState("3d");
+  const [selectedKey, setSelectedKey] = useState(METRICS[0].key);
   const win = WINDOWS.find((w) => w.key === windowKey) || WINDOWS[0];
+  const selectedMetric = METRICS.find((m) => m.key === selectedKey) || METRICS[0];
 
   const recent = useMemo(() => {
     const arr = Array.isArray(history) ? history : [];
@@ -193,66 +297,81 @@ export default function TrendCharts({ history = [], weeklyRtat = null, ltpAccumu
     return arr.filter((h) => (h.timestamp ?? 0) >= cutoff);
   }, [history, win.days]);
 
+  const subtitle = recent.length >= 2
+    ? `${recent.length} registros · ${win.days ? `últimos ${win.days} dias` : "todo o histórico"}`
+    : "Cada atualização de dados vira um ponto na linha";
+
   return (
-    <div className="max-w-screen-2xl mx-auto w-full px-4 py-2">
-      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <LineChartIcon className="h-5 w-5 text-indigo-500" />
-          <h2 className="text-lg font-bold text-slate-800">Evolução no Tempo</h2>
-          {recent.length >= 2 && (
-            <span className="text-[11px] font-semibold text-slate-400">
-              {recent.length} {recent.length === 1 ? "registro" : "registros"}
-              {win.days ? ` · últimos ${win.days} dias` : " · tudo"}
-            </span>
+    <section className="max-w-screen-2xl mx-auto w-full px-4 pt-2 pb-1 flex flex-col gap-4">
+      <SectionHeader
+        icon={LineChartIcon}
+        title="Evolução no tempo"
+        subtitle={subtitle}
+        actions={
+          <div className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white p-0.5 shadow-sm" role="group" aria-label="Período">
+            {WINDOWS.map((w) => (
+              <button
+                key={w.key}
+                type="button"
+                onClick={() => setWindowKey(w.key)}
+                aria-pressed={windowKey === w.key}
+                className={`relative px-3 py-1 text-[11px] font-bold rounded-lg transition-colors ${
+                  windowKey === w.key ? "text-white" : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {windowKey === w.key && (
+                  <motion.span
+                    layoutId="trend-window-pill"
+                    className="absolute inset-0 rounded-lg bg-indigo-500 shadow-sm shadow-indigo-500/30"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  />
+                )}
+                <span className="relative">{w.label}</span>
+              </button>
+            ))}
+          </div>
+        }
+      />
+
+      <div className="grid gap-4 lg:grid-cols-3 items-stretch">
+        <div className="lg:col-span-2 min-w-0">
+          {recent.length < 2 ? (
+            <Panel
+              icon={LineChartIcon}
+              title="Histórico insuficiente"
+              subtitle="Ainda não há pontos suficientes para uma tendência"
+              className="h-full"
+              bodyClassName="p-8 text-center text-sm text-slate-400"
+            >
+              Os gráficos aparecem conforme os dados são carregados ao longo dos dias.
+              <br />
+              Cada atualização vira um ponto na linha.
+            </Panel>
+          ) : (
+            <HeroChart metric={selectedMetric} history={recent} onSelect={setSelectedKey} />
           )}
         </div>
-        <div className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
-          {WINDOWS.map((w) => (
-            <button
-              key={w.key}
-              onClick={() => setWindowKey(w.key)}
-              className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${
-                windowKey === w.key
-                  ? "bg-indigo-500 text-white"
-                  : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
-              }`}
-            >
-              {w.label}
-            </button>
-          ))}
+        <div className="min-w-0">
+          <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} percent={ltpPercent} />
         </div>
       </div>
 
-      {weeklyRtat && (
-        <div className="mb-5">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-            RTAT médio da semana · OS concluídas (abertura → conclusão)
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+      {recent.length >= 2 ? (
+        <Stagger gap={0.03} className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+          {METRICS.map((m) => (
+            <MetricTile key={m.key} metric={m} history={recent} selected={m.key === selectedMetric.key} onSelect={setSelectedKey} />
+          ))}
+          {weeklyRtat && <WeeklyRtatCard label="DA" data={weeklyRtat.da} />}
+          {weeklyRtat && <WeeklyRtatCard label="DTV" data={weeklyRtat.dtv} />}
+        </Stagger>
+      ) : (
+        weeklyRtat && (
+          <Stagger className="grid gap-3 grid-cols-1 sm:grid-cols-2 max-w-xl">
             <WeeklyRtatCard label="DA" data={weeklyRtat.da} />
             <WeeklyRtatCard label="DTV" data={weeklyRtat.dtv} />
-          </div>
-        </div>
+          </Stagger>
+        )
       )}
-
-      <div className="mb-5 max-w-xl">
-        <LtpAccumulatorCard data={ltpAccumulated?.data} loading={ltpAccumulated?.loading} error={ltpAccumulated?.error} percent={ltpPercent} />
-      </div>
-
-      {recent.length < 2 ? (
-        <div className="bg-white border border-slate-200 rounded-2xl text-center text-slate-400 text-sm py-10 px-4">
-          Histórico ainda insuficiente para gerar tendências.
-          <br />
-          Os gráficos aparecem conforme os dados são carregados ao longo dos dias — cada
-          atualização vira um ponto na linha.
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {METRICS.map((m) => (
-            <MiniTrend key={m.key} metric={m} history={recent} />
-          ))}
-        </div>
-      )}
-    </div>
+    </section>
   );
 }
