@@ -4,6 +4,7 @@ import StatCard from "../components/StatCard";
 import HeaderComponent from "../components/HeaderComponent";
 import PresentationMode from "../components/PresentationMode";
 import ExecutiveSummary from "../components/ExecutiveSummary";
+import FutureProjectionPanel from "../components/FutureProjectionPanel";
 import styled from "styled-components";
 import ToggleableComponent from "../components/ToggleableComponent";
 import * as XLSX from "xlsx";
@@ -131,6 +132,23 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   } = useHomeContext();
 
   const hasData = combinedData.length > 1;
+
+  // "Futuro": simulação what-if. Soma N dias ao aging (TAT, coluna 15) de TODAS
+  // as OS pra ver quantas estariam em LTP/EX-LTP naquele dia, caso nada seja
+  // atendido até lá. Tudo que é métrica deriva de simCombinedData; o histórico
+  // NUNCA grava enquanto futureDays > 0 (ver effect de gravação abaixo).
+  const [futureDays, setFutureDays] = useState(0);
+  const simCombinedData = React.useMemo(() => {
+    if (!futureDays || combinedData.length <= 1) return combinedData;
+    return combinedData.map((row, i) => {
+      if (i === 0) return row;
+      const aging = Number(row[15]);
+      if (!Number.isFinite(aging)) return row;
+      const copy = row.slice();
+      copy[15] = aging + futureDays;
+      return copy;
+    });
+  }, [combinedData, futureDays]);
 
   const [presentationMode, setPresentationMode] = useState(false);
 
@@ -474,7 +492,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   // (cada tecla na busca, cada hover, cada toggle). Agora recomputa só quando os
   // dados (combinedData) ou o status de rota (inRouteByStatus) mudam.
   const dash = React.useMemo(() => {
-    const rows = combinedData.slice(1);
+    const rows = simCombinedData.slice(1);
 
     const parseDateVal = (val) => {
       if (val === null || val === undefined) return 0;
@@ -582,7 +600,46 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       midVar2: rows.filter(filters.all_lp_DA),
       baseVD: rows.filter(filters.all_lp_AV).length,
     };
-  }, [combinedData, inRouteByStatus]);
+  }, [simCombinedData, inRouteByStatus]);
+
+  // Projeção "Futuro": conta LTP/EX-LTP hoje e em cada dia até +N, somando os
+  // dias ao aging de todas as OS (nada é atendido no intervalo). `series` traz o
+  // total (LTP+EX) de cada dia pro mini gráfico do painel.
+  const futureProjection = React.useMemo(() => {
+    if (!futureDays || combinedData.length <= 1) return null;
+    const rows = combinedData.slice(1);
+    const tally = (d) => {
+      const t = { ltpVd: 0, exVd: 0, ltpDa: 0, exDa: 0 };
+      for (const r of rows) {
+        let x = r;
+        const aging = Number(r[15]);
+        if (d && Number.isFinite(aging)) {
+          x = r.slice();
+          x[15] = aging + d;
+        }
+        if (filters.filter_VD_LTP_LP(x)) t.ltpVd++;
+        if (filters.filter_VD_EX_LTP_LP(x)) t.exVd++;
+        if (filters.filter_REF_RAC_LTP_LP(x) || filters.filter_WSM_LP_LTP(x)) t.ltpDa++;
+        if (filters.filter_REF_RAC_EX_LTP_LP(x)) t.exDa++;
+      }
+      return t;
+    };
+    const days = [];
+    for (let d = 0; d <= futureDays; d++) days.push(tally(d));
+    const now = days[0];
+    const future = days[futureDays];
+    const target = new Date();
+    target.setDate(target.getDate() + futureDays);
+    return {
+      days: futureDays,
+      targetDate: target,
+      now,
+      future,
+      series: days.map((t) => t.ltpVd + t.exVd + t.ltpDa + t.exDa),
+      baseVD: rows.filter(filters.all_lp_AV).length,
+      baseDA: rows.filter(filters.all_lp_DA).length,
+    };
+  }, [combinedData, futureDays]);
 
   const {
     planilha_LTP_IH_VD_LP, planilha_EX_LTP_IH_VD_LP, planilha_LTP_IH_RAC_REF_LP,
@@ -767,7 +824,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   const compSnapshot = getComparisonSnapshot();
 
   const calcDiff = (currentVal, metricKey, isFloat = false) => {
-    if (!compSnapshot || compSnapshot[metricKey] === undefined) return null;
+    // Em simulação não há "variação vs histórico" (seria comparar futuro com passado).
+    if (futureDays || !compSnapshot || compSnapshot[metricKey] === undefined) return null;
     const histVal = compSnapshot[metricKey];
     const diff = currentVal - histVal;
     if (isFloat) {
@@ -799,6 +857,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
 
   useEffect(() => {
     if (combinedData.length <= 1) return;
+    // Simulação do futuro: valores fictícios, jamais persistir no histórico.
+    if (futureDays) return;
 
     // Calcular métricas para o histórico
     const currentMetrics = {
@@ -929,6 +989,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     average2,
     baseVD,
     baseDA,
+    futureDays,
     history,
     setHistory,
     dataSource
@@ -1169,6 +1230,8 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         dataSource={dataSource}
         lastUpdated={lastUpdated}
         title={TAB_TITLES[activeTab] || "Visão Geral"}
+        futureDays={futureDays}
+        onFutureDaysChange={setFutureDays}
       />
 
       {/* Topo: uma tese só. Com dados → resumo executivo (a fileira herói, com os
@@ -1196,6 +1259,9 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
           />
         ) : (
           <EmptyState onUpload={onUploadPending} />
+        )}
+        {hasData && futureProjection && (
+          <FutureProjectionPanel projection={futureProjection} onReset={() => setFutureDays(0)} />
         )}
         {hasData && <InsightsBar insights={insights} />}
       </div>
