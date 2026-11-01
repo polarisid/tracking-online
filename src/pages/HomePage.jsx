@@ -33,7 +33,8 @@ import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
 import { motion } from "framer-motion";
 import { containerVariants } from "../components/ui/motion";
-import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock, X } from "lucide-react";
+import SectionHeader from "../components/ui/SectionHeader";
+import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock, X, Table2 } from "lucide-react";
 
 import * as React from "react";
 import Menu from "@mui/material/Menu";
@@ -132,6 +133,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
   } = useHomeContext();
 
   const hasData = combinedData.length > 1;
+  const openSheetsCount = Object.values(visibleComponents || {}).filter(Boolean).length;
 
   // "Futuro": simulação what-if. Soma N dias ao aging (TAT, coluna 15) de TODAS
   // as OS pra ver quantas estariam em LTP/EX-LTP naquele dia, caso nada seja
@@ -1490,10 +1492,22 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
       {
         combinedData.length > 0 && (
           <>
-            <SubMenuSection>
-              <h1>Planilhas</h1>
-              <div className="divider"></div>
-            </SubMenuSection>
+            <div className="max-w-screen-2xl mx-auto w-full px-4 max-sm:px-3 mt-10 mb-3">
+              <SectionHeader
+                icon={Table2}
+                title="Planilhas"
+                subtitle="Listas detalhadas das ordens. Clique em um indicador acima para abrir ou ocultar."
+                actions={
+                  openSheetsCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 ring-1 ring-indigo-500/15 text-[11px] font-bold tabular-nums">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      {openSheetsCount} {openSheetsCount === 1 ? "aberta" : "abertas"}
+                    </span>
+                  )
+                }
+              />
+              <div className="mt-3 h-px bg-gradient-to-r from-slate-200 via-slate-200/60 to-transparent" />
+            </div>
             <ToggleableComponent isVisible={visibleComponents[1]}>
               {planilhaTable(planilha_LTP_IH_VD_LP, columnsToShow, renderRow, undefined, "EM LTP DTV", Layers)}
             </ToggleableComponent>
@@ -1659,26 +1673,6 @@ const UploadBox = styled.div`
 
 
 
-const SubMenuSection = styled.div`
-  margin: 2rem 1rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  
-  h1 {
-    font-weight: 700;
-    font-size: 1.5rem;
-    color: var(--color-text-primary);
-    margin-bottom: 0.5rem;
-  }
-  
-  .divider {
-    height: 1px;
-    width: 100%;
-    background: linear-gradient(to right, #cbd5e1, transparent);
-    margin: 5px 0px;
-  }
-`;
 // Grade de StatCards. É um container do framer-motion: os StatCards (que têm
 // `variants`) entram em cascata orquestrados daqui.
 const Dashboard = styled(motion.div).attrs({

@@ -173,11 +173,30 @@ const AppContent = () => {
         </main>
 
         {/* Footer */}
-        <footer className="w-full py-4 px-6 text-center bg-slate-900 border-t border-slate-800">
-          <p className="text-slate-500 text-xs font-medium">
-            2026 — Desenvolvido por Daniel Carvalho
-          </p>
-          <p className="text-slate-600 text-[10px] mt-0.5">Versão 3.0.0 — System Design Edition</p>
+        <footer className="w-full py-5 px-6 bg-slate-900 border-t border-slate-800">
+          <div className="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+            <p className="text-slate-500 text-xs font-medium">
+              © {new Date().getFullYear()} Tracking Online
+              <span className="text-slate-700 mx-2">·</span>
+              <span className="text-slate-600">Versão 3.5.0</span>
+            </p>
+            <a
+              href="https://dacari.com.br"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Desenvolvido por Dacari (abre dacari.com.br)"
+              className="group flex items-baseline gap-2 text-slate-500 text-xs font-medium hover:text-slate-300 transition-colors"
+            >
+              Desenvolvido por
+              <img
+                src={`${process.env.PUBLIC_URL}/dacari-wordmark.png`}
+                alt="Dacari"
+                width="592"
+                height="185"
+                className="h-4 w-auto opacity-70 group-hover:opacity-100 transition-opacity"
+              />
+            </a>
+          </div>
         </footer>
       </div>
 
