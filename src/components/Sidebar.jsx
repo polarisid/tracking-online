@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   ChevronLeft, ChevronRight, Presentation,
@@ -90,21 +91,29 @@ const Sidebar = ({
                 active:scale-[0.98]
                 ${collapsed ? 'justify-center p-3' : 'px-3 py-2.5'}
                 ${isActive
-                  ? 'bg-blue-500/15 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.2)]'
+                  ? 'text-blue-200'
                   : 'text-slate-400 font-medium hover:text-white hover:bg-white/[0.06]'
                 }
               `}
               title={collapsed ? item.label : undefined}
             >
               {isActive && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
+                // Um único elemento compartilhado (layoutId): ao trocar de aba ele
+                // desliza até o novo item em vez de apagar num e acender no outro.
+                <motion.span
+                  layoutId="nav-active-pill"
+                  className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/20 to-indigo-500/10 shadow-[inset_0_0_0_1px_rgba(99,102,241,0.28)]"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                >
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.7)]" />
+                </motion.span>
               )}
               <Icon
                 size={18}
-                className={`shrink-0 transition-colors duration-200 ${isActive ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-200'}`}
+                className={`relative shrink-0 transition-colors duration-200 ${isActive ? 'text-blue-300' : 'text-slate-500 group-hover:text-slate-200'}`}
               />
               {!collapsed && (
-                <span className={`text-sm truncate ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
+                <span className={`relative text-sm truncate ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
               )}
             </button>
           );

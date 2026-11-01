@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { MotionConfig } from "framer-motion";
 import "./App.css";
 import PagesRoutes from "./Router";
 import Sidebar from "./components/Sidebar";
@@ -174,9 +175,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <HomeProvider>
-      <AppContent />
-    </HomeProvider>
+    // reducedMotion="user": quem pediu "menos movimento" no sistema não vê as
+    // animações de transform/layout do framer-motion.
+    <MotionConfig reducedMotion="user">
+      <HomeProvider>
+        <AppContent />
+      </HomeProvider>
+    </MotionConfig>
   );
 };
 

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Monitor, MonitorOff, Clock, Database } from 'lucide-react';
+import { EASE } from './ui/motion';
 
-const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = false, dataSource, lastUpdated }) => {
+const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = false, dataSource, lastUpdated, title = 'Dashboard' }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -21,55 +23,67 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
   });
 
   return (
-    <header className="w-full bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-30">
-      <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex items-center justify-between">
-        {/* Left: Page Title + Date */}
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-slate-800 font-bold text-base leading-tight tracking-tight">
-              Dashboard
-            </h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <Clock size={11} className="text-slate-400" />
-              <span className="text-slate-400 text-[11px] font-medium capitalize">{formattedDate} • {formattedTime}</span>
-            </div>
+    <header className="w-full bg-white/70 backdrop-blur-xl border-b border-slate-200/70 sticky top-0 z-30">
+      <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+        {/* Esquerda: título da área atual + data/hora */}
+        <div className="min-w-0">
+          <div className="h-6 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.h1
+                key={title}
+                className="text-slate-800 font-bold text-base leading-6 tracking-tight truncate"
+                initial={{ y: 16, opacity: 0 }}
+                animate={{ y: 0, opacity: 1, transition: { duration: 0.28, ease: EASE } }}
+                exit={{ y: -16, opacity: 0, transition: { duration: 0.12 } }}
+              >
+                {title}
+              </motion.h1>
+            </AnimatePresence>
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Clock size={11} className="text-slate-400" />
+            <span className="text-slate-400 text-[11px] font-medium capitalize">{formattedDate} • {formattedTime}</span>
           </div>
         </div>
 
-        {/* Right: Status + Actions */}
-        <div className="flex items-center gap-3">
-          {/* Informações da Origem e Atualização */}
+        {/* Direita: origem, sincronização, status e ações */}
+        <div className="flex items-center gap-2.5">
           {dataLoaded && dataSource && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50/80 text-blue-600 border border-blue-100/70 text-[10px] font-bold uppercase tracking-wider">
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/80 text-indigo-600 border border-indigo-100/80 text-[10px] font-bold uppercase tracking-wider">
               <Database size={11} className="shrink-0" />
               <span>Base: {dataSource}</span>
             </div>
           )}
           {dataLoaded && lastUpdated && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-bold uppercase tracking-wider">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 text-slate-600 border border-slate-200/80 text-[10px] font-bold uppercase tracking-wider">
               <Clock size={11} className="shrink-0" />
               <span>Sinc: {lastUpdated}</span>
             </div>
           )}
 
-          {/* Data Status Badge */}
-          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+          {/* Status dos dados — ponto pulsando quando há dados carregados */}
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
             dataLoaded
-              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-              : 'bg-slate-100 text-slate-400 border border-slate-200'
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+              : 'bg-slate-100 text-slate-400 border-slate-200'
           }`}>
-            <Database size={12} />
-            {dataLoaded ? 'Dados Carregados' : 'Sem Dados'}
+            <span className="relative flex h-2 w-2">
+              {dataLoaded && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-ping" />}
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${dataLoaded ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+            </span>
+            {dataLoaded ? 'Dados carregados' : 'Sem dados'}
           </div>
 
-          {/* Presentation Mode Toggle */}
           {onTogglePresentation && (
-            <button
+            <motion.button
               onClick={onTogglePresentation}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
                 presentationMode
-                  ? 'bg-red-50 text-red-500 hover:bg-red-100 border border-red-200'
-                  : 'bg-blue-50 text-blue-500 hover:bg-blue-100 border border-blue-200'
+                  ? 'bg-red-50 text-red-600 border border-red-200'
+                  : 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-indigo-500/25'
               }`}
             >
               {presentationMode ? (
@@ -77,7 +91,7 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
               ) : (
                 <><Monitor size={13} /> Apresentar</>
               )}
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
