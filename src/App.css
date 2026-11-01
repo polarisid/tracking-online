@@ -2,12 +2,15 @@
   color: #61dafb;
 }
 .App {
-  height: 100vh;
+  /* Altura livre (min-height em index.css): a página rola pelo documento e o footer
+     fica no fim do conteúdo. Com height:100vh o .App virava um scroller interno e,
+     no celular, o footer ficava escondido atrás da barra inferior. */
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  /* overflow-y: hidden; */
   overflow-x: hidden;
+  /* clip não cria contêiner de rolagem (não quebra elementos sticky) */
+  overflow-x: clip;
 }
 
 /* App.css não define mais font-family: como este arquivo é importado (via
