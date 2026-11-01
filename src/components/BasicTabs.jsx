@@ -1,37 +1,37 @@
 import * as React from "react";
 import PropTypes from "prop-types";
-import Box from "@mui/material/Box";
+import { AnimatePresence, motion } from "framer-motion";
+import { EASE } from "./ui/motion";
 
-function CustomTabPanel({ children, value, index }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tab-panel-${index}`}
-      aria-labelledby={`tab-${index}`}
-    >
-      {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-    </div>
-  );
-}
-
+// Cada filho direto é uma aba (indexada por posição); só a ativa é montada.
+// A troca é animada: a que sai some rápido (sem esperar), a nova entra subindo
+// suave — dá a sensação de "navegar" em vez de o conteúdo piscar.
 export default function BasicTabs({ children, activeTab }) {
   const value = activeTab !== undefined ? activeTab : 0;
   const childrenArray = React.Children.toArray(children);
+  const active = childrenArray[value];
 
   return (
     <div className="w-full">
-      {childrenArray.map((child, index) => (
-        <CustomTabPanel key={index} value={value} index={index}>
-          {child}
-        </CustomTabPanel>
-      ))}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={value}
+          role="tabpanel"
+          id={`tab-panel-${value}`}
+          aria-labelledby={`tab-${value}`}
+          className="pt-4"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0, transition: { duration: 0.38, ease: EASE } }}
+          exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+        >
+          {active}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
 
-CustomTabPanel.propTypes = {
+BasicTabs.propTypes = {
   children: PropTypes.node,
-  index: PropTypes.number.isRequired,
-  value: PropTypes.number.isRequired,
+  activeTab: PropTypes.number,
 };

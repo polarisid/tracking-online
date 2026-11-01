@@ -30,6 +30,8 @@ import { getWeekAccumulated } from "../utils/ltpQuantityService";
 import { buildInsights } from "../utils/insights";
 import InsightsBar from "../components/InsightsBar";
 import { getCleanSourceName } from "../utils/dataSource";
+import { motion } from "framer-motion";
+import { containerVariants } from "../components/ui/motion";
 import { Layers, AlertTriangle, AlertCircle, CheckCircle, Calendar as CalendarIcon, Truck, Route, Clock, X } from "lucide-react";
 
 import * as React from "react";
@@ -40,6 +42,9 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 
 moment.locale("pt-br");
+
+// Título do cabeçalho conforme a aba (índices = filhos do <BasicTabs>).
+const TAB_TITLES = ["Visão Geral", "Análise", "Gráficos", "Calendário", "Inteligência", "Indicadores", "Usuários"];
 const localizer = momentLocalizer(moment);
 
 // A planilha da fonte já traz o nome como "Consumidor, Fulano de Tal" — redundante,
@@ -698,6 +703,18 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
     exDa: baseDA > 0 && ltpAccumulated.data ? ((ltpAccumulated.data.exDa / baseDA) * 100).toFixed(1) : null,
   };
 
+  // Séries curtas (últimos 24 snapshots) pras sparklines dos KPIs do resumo.
+  const sparks = React.useMemo(() => {
+    const recent = (Array.isArray(history) ? history : []).slice(-24);
+    const pick = (fn) => recent.map(fn).filter((v) => typeof v === "number" && Number.isFinite(v));
+    return {
+      inRoute: pick((h) => h.inRoute),
+      rtatVd: pick((h) => h.average),
+      rtatDa: pick((h) => h.average2),
+      ltp: pick((h) => (h.quantity_LTP_VD || 0) + (h.quantity_EX_LTP_VD || 0) + (h.quantity_LTP_RAC_REF || 0) + (h.quantity_EX_LTP_RAC_REF || 0) + (h.quantity_LTP_WSM || 0)),
+    };
+  }, [history]);
+
   const quantity_complete_CI_LP = planilha_CI_Complete_LP.length;
   const quantity_complete_CI_OW_X09 = planilha_CI_Complete_OW_X09.length;
   const quantity_complete_CI_OW_NOT_X09 = planilha_CI_Complete_OW_NOT_X09.length;
@@ -1151,6 +1168,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         dataLoaded={combinedData.length > 1}
         dataSource={dataSource}
         lastUpdated={lastUpdated}
+        title={TAB_TITLES[activeTab] || "Visão Geral"}
       />
 
       {/* Topo: uma tese só. Com dados → resumo executivo (a fileira herói, com os
@@ -1173,6 +1191,7 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
               exLtpVdAccum: ltpAccumulated.data ? ltpAccumulated.data.exVd : null,
               exLtpDaAccum: ltpAccumulated.data ? ltpAccumulated.data.exDa : null,
               ltpAccumPercent: weeklyLtpPercent,
+              sparks,
             }}
           />
         ) : (
@@ -1586,27 +1605,19 @@ const SubMenuSection = styled.div`
     margin: 5px 0px;
   }
 `;
-const Dashboard = styled.div`
+// Grade de StatCards. É um container do framer-motion: os StatCards (que têm
+// `variants`) entram em cascata orquestrados daqui.
+const Dashboard = styled(motion.div).attrs({
+  variants: containerVariants(0.035),
+  initial: "hidden",
+  animate: "show",
+})`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   max-width: 1536px;
   margin: 1.25rem auto;
   padding: 0 1rem;
-
-  /* Entrada em cascata dos cards — dá um toque moderno sem exagero. */
-  & > * {
-    animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-  & > *:nth-child(1)  { animation-delay: 0.02s; }
-  & > *:nth-child(2)  { animation-delay: 0.05s; }
-  & > *:nth-child(3)  { animation-delay: 0.08s; }
-  & > *:nth-child(4)  { animation-delay: 0.11s; }
-  & > *:nth-child(5)  { animation-delay: 0.14s; }
-  & > *:nth-child(6)  { animation-delay: 0.17s; }
-  & > *:nth-child(7)  { animation-delay: 0.20s; }
-  & > *:nth-child(8)  { animation-delay: 0.23s; }
-  & > *:nth-child(n+9) { animation-delay: 0.26s; }
 `;
 const MainContainer = styled.div`
   display: flex;

@@ -1,5 +1,7 @@
 import React from 'react';
 import * as LucideIcons from 'lucide-react';
+import { motion } from 'framer-motion';
+import { AnimatedNumber, itemVariants } from './ui/motion';
 
 const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', size = 'default', percentage, diff }) => {
   const Icon = iconName && LucideIcons[iconName] ? LucideIcons[iconName] : null;
@@ -37,13 +39,19 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
   };
 
   return (
-    <div
+    <motion.div
       onClick={onClick}
+      // variants: entra em cascata quando o pai (grade) orquestra; hover/tap por
+      // mola do framer (o translate via classe CSS brigaria com o transform inline).
+      variants={itemVariants}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
       className={`
         relative flex flex-col justify-between rounded-2xl border
-        transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer group
+        transition-[box-shadow,background-color,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] cursor-pointer group
         ${getThemeClasses()}
-        hover:-translate-y-1 hover:shadow-[0_14px_30px_-12px_rgba(15,23,42,0.25)]
+        hover:shadow-[0_14px_30px_-12px_rgba(15,23,42,0.25)]
         ${isLg ? 'p-6 h-[140px]' : isSm ? 'p-3 h-[75px]' : 'p-3.5 min-w-[130px] h-[104px]'}
         flex-1 w-full
       `}
@@ -65,7 +73,7 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
         <div className="flex items-end justify-between w-full">
           <div className="flex items-end gap-2">
             <h2 className={`${isLg ? 'text-4xl md:text-5xl' : isSm ? 'text-xl' : 'text-2xl md:text-3xl'} font-bold tracking-tight leading-none ${isActive ? 'text-white' : 'text-slate-900'}`}>
-              {value}
+              <AnimatedNumber value={value} />
             </h2>
             {percentage != null && (
               <span className={`text-[11px] font-semibold leading-none mb-0.5 ${isActive ? 'text-blue-300' : 'text-blue-500'}`}>
@@ -85,7 +93,7 @@ const StatCard = ({ title, value, onClick, isActive, iconName, type = 'normal', 
         </div>
         <div className={`h-1 ${isLg ? 'w-12' : isSm ? 'w-6' : 'w-8'} rounded-full ${getAccentColor()} transition-colors duration-300 opacity-80`} />
       </div>
-    </div>
+    </motion.div>
   );
 };
 
