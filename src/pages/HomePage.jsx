@@ -1234,9 +1234,10 @@ const HomePage = ({ activeTab, onTabChange, onUploadPending }) => {
         onFutureDaysChange={setFutureDays}
       />
 
+      {/* No celular o resumo só aparece no Dashboard; nas outras abas ele empurraria o conteúdo uma tela pra baixo. */}
       {/* Topo: uma tese só. Com dados → resumo executivo (a fileira herói, com os
           dois RTAT integrados). Sem dados → convite a carregar a planilha. */}
-      <div className="max-w-screen-2xl mx-auto w-full px-4 pt-3 pb-4 enter-up">
+      <div className={`max-w-screen-2xl mx-auto w-full px-3 sm:px-4 pt-3 pb-4 enter-up ${activeTab === 0 ? "" : "max-md:hidden"}`}>
         {hasData ? (
           <ExecutiveSummary
             metrics={{
@@ -1636,6 +1637,12 @@ const CalendarContainer = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 640px) {
+    padding: 12px;
+    width: calc(100% - 1.5rem);
+    margin: 12px auto;
+  }
 `;
 const UploadBox = styled.div`
   display: flex;
@@ -1685,6 +1692,12 @@ const Dashboard = styled(motion.div).attrs({
   max-width: 1536px;
   margin: 1.25rem auto;
   padding: 0 1rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+  }
 `;
 const MainContainer = styled.div`
   display: flex;
@@ -1708,6 +1721,14 @@ const ControlsBar = styled.div`
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
   width: fit-content;
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0.75rem 0.5rem;
+    padding: 0.6rem 0.85rem;
+    width: auto;
+  }
 
   .label {
     font-size: 0.7rem;

@@ -4,13 +4,13 @@ import {
   LayoutDashboard, BarChart3, Search, CalendarDays,
   ChevronLeft, ChevronRight, Presentation,
   Upload, Download, FileSpreadsheet, Cloud, RefreshCw, CloudOff,
-  LogIn, LogOut, Sparkles, Users, FileBarChart
+  LogIn, LogOut, Sparkles, Users, FileBarChart, X
 } from 'lucide-react';
 import useHomeContext from '../hooks/UseHomeContext';
 import { exportStyledCloudReport } from '../utils/cloudReportExporter';
 import Logo from './Logo';
 
-const navItems = [
+export const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', tab: 0 },
   { id: 'analysis', label: 'Análise', icon: Search, path: '/', tab: 1 },
   { id: 'charts', label: 'Gráficos', icon: BarChart3, path: '/', tab: 2 },
@@ -19,9 +19,26 @@ const navItems = [
   { id: 'indicators', label: 'Indicadores', icon: FileBarChart, path: '/', tab: 5 },
 ];
 
+// true quando a viewport é de celular (< md do Tailwind). Lá a sidebar vira
+// gaveta (drawer) e nunca "recolhida".
+function useIsMobile() {
+  const query = '(max-width: 767px)';
+  const [mobile, setMobile] = React.useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia(query);
+    const onChange = (e) => setMobile(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return mobile;
+}
+
 const Sidebar = ({
-  collapsed,
+  collapsed: collapsedProp,
   onToggle,
+  activeTab,
+  mobileOpen = false,
+  onMobileClose,
   onTabChange,
   onPresentationMode,
   onUploadPending,
@@ -36,7 +53,9 @@ const Sidebar = ({
   setTablesList
 }) => {
   const { user, signOut, setIsLocalMode, data1, activeRoutes, userRole } = useHomeContext();
-  const [activeId, setActiveId] = React.useState('dashboard');
+  const isMobile = useIsMobile();
+  const collapsed = collapsedProp && !isMobile;
+  const closeDrawer = () => { if (onMobileClose) onMobileClose(); };
   const pendingInputRef = useRef(null);
   const citiesInputRef = useRef(null);
 
@@ -48,16 +67,22 @@ const Sidebar = ({
     return list;
   }, [userRole]);
 
+  // O item ativo vem da aba atual (a barra inferior do celular também muda de aba).
+  const activeId = items.find((item) => item.tab === activeTab)?.id;
+
   return (
     <aside
       className={`
-        fixed left-0 top-0 h-full z-40
+        fixed left-0 top-0 h-full z-40 max-md:z-50
         bg-slate-900/95 backdrop-blur-xl border-r border-slate-800/60
         shadow-[8px_0_28px_-12px_rgba(0,0,0,0.55)]
         flex flex-col
-        transition-[width] duration-300 ease-in-out
+        transition-[width,transform] duration-300 ease-in-out
         ${collapsed ? 'w-16' : 'w-56'}
+        max-md:w-64 max-md:max-w-[85vw]
+        ${mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'}
       `}
+      aria-label="Menu principal"
     >
       {/* Brand */}
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3 px-4'} h-16 border-b border-slate-800/60`}>
@@ -68,6 +93,13 @@ const Sidebar = ({
             <p className="text-blue-400 text-[10px] font-semibold tracking-widest uppercase">Online</p>
           </div>
         )}
+        <button
+          onClick={closeDrawer}
+          className="md:hidden ml-auto mr-3 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06]"
+          aria-label="Fechar menu"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -80,10 +112,10 @@ const Sidebar = ({
             <button
               key={item.id}
               onClick={() => {
-                setActiveId(item.id);
                 if (item.tab !== undefined && onTabChange) {
                   onTabChange(item.tab);
                 }
+                closeDrawer();
               }}
               className={`
                 relative w-full flex items-center gap-3 rounded-lg
@@ -132,14 +164,14 @@ const Sidebar = ({
           type="file"
           accept=".xlsx,.xls,.csv"
           className="hidden"
-          onChange={(e) => { onUploadPending && onUploadPending(e); e.target.value = ''; }}
+          onChange={(e) => { onUploadPending && onUploadPending(e); e.target.value = ''; closeDrawer(); }}
         />
         <input
           ref={citiesInputRef}
           type="file"
           accept=".xlsx,.xls,.csv"
           className="hidden"
-          onChange={(e) => { onUploadCities && onUploadCities(e); e.target.value = ''; }}
+          onChange={(e) => { onUploadCities && onUploadCities(e); e.target.value = ''; closeDrawer(); }}
         />
 
         <button
@@ -171,7 +203,7 @@ const Sidebar = ({
         </button>
 
         <button
-          onClick={() => onDownload && onDownload()}
+          onClick={() => { if (onDownload) onDownload(); closeDrawer(); }}
           className={`
             w-full flex items-center gap-3 rounded-lg
             transition-all duration-200 ease-out group active:scale-[0.98]
@@ -323,7 +355,7 @@ const Sidebar = ({
 
         {onPresentationMode && (
           <button
-            onClick={onPresentationMode}
+            onClick={() => { onPresentationMode(); closeDrawer(); }}
             className={`
               w-full flex items-center gap-3 rounded-lg
               transition-all duration-200 ease-out group active:scale-[0.98]
@@ -337,11 +369,11 @@ const Sidebar = ({
           </button>
         )}
 
-        {/* Collapse Toggle */}
+        {/* Collapse Toggle (só desktop; no celular a gaveta fecha pelo X) */}
         <button
           onClick={onToggle}
           className={`
-            w-full flex items-center gap-3 rounded-lg
+            max-md:hidden w-full flex items-center gap-3 rounded-lg
             transition-all duration-200 ease-out active:scale-[0.98]
             text-slate-500 hover:text-slate-200 hover:bg-white/[0.06]
             ${collapsed ? 'justify-center p-3' : 'px-3 py-2.5'}

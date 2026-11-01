@@ -49,7 +49,8 @@ const FutureControl = ({ days, onChange }) => {
         }`}
       >
         <FastForward size={13} />
-        {days ? `Futuro +${days}d` : 'Futuro'}
+        <span className="max-sm:hidden">Futuro</span>
+        {days > 0 && <span>+{days}d</span>}
       </motion.button>
 
       <AnimatePresence>
@@ -60,7 +61,7 @@ const FutureControl = ({ days, onChange }) => {
             initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.2, ease: EASE } }}
             exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.12 } }}
-            className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl border border-slate-200 shadow-panel-hover p-4 z-40 origin-top-right"
+            className="absolute right-0 top-full mt-2 w-[min(18rem,calc(100vw-1.5rem))] bg-white rounded-2xl border border-slate-200 shadow-panel-hover p-4 z-40 origin-top-right"
           >
             <p className="text-[13px] font-bold text-slate-800">Simular o futuro</p>
             <p className="text-[11px] text-slate-400 leading-snug mt-0.5">
@@ -140,7 +141,7 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
 
   return (
     <header className="w-full bg-white/70 backdrop-blur-xl border-b border-slate-200/70 sticky top-0 z-30">
-      <div className="max-w-screen-2xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+      <div className="max-w-screen-2xl mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-4">
         {/* Esquerda: título da área atual + data/hora */}
         <div className="min-w-0">
           <div className="h-6 overflow-hidden">
@@ -156,14 +157,14 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
               </motion.h1>
             </AnimatePresence>
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
+          <div className="hidden sm:flex items-center gap-1.5 mt-0.5">
             <Clock size={11} className="text-slate-400" />
             <span className="text-slate-400 text-[11px] font-medium capitalize">{formattedDate} • {formattedTime}</span>
           </div>
         </div>
 
         {/* Direita: origem, sincronização, status e ações */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {dataLoaded && dataSource && (
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/80 text-indigo-600 border border-indigo-100/80 text-[10px] font-bold uppercase tracking-wider">
               <Database size={11} className="shrink-0" />
@@ -178,7 +179,7 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
           )}
 
           {/* Status dos dados — ponto pulsando quando há dados carregados */}
-          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
+          <div className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-1 rounded-full text-xs font-semibold border ${
             dataLoaded
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
               : 'bg-slate-100 text-slate-400 border-slate-200'
@@ -187,7 +188,7 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
               {dataLoaded && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 animate-ping" />}
               <span className={`relative inline-flex h-2 w-2 rounded-full ${dataLoaded ? 'bg-emerald-500' : 'bg-slate-300'}`} />
             </span>
-            {dataLoaded ? 'Dados carregados' : 'Sem dados'}
+            <span className="max-sm:hidden">{dataLoaded ? 'Dados carregados' : 'Sem dados'}</span>
           </div>
 
           {onFutureDaysChange && dataLoaded && (
@@ -200,7 +201,7 @@ const HeaderComponent = ({ presentationMode, onTogglePresentation, dataLoaded = 
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
+              className={`max-md:hidden flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
                 presentationMode
                   ? 'bg-red-50 text-red-600 border border-red-200'
                   : 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-indigo-500/25'

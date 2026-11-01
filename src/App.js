@@ -3,6 +3,7 @@ import { MotionConfig } from "framer-motion";
 import "./App.css";
 import PagesRoutes from "./Router";
 import Sidebar from "./components/Sidebar";
+import MobileNav from "./components/MobileNav";
 import LoadingScreen from "./components/LoadingScreen";
 import LoginPage from "./components/LoginPage";
 import { HomeProvider } from "./Contexts/HomeContext";
@@ -14,6 +15,7 @@ import { saveAs } from "file-saver";
 
 const AppContent = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -139,6 +141,9 @@ const AppContent = () => {
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        activeTab={activeTab}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
         onTabChange={setActiveTab}
         onUploadPending={(e) => handleUpload(e, setFile1, setData1)}
         onUploadCities={(e) => handleUpload(e, setFile2, setData2, true)}
@@ -152,10 +157,16 @@ const AppContent = () => {
         setTablesList={setTablesList}
       />
 
-      {/* Main Content Area */}
+      {/* Fundo escuro atrás da gaveta (celular) */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
+      )}
+
+      {/* Main Content Area — no celular ocupa a largura toda (a sidebar vira gaveta) */}
       <div
-        className="flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+        className={`flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300 pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0 ${
+          sidebarCollapsed ? 'md:ml-[var(--sidebar-collapsed)]' : 'md:ml-[var(--sidebar-width)]'
+        }`}
       >
         <main className="flex-1">
           <PagesRoutes activeTab={activeTab} onTabChange={setActiveTab} onUploadPending={(e) => handleUpload(e, setFile1, setData1)} />
@@ -169,6 +180,8 @@ const AppContent = () => {
           <p className="text-slate-600 text-[10px] mt-0.5">Versão 3.0.0 — System Design Edition</p>
         </footer>
       </div>
+
+      <MobileNav activeTab={activeTab} onTabChange={setActiveTab} onOpenMenu={() => setMobileMenuOpen(true)} />
     </div>
   );
 };

@@ -174,7 +174,7 @@ function HeroChart({ metric, history, onSelect }) {
       className="h-full"
       bodyClassName="p-4 flex flex-col gap-3"
     >
-      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Métrica do gráfico">
+      <div className="flex gap-1.5 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 pb-1 sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Métrica do gráfico">
         {METRICS.map((m) => (
           <button
             key={m.key}
@@ -182,7 +182,7 @@ function HeroChart({ metric, history, onSelect }) {
             role="tab"
             aria-selected={m.key === metric.key}
             onClick={() => onSelect(m.key)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-bold border transition-colors ${
               m.key === metric.key
                 ? "bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-500/25"
                 : "bg-slate-50 text-slate-500 border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200"

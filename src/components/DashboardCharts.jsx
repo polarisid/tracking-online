@@ -39,6 +39,16 @@ const CATEGORY_COLORS = {
 
 const AXIS_TICK = { fill: '#94a3b8', fontSize: 11 };
 
+// Tick do eixo X que quebra o rótulo em linhas (uma por palavra). Sem isso o
+// recharts esconde rótulos que se sobrepõem — no celular sumiam 2 de 4 barras.
+const WrapTick = ({ x, y, payload }) => (
+  <text x={x} y={y + 10} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight={600}>
+    {String(payload.value).split(' ').map((word, i) => (
+      <tspan key={i} x={x} dy={i === 0 ? 0 : 12}>{word}</tspan>
+    ))}
+  </text>
+);
+
 // Barra de percentual. A trilha (track) é sempre um tom claro da MESMA cor do
 // preenchimento — nunca um cinza genérico desconectado — para o medidor ler
 // como "uma rampa só".
@@ -299,7 +309,7 @@ const DashboardCharts = ({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} margin={{ top: 18, right: 8, left: -22, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eef2f7" />
-                  <XAxis dataKey="name" tick={AXIS_TICK} dy={8} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" tick={<WrapTick />} interval={0} height={44} axisLine={false} tickLine={false} />
                   <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip cursor={{ fill: '#f8fafc' }} content={<ChartTooltip format={(v) => `${v} ordens`} />} />
                   <Bar dataKey="total" name="Ordens" radius={[6, 6, 0, 0]} maxBarSize={56} animationDuration={800}>

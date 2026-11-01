@@ -69,7 +69,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
   return (
     <Reveal className="w-full bg-white rounded-2xl border border-slate-200/80 shadow-panel overflow-hidden">
       {/* Barra de status geral */}
-      <div className={`flex items-center justify-between px-6 py-3 ${colors.bg} border-b ${colors.border}`}>
+      <div className={`flex items-center justify-between px-4 sm:px-6 py-3 ${colors.bg} border-b ${colors.border}`}>
         <div className="flex items-center gap-3">
           <div className={`relative p-2 rounded-xl ${colors.bg} ring-2 ${colors.ring}`}>
             {health.status !== 'healthy' && (
@@ -82,7 +82,7 @@ const ExecutiveSummary = ({ metrics = {} }) => {
             <p className={`text-lg font-black ${colors.text}`}>{health.label}</p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right max-sm:hidden">
           <p className="text-xs text-slate-400">Última atualização</p>
           <p className="text-sm font-semibold text-slate-600 tabular-nums">
             {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -97,12 +97,12 @@ const ExecutiveSummary = ({ metrics = {} }) => {
         <MiniKpi icon={Clock} label="RTAT VD" value={rtatVd} decimals={2} suffix=" dias" sub={rtatVdBad ? '⚠ acima da meta' : '✓ dentro da meta'} color={rtatVdBad ? 'red' : 'emerald'} spark={sparks.rtatVd} />
         <MiniKpi icon={Clock} label="RTAT DA" value={rtatDa} decimals={2} suffix=" dias" sub={rtatDaBad ? '⚠ acima da meta' : '✓ dentro da meta'} color={rtatDaBad ? 'red' : 'emerald'} spark={sparks.rtatDa} />
         <LtpAccumGroup vd={ltpVdAccum} da={ltpDaAccum} exVd={exLtpVdAccum} exDa={exLtpDaAccum} percent={ltpAccumPercent} />
-        <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" />
+        <MiniKpi icon={Package} label="Agenda Hoje" value={agendaToday} sub="visitas agendadas" color="violet" className="max-sm:col-span-2" />
       </Stagger>
 
       {/* Alertas */}
       {health.issues.length > 0 && (
-        <div className="px-6 py-3 border-t border-slate-100">
+        <div className="px-4 sm:px-6 py-3 border-t border-slate-100">
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Alertas</p>
           <div className="flex flex-wrap gap-2">
             {health.issues.map((issue, i) => (
@@ -125,10 +125,10 @@ const ExecutiveSummary = ({ metrics = {} }) => {
 
 // Tile de KPI: rótulo, número que conta, subtexto e (opcional) sparkline. Uma
 // linha de cor aparece no topo ao passar o mouse, e o tile sobe levemente.
-const MiniKpi = ({ icon: Icon, label, value, decimals = 0, suffix = '', sub, color, spark }) => {
+const MiniKpi = ({ icon: Icon, label, value, decimals = 0, suffix = '', sub, color, spark, className = '' }) => {
   const tone = TONES[color] || TONES.blue;
   return (
-    <StaggerItem className="group relative bg-white p-4 flex flex-col gap-1 overflow-hidden transition-colors duration-300 hover:bg-slate-50/60">
+    <StaggerItem className={`group relative bg-white p-4 flex flex-col gap-1 overflow-hidden transition-colors duration-300 hover:bg-slate-50/60 ${className}`}>
       <span
         className="absolute inset-x-0 top-0 h-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         style={{ background: `linear-gradient(90deg, transparent, ${tone.hex}, transparent)` }}
