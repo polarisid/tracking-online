@@ -149,7 +149,7 @@ function MetricTile({ metric, history, selected, onSelect }) {
         <p className="text-2xl font-black tracking-tight text-slate-800 leading-tight mt-1">
           {last === undefined ? "—" : <AnimatedNumber value={last} decimals={metric.decimals} />}
         </p>
-        <Sparkline data={values} color={color} height={26} className="w-full mt-1" />
+        <Sparkline data={values} color={color} height={34} className="w-full mt-1" />
       </button>
     </StaggerItem>
   );
